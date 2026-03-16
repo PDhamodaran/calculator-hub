@@ -1,70 +1,160 @@
-# Getting Started with Create React App
+# Personal Finance Tools
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A collection of 15 free, client-side personal finance calculators built for Indian investors and salaried professionals. No server, no login, no data collection — everything runs entirely in the browser.
 
-## Available Scripts
+🌐 **Live site:** `https://PDhamodaran.github.io/personal/`
 
-In the project directory, you can run:
+---
 
-### `npm start`
+## Calculators
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+| # | Calculator | File | Description |
+|---|-----------|------|-------------|
+| 1 | **LTCG Tax Harvesting** | `sip-ltcg-tax-harvesting-calculator.html` | Upload Zerodha tradebook to generate a FIFO lot-wise sell plan that maximises the ₹1.25L LTCG exemption |
+| 2 | **EMI Calculator** | `emi-calculator.html` | Month-by-month amortization with prepayment savings and yearly summary |
+| 3 | **FD Calculator** | `fd-calculator.html` | Fixed deposit with monthly/quarterly/cumulative payout, TDS impact, post-tax returns at all slabs |
+| 4 | **Take Home Salary** | `salary-calculator.html` | CTC breakdown, New vs Old regime comparison, HRA exemption, 80C/D/NPS deductions, monthly in-hand |
+| 5 | **SIP Calculator** | `sip-calculator.html` | SIP and Lump Sum projections with year-wise table and compare mode |
+| 6 | **PPF Calculator** | `ppf-calculator.html` | 15-year schedule, loan eligibility (years 3–6), partial withdrawal (year 7+), extension projections |
+| 7 | **RD Calculator** | `rd-calculator.html` | Recurring deposit with quarterly/monthly/annual compounding, bank presets, RD vs FD comparison |
+| 8 | **NPS Calculator** | `nps-calculator.html` | NPS corpus projection, 80CCD(1)/(1B) tax savings, lump sum + annuity split at retirement |
+| 9 | **Retirement Planner** | `retirement-planner.html` | Inflation-adjusted corpus planner, SIP needed, post-retirement withdrawal simulation |
+| 10 | **Capital Gains Tax** | `capital-gains-calculator.html` | LTCG/STCG for equity, debt MF, real estate (CII indexation), gold — FY 2025-26 rules |
+| 11 | **GST Calculator** | `gst-calculator.html` | Add/Remove GST at 5/12/18/28%, CGST+SGST vs IGST split, all-slab reference table |
+| 12 | **Gratuity Calculator** | `gratuity-calculator.html` | Act-covered, non-covered and government formulas, eligibility check, ₹20L tax exemption |
+| 13 | **Inflation Calculator** | `inflation-calculator.html` | Future cost, present value, and real return (Fisher equation) in one tool |
+| 14 | **Loan vs Invest** | `loan-vs-invest.html` | Prepay loan vs invest surplus — interest saved vs SIP corpus, year-wise comparison, break-even rate |
+| 15 | **Percentage Calculator** | `percentage-calculator.html` | 9 quick tools: % of, % change, add/remove %, markup/margin, CAGR, tip split, and more |
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+---
 
-### `npm test`
+## Features
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### LTCG Tax Harvesting (flagship)
+- Upload **Zerodha XLSX/CSV** tradebook — parsed entirely in the browser
+- **FIFO lot matching** across multiple financial years
+- Accordion lot-wise plan grouped by stock with expand/collapse
+- **Portfolio Summary** table — sortable, filterable (search, chips, gain% range)
+- **Sell Planner** — select stocks via checkbox, adjust sell qty per stock, live P&L summary
+- **Portfolio Charts** — invested vs value bars, allocation donut, LTCG gauge
+- Export harvest plan as CSV
+- Supports partial-lot selling when limit is nearly filled
 
-### `npm run build`
+### FD Calculator
+- Monthly, Quarterly, Cumulative and Year-summary tabs
+- **Tenure modes**: Years+Months, Total Months, or **Days** (with presets: 300d, 444d, 777d…)
+- **Payout frequency card** — shows gross and net (after TDS) for all 4 frequencies at once
+- Form 15G/15H toggle, 10%/20% TDS rates
+- Post-tax maturity at 5 different slab rates side-by-side
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Take Home Salary
+- Basic % slider, HRA city toggle, variable pay, professional tax
+- New Regime FY26 — ₹75K std deduction, 87A rebate ≤ ₹12L
+- Old Regime — HRA exemption, 80C (₹1.5L), 80D, NPS 80CCD(1B)
+- Monthly in-hand breakdown with CTC bar chart
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### General
+- **Dark / Light theme** toggle (persists via `localStorage`)
+- Fully **client-side** — no backend, no API calls, no data leaves the browser
+- Responsive layout — works on mobile
+- Google Fonts via CDN (DM Sans + JetBrains Mono)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+---
 
-### `npm run eject`
+## Tax Rules (FY 2025-26)
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+| Tax Head | Rate | Notes |
+|----------|------|-------|
+| Equity LTCG | 12.5% | Above ₹1.25L exemption, held > 12 months |
+| Equity STCG | 20% | Held ≤ 12 months |
+| Debt MF | Slab rate | No indexation benefit post April 2023 |
+| Real Estate LTCG | 12.5% | CII indexation available, held > 24 months |
+| Gold LTCG | 12.5% | Held > 36 months |
+| FD Interest | Slab rate | TDS 10% if interest > ₹40K/yr (₹50K senior) |
+| New Regime std deduction | ₹75,000 | FY 2025-26 |
+| 87A rebate | Full tax | Taxable income ≤ ₹12L (new regime) |
+| PPF | EEE | Exempt at investment, accrual, and maturity |
+| NPS lump sum (60%) | Tax-free | At retirement |
+| Gratuity cap | ₹20L | Tax-exempt limit |
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+---
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Project Structure
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```
+personal/
+├── index.html                          # Home page — links to all calculators
+├── theme.js                            # Dark/light theme toggle (shared)
+├── sip-ltcg-tax-harvesting-calculator.html
+├── emi-calculator.html
+├── fd-calculator.html
+├── salary-calculator.html
+├── sip-calculator.html
+├── ppf-calculator.html
+├── rd-calculator.html
+├── nps-calculator.html
+├── retirement-planner.html
+├── capital-gains-calculator.html
+├── gst-calculator.html
+├── gratuity-calculator.html
+├── inflation-calculator.html
+├── loan-vs-invest.html
+├── percentage-calculator.html
+└── README.md
+```
 
-## Learn More
+---
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Tech Stack
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- **Vanilla HTML / CSS / JavaScript** — zero frameworks, zero dependencies
+- **SheetJS (xlsx)** — in-browser Excel/CSV parsing (LTCG calculator only, loaded via CDN)
+- **Canvas 2D API** — custom chart drawing (bar, donut, gauge)
+- **CSS custom properties** — full dark/light theming via `data-theme` attribute
+- **localStorage** — persists theme preference across sessions
 
-### Code Splitting
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Running Locally
 
-### Analyzing the Bundle Size
+No build step needed. Just open any file directly in a browser:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```bash
+# Option 1 — open directly
+start e:/php8/htdocs/personal/index.html
 
-### Making a Progressive Web App
+# Option 2 — serve with Python (avoids any CORS issues)
+cd e:/php8/htdocs/personal
+python -m http.server 8080
+# then visit http://localhost:8080
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+---
 
-### Advanced Configuration
+## Deploying to GitHub Pages
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+```bash
+cd e:/php8/htdocs/personal
+git init
+git add .
+git commit -m "Initial commit"
+git remote add origin https://github.com/YOUR_USERNAME/REPO_NAME.git
+git branch -M main
+git push -u origin main
+```
 
-### Deployment
+Then in the repo → **Settings → Pages → Deploy from branch → main / root → Save**.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+Your site will be live at `https://PDhamodaran.github.io/calculator-hub/` within ~2 minutes.
 
-### `npm run build` fails to minify
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Disclaimer
+
+All calculations are **indicative only**. Tax rules and rates change annually — always verify with a qualified Chartered Accountant before making financial decisions. This tool does not constitute financial or tax advice.
+
+---
+
+## License
+
+MIT — free to use, modify, and distribute.
