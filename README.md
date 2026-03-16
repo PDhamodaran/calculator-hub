@@ -2,7 +2,7 @@
 
 A collection of 15 free, client-side personal finance calculators built for Indian investors and salaried professionals. No server, no login, no data collection — everything runs entirely in the browser.
 
-🌐 **Live site:** `https://PDhamodaran.github.io/personal/`
+🌐 **Live site:** `https://YOUR_USERNAME.github.io/personal/`
 
 ---
 
@@ -145,7 +145,7 @@ git push -u origin main
 
 Then in the repo → **Settings → Pages → Deploy from branch → main / root → Save**.
 
-Your site will be live at `https://PDhamodaran.github.io/calculator-hub/` within ~2 minutes.
+Your site will be live at `https://YOUR_USERNAME.github.io/REPO_NAME/` within ~2 minutes.
 
 ---
 

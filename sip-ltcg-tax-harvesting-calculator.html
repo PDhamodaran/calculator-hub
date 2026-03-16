@@ -371,7 +371,7 @@
         <div class="fetch-bar">
           <button class="btn-fetch" id="fetchBtn" onclick="fetchAllCMPs('cmpGrid','fetchBtn','fetchProgress')">⚡ Fetch Live Prices (NSE)</button>
           <span id="fetchProgress"></span>
-          <span class="fetch-note">via Yahoo Finance · NSE data</span>
+          <span class="fetch-note">Yahoo Finance · 4 proxy fallbacks</span>
         </div>
         <div class="cmp-grid" id="cmpGrid"></div>
         <div class="btn-row">
@@ -411,7 +411,7 @@ SBI, 2024-02-15, buy, 10, 645"></textarea>
         <div class="fetch-bar">
           <button class="btn-fetch" id="fetchBtnPaste" onclick="fetchAllCMPs('cmpGridPaste','fetchBtnPaste','fetchProgressPaste')">⚡ Fetch Live Prices (NSE)</button>
           <span id="fetchProgressPaste"></span>
-          <span class="fetch-note">via Yahoo Finance · NSE data</span>
+          <span class="fetch-note">Yahoo Finance · 4 proxy fallbacks</span>
         </div>
         <div class="cmp-grid" id="cmpGridPaste"></div>
         <div class="btn-row">
@@ -903,88 +903,97 @@ function showCMPEntry(sectionId, gridId) {
   }).join('');
 }
 
-// ─── Live Price Fetching (Yahoo Finance / NSE) ────────────────────────────────
+// ─── Live Price Fetching (Yahoo Finance via CORS proxies) ─────────────────────
 async function fetchCMPForSymbol(symbol) {
-  // Yahoo Finance: NSE symbols use .NS suffix
-  // Some Zerodha symbols differ from Yahoo's (e.g. M&M → MM.NS, BAJAJ-AUTO → BAJAJAUTO.NS)
-  const yhSym = symbol
-    .replace('&', '')       // M&M → MM
-    .replace(/-/g, '')      // BAJAJ-AUTO → BAJAJAUTO
-    + '.NS';
+  const yhSym = symbol.replace('&', '').replace(/-/g, '') + '.NS';
+  const yUrl1 = `https://query1.finance.yahoo.com/v8/finance/chart/${yhSym}?interval=1d&range=1d`;
+  const yUrl2 = `https://query2.finance.yahoo.com/v8/finance/chart/${yhSym}?interval=1d&range=1d`;
 
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yhSym}?interval=1d&range=1d`;
+  const extractPrice = d => d?.chart?.result?.[0]?.meta?.regularMarketPrice || null;
 
-  // Attempt 1: direct (works when browser doesn't block CORS on yahoo)
-  try {
+  const tryFetch = async (url, timeout = 6000) => {
     const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 6000);
-    const r = await fetch(url, { signal: ctrl.signal });
-    clearTimeout(tid);
-    if (r.ok) {
+    const tid = setTimeout(() => ctrl.abort(), timeout);
+    try {
+      const r = await fetch(url, { signal: ctrl.signal });
+      clearTimeout(tid);
+      if (!r.ok) return null;
       const d = await r.json();
-      const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
-      if (price) return { price, source: 'direct' };
-    }
-  } catch(e) {}
+      return extractPrice(d);
+    } catch(e) { clearTimeout(tid); return null; }
+  };
 
-  // Attempt 2: via corsproxy.io
-  try {
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-    const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 8000);
-    const r = await fetch(proxyUrl, { signal: ctrl.signal });
-    clearTimeout(tid);
-    if (r.ok) {
-      const d = await r.json();
-      const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
-      if (price) return { price, source: 'proxy' };
-    }
-  } catch(e) {}
+  // 1. Direct query1
+  let price = await tryFetch(yUrl1, 5000);
+  if (price) return { price, source: 'direct' };
+
+  // 2. Direct query2 (different Yahoo server, different CORS behaviour)
+  price = await tryFetch(yUrl2, 5000);
+  if (price) return { price, source: 'direct2' };
+
+  // 3–6. CORS proxy fallbacks (tried in order until one works)
+  const proxies = [
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+    u => `https://thingproxy.freeboard.io/fetch/${u}`,
+  ];
+
+  for (const makeProxy of proxies) {
+    price = await tryFetch(makeProxy(yUrl1), 9000);
+    if (price) return { price, source: 'proxy' };
+  }
 
   return null;
 }
 
 async function fetchAllCMPs(gridId, btnId, progressId) {
   const symbols = Object.keys(parsedStocks).sort();
-  const btn = document.getElementById(btnId);
+  const btn  = document.getElementById(btnId);
   const prog = document.getElementById(progressId);
   btn.disabled = true;
   btn.textContent = '⏳ Fetching…';
+  prog.style.color = '';
 
   let done = 0, ok = 0, fail = 0;
   prog.textContent = `0 / ${symbols.length}`;
 
-  await Promise.all(symbols.map(async s => {
-    const statusEl = document.getElementById(`fs-${s}`);
-    if (statusEl) statusEl.textContent = '⏳';
-    const result = await fetchCMPForSymbol(s);
-    done++;
-    prog.textContent = `${done} / ${symbols.length}`;
-    if (result) {
-      ok++;
-      parsedStocks[s].cmp = result.price;
-      // Update the input field
-      const inp = document.querySelector(`[data-cmp-symbol="${s}"]`);
-      if (inp) inp.value = result.price.toFixed(2);
-      if (statusEl) statusEl.title = `₹${result.price.toFixed(2)} (${result.source})`;
-      if (statusEl) statusEl.textContent = '✓';
-      if (statusEl) statusEl.style.color = 'var(--profit)';
-    } else {
-      fail++;
-      if (statusEl) statusEl.textContent = '✗';
-      if (statusEl) statusEl.style.color = 'var(--loss)';
-      if (statusEl) statusEl.title = 'Could not fetch — enter manually';
-    }
-  }));
+  // Batch 3 at a time to avoid proxy rate-limits
+  const BATCH = 3;
+  for (let i = 0; i < symbols.length; i += BATCH) {
+    const batch = symbols.slice(i, i + BATCH);
+    await Promise.all(batch.map(async s => {
+      const statusEl = document.getElementById(`fs-${s}`);
+      if (statusEl) { statusEl.textContent = '⏳'; statusEl.style.color = ''; }
+      const result = await fetchCMPForSymbol(s);
+      done++;
+      prog.textContent = `${done} / ${symbols.length}`;
+      if (result) {
+        ok++;
+        parsedStocks[s].cmp = result.price;
+        const inp = document.querySelector(`[data-cmp-symbol="${s}"]`);
+        if (inp) inp.value = result.price.toFixed(2);
+        if (statusEl) { statusEl.textContent = '✓'; statusEl.style.color = 'var(--profit)'; statusEl.title = `₹${result.price.toFixed(2)} via ${result.source}`; }
+      } else {
+        fail++;
+        if (statusEl) { statusEl.textContent = '✗'; statusEl.style.color = 'var(--loss)'; statusEl.title = 'Could not fetch — enter manually'; }
+      }
+    }));
+    // Small pause between batches to be kind to proxy servers
+    if (i + BATCH < symbols.length) await new Promise(r => setTimeout(r, 400));
+  }
 
   btn.disabled = false;
   btn.textContent = '⚡ Fetch Live Prices (NSE)';
   if (fail === 0) {
     prog.textContent = `✓ All ${ok} prices fetched`;
     prog.style.color = 'var(--profit)';
+  } else if (ok === 0) {
+    prog.textContent = `All proxies blocked — enter prices manually`;
+    prog.style.color = 'var(--loss)';
   } else {
-    prog.textContent = `${ok} fetched · ${fail} failed (enter manually)`;
-    prog.style.color = fail === symbols.length ? 'var(--loss)' : 'var(--warn)';
+    prog.textContent = `${ok} fetched · ${fail} failed — enter manually`;
+    prog.style.color = 'var(--warn)';
   }
 }
 
