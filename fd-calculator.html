@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FD Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080b10; --surface: #0f1419; --surface2: #161d26; --surface3: #1c2530;
+    --border: #1e2a38; --text: #dfe6ee; --text-dim: #7b8da0; --text-muted: #4a5c6e;
+    --accent: #2d6a4f; --accent-bright: #40916c; --accent-light: #52b788; --accent-glow: #40916c22;
+    --harvest: #4e8fd4; --harvest-bg: #4e8fd412; --harvest-border: #4e8fd433;
+    --loss: #d94f4f; --loss-bg: #d94f4f12;
+    --warn: #d4a04e; --warn-bg: #d4a04e12;
+    --profit: #40916c; --profit-bg: #40916c12;
+    --purple: #9d7fe8; --purple-bg: #9d7fe812;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.55; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 20px 16px; }
+
+  .topnav { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .back-link { font-size: 0.78rem; color: var(--text-dim); text-decoration: none; display: flex; align-items: center; gap: 5px; padding: 6px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; }
+  .back-link:hover { color: var(--text); border-color: var(--warn); }
+  .page-title { font-size: 0.9rem; font-weight: 700; color: var(--warn); }
+
+  header { margin-bottom: 24px; padding: 20px 0 18px; border-bottom: 1px solid var(--border); }
+  h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; background: linear-gradient(135deg, #e0e8f0 30%, var(--warn) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 4px; }
+  .tagline { font-size: 0.82rem; color: var(--text-dim); }
+
+  .layout { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 20px; }
+  .panel-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 16px; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 6px; }
+  .input-wrap { position: relative; }
+  .input-prefix { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-dim); pointer-events: none; }
+  .input-suffix { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-dim); pointer-events: none; }
+  input, select { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; padding: 9px 12px; border-radius: 7px; outline: none; transition: border-color 0.2s; }
+  input.has-prefix { padding-left: 26px; }
+  input.has-suffix { padding-right: 30px; }
+  input:focus, select:focus { border-color: var(--warn); box-shadow: 0 0 0 3px var(--warn-bg); }
+  select { font-family: 'DM Sans', sans-serif; font-size: 0.85rem; }
+
+  .range-wrap { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+  input[type="range"] { flex: 1; -webkit-appearance: none; height: 4px; background: var(--surface3); border-radius: 2px; border: none; padding: 0; cursor: pointer; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; background: var(--warn); border-radius: 50%; cursor: pointer; }
+  .range-val { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--warn); min-width: 44px; text-align: right; }
+
+  .btn { width: 100%; padding: 11px; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 700; cursor: pointer; border: none; background: linear-gradient(135deg, #b07a2a, var(--warn)); color: #fff; margin-top: 6px; transition: all 0.2s; }
+  .btn:hover { transform: translateY(-1px); }
+
+  .results { display: none; }
+  .results.visible { display: block; }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; position: relative; overflow: hidden; }
+  .stat-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .stat-card.c-warn::after { background: var(--warn); }
+  .stat-card.c-profit::after { background: var(--profit); }
+  .stat-card.c-harvest::after { background: var(--harvest); }
+  .stat-card.c-purple::after { background: var(--purple); }
+  .stat-card.c-loss::after { background: var(--loss); }
+  .stat-label { font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 2px; }
+  .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; font-weight: 700; }
+  .stat-value.warn { color: var(--warn); }
+  .stat-value.profit { color: var(--profit); }
+  .stat-value.harvest { color: var(--harvest); }
+  .stat-value.purple { color: var(--purple); }
+  .stat-value.loss { color: var(--loss); }
+  .stat-sub { font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; }
+
+  .tabs { display: flex; gap: 2px; margin-bottom: 14px; background: var(--surface2); border-radius: 9px; padding: 3px; border: 1px solid var(--border); }
+  .tab { flex: 1; padding: 8px; text-align: center; font-size: 0.76rem; font-weight: 600; color: var(--text-dim); cursor: pointer; border-radius: 7px; transition: all 0.2s; border: none; background: none; font-family: inherit; }
+  .tab.active { background: var(--surface3); color: var(--text); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .tbl-wrap { overflow-x: auto; border-radius: 9px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.79rem; }
+  thead th { text-align: right; padding: 10px 12px; font-size: 0.63rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--surface2); }
+  thead th:first-child { text-align: left; }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; text-align: right; }
+  tbody td:first-child { text-align: left; font-family: 'DM Sans', sans-serif; font-size: 0.8rem; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr.qtr-row td { background: var(--surface3); font-weight: 600; }
+  tbody tr.yr-row td { background: #1c2a20; font-weight: 700; color: var(--accent-light); }
+  .text-profit { color: var(--profit); }
+  .text-loss { color: var(--loss); }
+  .text-warn { color: var(--warn); }
+  .text-harvest { color: var(--harvest); }
+  .text-purple { color: var(--purple); }
+  .text-dim { color: var(--text-dim); }
+
+  .tax-section { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 16px; margin-bottom: 16px; }
+  .tax-section h4 { font-size: 0.82rem; font-weight: 700; margin-bottom: 12px; color: var(--warn); }
+  .tax-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .tax-card { padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; text-align: center; }
+  .tax-card .tc-label { font-size: 0.64rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin-bottom: 4px; }
+  .tax-card .tc-rate { font-size: 0.82rem; font-weight: 700; color: var(--text-dim); margin-bottom: 2px; }
+  .tax-card .tc-maturity { font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 700; margin-bottom: 2px; }
+  .tax-card .tc-sub { font-size: 0.66rem; color: var(--text-muted); }
+
+  /* TDS Toggle */
+  .tds-toggle-wrap { margin-bottom: 8px; }
+  .tds-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; transition: all 0.2s; }
+  .tds-toggle:hover { border-color: var(--accent-bright); }
+  .tds-toggle input[type="checkbox"] { display: none; }
+  .tds-slider { position: relative; width: 38px; height: 20px; background: var(--surface3); border-radius: 10px; flex-shrink: 0; transition: background 0.2s; border: 1px solid var(--border); }
+  .tds-slider::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: var(--text-muted); border-radius: 50%; transition: all 0.2s; }
+  .tds-toggle input:checked ~ .tds-slider { background: var(--accent); border-color: var(--accent-bright); }
+  .tds-toggle input:checked ~ .tds-slider::after { left: 20px; background: #fff; }
+  .tds-toggle-text { font-size: 0.82rem; font-weight: 600; color: var(--text-dim); transition: color 0.2s; }
+  .tds-toggle input:checked ~ .tds-toggle-text { color: var(--accent-light); }
+  .form15-info { margin-top: 8px; }
+  .form15-badge { font-size: 0.8rem; font-weight: 700; color: var(--accent-light); background: var(--accent-glow); border: 1px solid #40916c33; padding: 7px 12px; border-radius: 7px; margin-bottom: 8px; }
+  .form15-who { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; }
+  .who-item { font-size: 0.74rem; color: var(--text-dim); line-height: 1.5; }
+  .who-item strong { color: var(--text); }
+  .tds-rate-row select { width: 100%; }
+
+  /* Tenure mode switcher */
+  .tenure-modes { display: flex; gap: 3px; background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 3px; margin-bottom: 2px; }
+  .tenure-mode { flex: 1; padding: 5px 4px; font-size: 0.7rem; font-weight: 700; border: none; background: none; color: var(--text-muted); cursor: pointer; border-radius: 5px; font-family: inherit; transition: all 0.15s; }
+  .tenure-mode:hover { color: var(--text-dim); }
+  .tenure-mode.active { background: var(--surface3); color: var(--warn); }
+  .day-preset { font-size: 0.68rem; padding: 3px 9px; border-radius: 5px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); cursor: pointer; font-family: 'JetBrains Mono', monospace; transition: all 0.15s; }
+  .day-preset:hover { border-color: var(--warn); color: var(--warn); background: var(--warn-bg); }
+  .tenure-display { margin-top: 5px; font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; min-height: 16px; }
+
+  /* Payout frequency card */
+  .payout-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 10px; }
+  .payout-item { padding: 8px 12px; border-right: 1px solid var(--border); }
+  .payout-item:last-child { border-right: none; }
+  .payout-freq { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); margin-bottom: 4px; }
+  .payout-gross { font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--purple); }
+  .payout-net { font-size: 0.7rem; color: var(--text-dim); margin-top: 3px; font-family: 'JetBrains Mono', monospace; }
+  .payout-tds  { font-size: 0.66rem; color: var(--loss); margin-top: 1px; font-family: 'JetBrains Mono', monospace; }
+  @media (max-width: 600px) { .payout-grid { grid-template-columns: repeat(2,1fr); } .payout-item:nth-child(2) { border-right: none; } .payout-item:nth-child(1), .payout-item:nth-child(2) { border-bottom: 1px solid var(--border); } }
+
+  .note-box { padding: 12px 16px; background: var(--warn-bg); border: 1px solid #d4a04e28; border-radius: 8px; font-size: 0.77rem; color: var(--warn); line-height: 1.7; margin-top: 14px; }
+  .note-box strong { color: #e8b84e; }
+
+  .export-row { display: flex; gap: 8px; margin-top: 12px; }
+  .btn-sm { padding: 7px 16px; font-size: 0.78rem; font-weight: 600; border-radius: 7px; cursor: pointer; border: none; font-family: inherit; }
+  .btn-export { background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim); }
+  .btn-export:hover { border-color: var(--warn); color: var(--warn); }
+
+  /* ── Light theme overrides ─────────────────────────────────────────────── */
+  :root[data-theme="light"] {
+    --bg: #f4f6f9; --surface: #ffffff; --surface2: #eef1f6; --surface3: #e4e8f0;
+    --border: #cdd5e0; --text: #1c2b3a; --text-dim: #526070; --text-muted: #8a9baa;
+    --accent: #1e5c3a; --accent-bright: #2d8a5e; --accent-light: #239659; --accent-glow: #2d8a5e18;
+    --harvest: #1a5faa; --harvest-bg: #1a5faa0f; --harvest-border: #1a5faa30;
+    --loss: #c03030; --loss-bg: #c030300f;
+    --warn: #9a6010; --warn-bg: #9a60100f;
+    --profit: #1e7a4a; --profit-bg: #1e7a4a0f;
+    --purple: #6d4ec4; --purple-bg: #6d4ec410;
+  }
+  :root[data-theme="light"] .panel { box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  :root[data-theme="light"] h1 { background: linear-gradient(135deg, #1c2b3a 30%, var(--warn) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  :root[data-theme="light"] input[type="range"] { background: var(--surface3); }
+  :root[data-theme="light"] .note-box strong { color: #8a5a00; }
+</style>
+<script src="theme.js"></script>
+</head>
+<body>
+<div class="container">
+  <div class="topnav">
+    <a href="index.html" class="back-link">← Home</a>
+    <span class="page-title">FD Calculator</span>
+  </div>
+  <header>
+    <h1>FD Calculator</h1>
+    <p class="tagline">Monthly · Quarterly · Cumulative · TDS · Post-tax return analysis</p>
+  </header>
+
+  <div class="layout">
+    <!-- Inputs -->
+    <div>
+      <div class="panel">
+        <div class="panel-title">🏧 FD Details</div>
+
+        <div class="field">
+          <label>Principal Amount</label>
+          <div class="input-wrap">
+            <span class="input-prefix">₹</span>
+            <input type="number" id="principal" class="has-prefix" value="500000" min="1000" oninput="syncRange('principal','rPrincipal',this.value)">
+          </div>
+          <div class="range-wrap">
+            <input type="range" id="rPrincipal" min="10000" max="5000000" step="10000" value="500000" oninput="syncInput('rPrincipal','principal',this.value)">
+            <span class="range-val" id="rvPrincipal">₹5L</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Annual Interest Rate</label>
+          <div class="input-wrap">
+            <input type="number" id="rate" class="has-suffix" value="7.1" step="0.05" min="1" max="15" oninput="syncRange('rate','rRate',this.value)">
+            <span class="input-suffix">%</span>
+          </div>
+          <div class="range-wrap">
+            <input type="range" id="rRate" min="4" max="12" step="0.05" value="7.1" oninput="syncInput('rRate','rate',this.value)">
+            <span class="range-val" id="rvRate">7.1%</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Tenure</label>
+          <!-- Mode switcher -->
+          <div class="tenure-modes">
+            <button class="tenure-mode active" data-mode="ym"  onclick="setTenureMode('ym')">Yr + Mo</button>
+            <button class="tenure-mode"        data-mode="mo"  onclick="setTenureMode('mo')">Months</button>
+            <button class="tenure-mode"        data-mode="days" onclick="setTenureMode('days')">Days</button>
+          </div>
+          <!-- Yr + Mo mode -->
+          <div id="tenure-ym">
+            <div style="display:flex;gap:8px;margin-top:6px">
+              <div class="input-wrap" style="flex:1">
+                <input type="number" id="tenureY" class="has-suffix" value="3" min="0" max="10" oninput="syncRange('tenureY','rTenure',this.value);calculate()">
+                <span class="input-suffix">yr</span>
+              </div>
+              <div class="input-wrap" style="flex:0 0 72px">
+                <input type="number" id="tenureM" class="has-suffix" value="0" min="0" max="11" oninput="calculate()">
+                <span class="input-suffix">mo</span>
+              </div>
+            </div>
+            <div class="range-wrap">
+              <input type="range" id="rTenure" min="1" max="10" step="1" value="3" oninput="syncInput('rTenure','tenureY',this.value);calculate()">
+              <span class="range-val" id="rvTenure">3 yr</span>
+            </div>
+          </div>
+          <!-- Months mode -->
+          <div id="tenure-mo" style="display:none;margin-top:6px">
+            <div class="input-wrap">
+              <input type="number" id="tenureMoOnly" class="has-suffix" value="36" min="1" max="120" oninput="calculate()">
+              <span class="input-suffix">mo</span>
+            </div>
+          </div>
+          <!-- Days mode -->
+          <div id="tenure-days" style="display:none;margin-top:6px">
+            <div class="input-wrap">
+              <input type="number" id="tenureDays" class="has-suffix" value="365" min="1" max="3650" oninput="calculate()" placeholder="e.g. 444">
+              <span class="input-suffix">days</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:7px">
+              <button class="day-preset" onclick="setDays(300)">300d</button>
+              <button class="day-preset" onclick="setDays(365)">365d</button>
+              <button class="day-preset" onclick="setDays(400)">400d</button>
+              <button class="day-preset" onclick="setDays(444)">444d</button>
+              <button class="day-preset" onclick="setDays(500)">500d</button>
+              <button class="day-preset" onclick="setDays(777)">777d</button>
+            </div>
+          </div>
+          <div class="tenure-display" id="tenureDisplay"></div>
+        </div>
+
+        <div class="field">
+          <label>Compounding Frequency</label>
+          <select id="compFreq">
+            <option value="12">Monthly</option>
+            <option value="4" selected>Quarterly</option>
+            <option value="2">Half-yearly</option>
+            <option value="1">Annually</option>
+            <option value="365">Daily</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Payout Type</label>
+          <select id="payoutType" onchange="document.getElementById('taxSlab').value = this.value === 'cumulative' ? document.getElementById('taxSlab').value : document.getElementById('taxSlab').value">
+            <option value="cumulative">Cumulative (Reinvest)</option>
+            <option value="monthly">Monthly Payout</option>
+            <option value="quarterly">Quarterly Payout</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Start Date</label>
+          <input type="month" id="startDate">
+        </div>
+
+        <div style="border-top:1px solid var(--border);margin:14px 0 14px;"></div>
+        <div class="panel-title" style="margin-bottom:12px">Tax Settings</div>
+
+        <div class="field">
+          <label>Your Tax Slab</label>
+          <select id="taxSlab">
+            <option value="0">0% (Below exemption limit)</option>
+            <option value="5">5% slab</option>
+            <option value="10">10% slab</option>
+            <option value="20">20% slab</option>
+            <option value="30" selected>30% slab</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>TDS Declaration</label>
+          <div class="tds-toggle-wrap">
+            <label class="tds-toggle" id="tdsToggleLabel">
+              <input type="checkbox" id="tds15g" onchange="onTDSToggle()">
+              <span class="tds-slider"></span>
+              <span class="tds-toggle-text" id="tdsToggleText">10% TDS will be deducted</span>
+            </label>
+          </div>
+          <div class="form15-info" id="form15Info" style="display:none">
+            <div class="form15-badge">✓ No TDS · Form 15G/H Declared</div>
+            <div class="form15-who">
+              <span class="who-item">📄 <strong>Form 15G</strong> — Age below 60 · Total income below ₹2.5L</span>
+              <span class="who-item">📄 <strong>Form 15H</strong> — Senior citizen (60+) · Any income level</span>
+            </div>
+          </div>
+          <div class="tds-rate-row" id="tdsRateRow">
+            <select id="tdsRate" onchange="calculate()">
+              <option value="10" selected>10% TDS (PAN furnished)</option>
+              <option value="20">20% TDS (No PAN / invalid PAN)</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="btn" onclick="calculate()">Calculate Returns</button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div>
+      <div class="results" id="results">
+
+        <div class="summary-grid">
+          <div class="stat-card c-warn">
+            <div class="stat-label">Maturity Amount</div>
+            <div class="stat-value warn" id="sMaturity">—</div>
+            <div class="stat-sub" id="sMatSub"></div>
+          </div>
+          <div class="stat-card c-profit">
+            <div class="stat-label">Total Interest</div>
+            <div class="stat-value profit" id="sInterest">—</div>
+            <div class="stat-sub" id="sIntSub"></div>
+          </div>
+          <div class="stat-card c-harvest">
+            <div class="stat-label">Effective Yield (XIRR)</div>
+            <div class="stat-value harvest" id="sYield">—</div>
+            <div class="stat-sub">Annualised return</div>
+          </div>
+          <div class="stat-card c-loss">
+            <div class="stat-label">TDS Deducted</div>
+            <div class="stat-value loss" id="sTDS">—</div>
+            <div class="stat-sub" id="sTDSSub"></div>
+          </div>
+          <div class="stat-card c-purple" style="grid-column:1/-1">
+            <div class="stat-label">Interest Payout — All Frequencies (on Principal)</div>
+            <div class="payout-grid" id="sPayoutGrid"></div>
+          </div>
+        </div>
+
+        <!-- Tax breakdown -->
+        <div class="tax-section">
+          <h4>🧾 Post-Tax Maturity at Different Slabs</h4>
+          <div class="tax-grid" id="taxGrid"></div>
+          <div class="note-box" id="taxNote"></div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <button class="tab active" data-tab="monthly">Monthly</button>
+          <button class="tab" data-tab="quarterly">Quarterly</button>
+          <button class="tab" data-tab="cumulative">Cumulative</button>
+          <button class="tab" data-tab="summary">Year Summary</button>
+        </div>
+
+        <div class="tab-panel active" id="tab-monthly">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Month</th><th>Opening</th><th>Interest Earned</th><th>TDS</th><th>Closing / Payout</th><th>Cum. Interest</th></tr></thead>
+              <tbody id="monthlyBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-quarterly">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Quarter</th><th>Opening</th><th>Qtr Interest</th><th>TDS (10%)</th><th>Net Payout / Reinvested</th><th>Closing Balance</th></tr></thead>
+              <tbody id="quarterlyBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-cumulative">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Period</th><th>Principal</th><th>Cum. Interest</th><th>Cum. TDS</th><th>Corpus Value</th><th>Growth %</th></tr></thead>
+              <tbody id="cumulativeBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="tab-summary">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>Year</th><th>Opening Balance</th><th>Interest Earned</th><th>TDS Deducted</th><th>Closing Balance</th><th>Eff. Rate</th></tr></thead>
+              <tbody id="yearlyBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="export-row">
+          <button class="btn-sm btn-export" onclick="exportCSV()">↓ Export CSV</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── TDS Toggle ────────────────────────────────────────────────────────────────
+function onTDSToggle() {
+  const checked = document.getElementById('tds15g').checked;
+  document.getElementById('form15Info').style.display  = checked ? 'block' : 'none';
+  document.getElementById('tdsRateRow').style.display  = checked ? 'none'  : 'block';
+  document.getElementById('tdsToggleText').textContent = checked
+    ? 'Form 15G / 15H submitted — No TDS'
+    : '10% TDS will be deducted';
+  calculate();
+}
+
+function getTDSRate() {
+  return document.getElementById('tds15g').checked
+    ? 0
+    : parseFloat(document.getElementById('tdsRate').value) / 100;
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    const name = t.dataset.tab;
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === name));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  });
+});
+
+const now = new Date();
+document.getElementById('startDate').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+let tenureMode = 'ym';
+function setTenureMode(mode) {
+  tenureMode = mode;
+  document.querySelectorAll('.tenure-mode').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.getElementById('tenure-ym').style.display   = mode === 'ym'   ? '' : 'none';
+  document.getElementById('tenure-mo').style.display   = mode === 'mo'   ? '' : 'none';
+  document.getElementById('tenure-days').style.display = mode === 'days' ? '' : 'none';
+  calculate();
+}
+function setDays(d) { document.getElementById('tenureDays').value = d; calculate(); }
+
+function getTotalMonths() {
+  if (tenureMode === 'ym') {
+    const y = parseInt(document.getElementById('tenureY').value) || 0;
+    const m = parseInt(document.getElementById('tenureM').value) || 0;
+    return y * 12 + m;
+  }
+  if (tenureMode === 'mo') return parseInt(document.getElementById('tenureMoOnly').value) || 0;
+  if (tenureMode === 'days') {
+    const days = parseInt(document.getElementById('tenureDays').value) || 0;
+    return days / 30.4375; // keep fractional months for accurate calculation
+  }
+  return 0;
+}
+function getTotalDays() {
+  if (tenureMode === 'days') return parseInt(document.getElementById('tenureDays').value) || 0;
+  return Math.round(getTotalMonths() * 30.4375);
+}
+
+function syncRange(inputId, rangeId, val) { document.getElementById(rangeId).value = val; updateLabel(rangeId); }
+function syncInput(rangeId, inputId, val) { document.getElementById(inputId).value = val; updateLabel(rangeId); }
+function updateLabel(id) {
+  const v = parseFloat(document.getElementById(id).value);
+  if (id === 'rPrincipal') { const l = v/100000; document.getElementById('rvPrincipal').textContent = l>=100?`₹${(l/100).toFixed(1)}Cr`:`₹${l%1===0?l:l.toFixed(1)}L`; }
+  else if (id === 'rRate')   { document.getElementById('rvRate').textContent   = v + '%'; }
+  else if (id === 'rTenure') { document.getElementById('rvTenure').textContent = v + ' yr'; }
+}
+
+function fmtINR(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+
+let monthlySchedule = [];
+
+function calculate() {
+  const P       = parseFloat(document.getElementById('principal').value) || 0;
+  const annRate = parseFloat(document.getElementById('rate').value) || 0;
+  const totalMonthsFrac = getTotalMonths();
+  const totalMonths     = Math.round(totalMonthsFrac);
+  const totalDays       = getTotalDays();
+  const n       = parseInt(document.getElementById('compFreq').value);
+  const payout  = document.getElementById('payoutType').value;
+  const tdsRate = getTDSRate();
+  const taxSlab = parseFloat(document.getElementById('taxSlab').value) / 100;
+  const startVal = document.getElementById('startDate').value;
+
+  if (!P || !annRate || !totalMonths) return alert('Please fill all FD details.');
+
+  // Tenure display
+  const yrsDisp = Math.floor(totalDays / 365);
+  const remDays = totalDays % 365;
+  const mosDisp = Math.floor(remDays / 30);
+  const daysDisp = remDays % 30;
+  const parts = [];
+  if (yrsDisp) parts.push(yrsDisp + 'y');
+  if (mosDisp) parts.push(mosDisp + 'm');
+  if (daysDisp || (!yrsDisp && !mosDisp)) parts.push(daysDisp + 'd');
+  const el = document.getElementById('tenureDisplay');
+  if (el) el.textContent = `= ${totalDays} days · ${parts.join(' ')} · ${(totalDays/365).toFixed(3)} yrs`;
+
+  const yrs = Math.floor(totalMonths / 12);
+  const mos = totalMonths % 12;
+
+  const rPerMonth = annRate / 100 / 12;
+  const startDate = startVal ? new Date(startVal + '-01') : new Date();
+
+  // Build month-by-month schedule
+  monthlySchedule = [];
+  let balance = P, cumInterest = 0, cumTDS = 0;
+
+  for (let m = 1; m <= totalMonths; m++) {
+    const d = new Date(startDate); d.setMonth(d.getMonth() + m - 1);
+    const label = d.toLocaleDateString('en-IN', {month:'short', year:'2-digit'});
+    const opening = balance;
+    const intEarned = opening * rPerMonth;
+    const isPayoutMonth = payout === 'monthly' || (payout === 'quarterly' && m % 3 === 0);
+    const tds = tdsRate > 0 ? intEarned * tdsRate : 0;
+    cumTDS += tds;
+    cumInterest += intEarned;
+
+    if (payout === 'cumulative') {
+      balance += intEarned; // reinvest full interest
+    } else if (isPayoutMonth) {
+      balance = opening; // balance stays, interest paid out
+    } else {
+      balance += intEarned; // accumulate until payout
+    }
+
+    const closing = payout === 'cumulative' ? balance : (isPayoutMonth ? opening : balance);
+    monthlySchedule.push({ m, label, opening, intEarned, tds, closing, cumInterest, cumTDS, payout: isPayoutMonth ? intEarned : 0 });
+  }
+
+  const totalInterest = cumInterest;
+  const maturity      = payout === 'cumulative' ? balance : P;
+  const totalTDS      = cumTDS;
+
+  // Effective yield: CAGR approximation
+  const years = totalDays / 365;
+  const effectiveYield = (Math.pow(maturity / P, 1 / years) - 1) * 100;
+
+  // Summary
+  document.getElementById('sMaturity').textContent  = fmtINR(maturity);
+  document.getElementById('sMatSub').textContent    = `after ${totalDays}d (${yrs}y ${mos}m) · ${payout}`;
+  document.getElementById('sInterest').textContent  = fmtINR(totalInterest);
+  document.getElementById('sIntSub').textContent    = `at ${annRate}% p.a.`;
+  document.getElementById('sYield').textContent     = effectiveYield.toFixed(2) + '%';
+  const tdsLabel = tdsRate === 0 ? 'Form 15G/H declared' : `${(tdsRate*100).toFixed(0)}% TDS rate`;
+  document.getElementById('sTDS').textContent       = tdsRate === 0 ? '₹0 (Nil)' : fmtINR(totalTDS);
+  document.getElementById('sTDSSub').textContent    = tdsLabel;
+
+  // Payout frequency card
+  const freqs = [
+    { label: 'Monthly',     periods: 12,  gross: P * annRate/100 / 12  },
+    { label: 'Quarterly',   periods: 4,   gross: P * annRate/100 / 4   },
+    { label: 'Half-yearly', periods: 2,   gross: P * annRate/100 / 2   },
+    { label: 'Annually',    periods: 1,   gross: P * annRate/100       },
+  ];
+  document.getElementById('sPayoutGrid').innerHTML = freqs.map(f => {
+    const net = f.gross * (1 - tdsRate);
+    const tdsAmt = f.gross * tdsRate;
+    const isSelected = (payout === 'monthly' && f.periods === 12) || (payout === 'quarterly' && f.periods === 4);
+    return `<div class="payout-item"${isSelected ? ' style="background:var(--purple-bg)"' : ''}>
+      <div class="payout-freq">${f.label}${isSelected ? ' ✓' : ''}</div>
+      <div class="payout-gross">${fmtINR(f.gross)}</div>
+      ${tdsRate > 0
+        ? `<div class="payout-tds">−${fmtINR(tdsAmt)} TDS</div><div class="payout-net">Net ${fmtINR(net)}</div>`
+        : `<div class="payout-net">No TDS (15G/H)</div>`}
+    </div>`;
+  }).join('');
+
+  // Tax grid
+  const slabs = [{rate:0,label:'NIL (exempt)'},{rate:0.05,label:'5% slab'},{rate:0.10,label:'10% slab'},{rate:0.20,label:'20% slab'},{rate:0.30,label:'30% slab'}];
+  document.getElementById('taxGrid').innerHTML = slabs.map(s => {
+    const taxAmt     = totalInterest * s.rate;
+    const tdsPaid    = totalInterest * tdsRate;
+    const extraTax   = Math.max(0, taxAmt - tdsPaid);
+    const refund     = Math.max(0, tdsPaid - taxAmt);
+    const netMaturity = maturity - Math.max(0, taxAmt - tdsPaid);
+    const clr = s.rate <= taxSlab ? 'var(--warn)' : 'var(--text-dim)';
+    const isCurrent = s.rate === taxSlab;
+    return `<div class="tax-card" style="${isCurrent?'border-color:var(--warn);background:var(--warn-bg)':''}">
+      <div class="tc-label">${s.label}</div>
+      <div class="tc-maturity" style="color:${clr}">${fmtINR(netMaturity)}</div>
+      <div class="tc-sub">Tax: ${fmtINR(taxAmt)}${refund>0?` · Refund: ${fmtINR(refund)}`:(extraTax>0?` · Pay extra: ${fmtINR(extraTax)}`:' · balanced')}</div>
+    </div>`;
+  }).join('');
+
+  const userTax = totalInterest * taxSlab;
+  const userTDS = totalInterest * tdsRate;
+  const extraTax = Math.max(0, userTax - userTDS);
+  const refund   = Math.max(0, userTDS - userTax);
+  const tdsNote = tdsRate === 0
+    ? `✅ <strong>Form 15G/H declared — TDS fully avoided.</strong> You still owe income tax at your slab (${(taxSlab*100).toFixed(0)}%) during ITR filing. Pay ₹${Math.round(userTax).toLocaleString('en-IN')} as self-assessment tax.`
+    : `Bank deducts TDS at ${(tdsRate*100).toFixed(0)}% on interest &gt; ₹40,000/yr (₹50K for senior citizens). At ${(taxSlab*100).toFixed(0)}% slab: ${refund>0?`<strong>you get ₹${Math.round(refund).toLocaleString('en-IN')} TDS refund</strong>`:`<strong>pay additional ₹${Math.round(extraTax).toLocaleString('en-IN')}</strong> at ITR filing`}`;
+  document.getElementById('taxNote').innerHTML = `<strong>⚠ FD Tax Notes:</strong><br>
+    • FD interest is taxed as <strong>ordinary income</strong> (not LTCG) at your applicable slab rate<br>
+    • ${tdsNote}<br>
+    • Post-tax effective yield: <strong>${((maturity - userTax) / P * 100 - 100).toFixed(2)}%</strong> vs ${effectiveYield.toFixed(2)}% pre-tax<br>
+    • <strong>Form 15G</strong> eligibility: Age below 60 · Total annual income below ₹2.5L<br>
+    • <strong>Form 15H</strong> eligibility: Senior citizen (age 60+) · Any income level (FY-start)`;
+
+  // Monthly table
+  document.getElementById('monthlyBody').innerHTML = monthlySchedule.map(row => {
+    const isPayoutRow = row.payout > 0;
+    return `<tr${isPayoutRow?' style="background:var(--warn-bg)"':''}>
+      <td>${row.label}</td>
+      <td class="text-dim">${fmtINR(row.opening)}</td>
+      <td class="text-profit">+${fmtINR(row.intEarned)}</td>
+      <td class="text-loss">${row.tds > 0 ? '-'+fmtINR(row.tds) : '—'}</td>
+      <td class="${isPayoutRow?'text-warn':'text-dim'}">${fmtINR(row.closing)}${isPayoutRow?' ↑payout':''}</td>
+      <td class="text-harvest">${fmtINR(row.cumInterest)}</td>
+    </tr>`;
+  }).join('');
+
+  // Quarterly table
+  const qtrs = [];
+  for (let q = 0; q < monthlySchedule.length; q += 3) {
+    const chunk = monthlySchedule.slice(q, q+3);
+    if (!chunk.length) continue;
+    const qInt = chunk.reduce((s,r)=>s+r.intEarned,0);
+    const qTDS = chunk.reduce((s,r)=>s+r.tds,0);
+    const net = qInt - qTDS;
+    const opening = chunk[0].opening;
+    const closing = chunk[chunk.length-1].closing;
+    const qLabel = `Q${Math.ceil((q+3)/3)} (${chunk[0].label}–${chunk[chunk.length-1].label})`;
+    qtrs.push({qLabel, opening, qInt, qTDS, net, closing});
+  }
+  document.getElementById('quarterlyBody').innerHTML = qtrs.map((q,i) => `
+    <tr class="qtr-row">
+      <td>${q.qLabel}</td>
+      <td class="text-dim">${fmtINR(q.opening)}</td>
+      <td class="text-profit">+${fmtINR(q.qInt)}</td>
+      <td class="text-loss">${q.qTDS>0?'-'+fmtINR(q.qTDS):'—'}</td>
+      <td class="text-warn">${fmtINR(q.net)} net</td>
+      <td class="text-dim">${fmtINR(q.closing)}</td>
+    </tr>`).join('');
+
+  // Cumulative table - show at 3m, 6m, 1y intervals then each year
+  const milestonesSet = new Set([3,6,9,12]);
+  for (let y = 1; y <= Math.ceil(totalMonths/12); y++) milestonesSet.add(y*12);
+  const milestones = [...milestonesSet].filter(m => m <= totalMonths).sort((a,b)=>a-b);
+  document.getElementById('cumulativeBody').innerHTML = milestones.map(m => {
+    const row = monthlySchedule[Math.min(m,totalMonths)-1];
+    const period = m < 12 ? `${m} months` : `${m/12} year${m/12>1?'s':''}`;
+    const growth = ((row.closing - P)/P*100).toFixed(2);
+    const isYr = m % 12 === 0;
+    return `<tr${isYr?' class="yr-row"':''}>
+      <td>${period}</td>
+      <td>${fmtINR(P)}</td>
+      <td class="text-profit">+${fmtINR(row.cumInterest)}</td>
+      <td class="text-loss">${row.cumTDS>0?'-'+fmtINR(row.cumTDS):'—'}</td>
+      <td class="text-warn">${fmtINR(row.closing)}</td>
+      <td class="text-harvest">+${growth}%</td>
+    </tr>`;
+  }).join('');
+
+  // Year summary
+  const yearMap = {};
+  monthlySchedule.forEach(row => {
+    const yr = Math.ceil(row.m/12);
+    if (!yearMap[yr]) yearMap[yr] = { opening: row.opening, int:0, tds:0, closing:0 };
+    yearMap[yr].int += row.intEarned; yearMap[yr].tds += row.tds; yearMap[yr].closing = row.closing;
+  });
+  document.getElementById('yearlyBody').innerHTML = Object.entries(yearMap).map(([yr,d]) => {
+    const effRate = (d.int / d.opening * 100).toFixed(2);
+    return `<tr class="yr-row">
+      <td>Year ${yr}</td>
+      <td class="text-dim">${fmtINR(d.opening)}</td>
+      <td class="text-profit">+${fmtINR(d.int)}</td>
+      <td class="text-loss">${d.tds>0?'-'+fmtINR(d.tds):'—'}</td>
+      <td class="text-warn">${fmtINR(d.closing)}</td>
+      <td class="text-harvest">${effRate}%</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('results').classList.add('visible');
+}
+
+function exportCSV() {
+  if (!monthlySchedule.length) return;
+  const rows = [['Month','Label','Opening','Interest','TDS','Closing','Cum.Interest','Cum.TDS']];
+  monthlySchedule.forEach(r => rows.push([r.m,r.label,r.opening.toFixed(2),r.intEarned.toFixed(2),r.tds.toFixed(2),r.closing.toFixed(2),r.cumInterest.toFixed(2),r.cumTDS.toFixed(2)]));
+  const blob = new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='fd_schedule.csv'; a.click();
+}
+
+['rPrincipal','rRate','rTenure'].forEach(updateLabel);
+calculate();
+</script>
+</body>
+</html>

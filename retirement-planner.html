@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retirement Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080b10; --surface:#0f1419; --surface2:#161d26; --surface3:#1c2530;
+    --border:#1e2a38; --text:#dfe6ee; --text-dim:#7b8da0; --text-muted:#4a5c6e;
+    --accent:#2d6a4f; --accent-bright:#40916c; --accent-light:#52b788; --accent-glow:#40916c22;
+    --harvest:#4e8fd4; --harvest-bg:#4e8fd412; --harvest-border:#4e8fd433;
+    --loss:#d94f4f; --loss-bg:#d94f4f12;
+    --warn:#d4a04e; --warn-bg:#d4a04e12;
+    --profit:#40916c; --profit-bg:#40916c12;
+    --purple:#9d7fe8; --purple-bg:#9d7fe812;
+    --rose:#d4607a; --rose-bg:#d4607a12;
+  }
+  :root[data-theme="light"] {
+    --bg:#f4f6f9; --surface:#ffffff; --surface2:#eef1f6; --surface3:#e4e8f0;
+    --border:#cdd5e0; --text:#1c2b3a; --text-dim:#526070; --text-muted:#8a9baa;
+    --accent:#1e5c3a; --accent-bright:#2d8a5e; --accent-light:#239659; --accent-glow:#2d8a5e18;
+    --harvest:#1a5faa; --harvest-bg:#1a5faa0f; --harvest-border:#1a5faa30;
+    --loss:#c03030; --loss-bg:#c030300f; --warn:#9a6010; --warn-bg:#9a60100f;
+    --profit:#1e7a4a; --profit-bg:#1e7a4a0f; --purple:#6d4ec4; --purple-bg:#6d4ec410;
+    --rose:#b0304a; --rose-bg:#b0304a10;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.55; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .container { max-width: 1160px; margin: 0 auto; padding: 20px 16px; }
+
+  .topnav { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .back-link { font-size: 0.78rem; color: var(--text-dim); text-decoration: none; display: flex; align-items: center; gap: 5px; padding: 6px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; transition: all 0.2s; }
+  .back-link:hover { color: var(--text); border-color: var(--warn); }
+  .page-title { font-size: 0.9rem; font-weight: 700; color: var(--warn); }
+
+  header { margin-bottom: 24px; padding: 20px 0 18px; border-bottom: 1px solid var(--border); }
+  h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; background: linear-gradient(135deg, #e0e8f0 30%, var(--warn) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 4px; }
+  .tagline { font-size: 0.82rem; color: var(--text-dim); }
+
+  .layout { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+
+  .left-panels { display: flex; flex-direction: column; gap: 16px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 20px; }
+  :root[data-theme="light"] .panel { box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  .panel-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 16px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .section-divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 6px; }
+  .input-wrap { position: relative; }
+  .input-prefix { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-dim); pointer-events: none; }
+  .input-suffix { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-dim); pointer-events: none; }
+  input[type="number"], input[type="text"] { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; padding: 9px 12px; border-radius: 7px; outline: none; transition: border-color 0.2s; }
+  input.has-prefix { padding-left: 26px; }
+  input.has-suffix { padding-right: 30px; }
+  input:focus { border-color: var(--warn); box-shadow: 0 0 0 3px var(--warn-bg); }
+
+  .range-wrap { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+  input[type="range"] { flex: 1; -webkit-appearance: none; height: 4px; background: var(--surface3); border-radius: 2px; border: none; padding: 0; cursor: pointer; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; background: var(--warn); border-radius: 50%; cursor: pointer; }
+  .range-val { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--warn); min-width: 44px; text-align: right; }
+
+  /* Summary strip */
+  .summary-strip { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; position: relative; overflow: hidden; }
+  .stat-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .stat-card.c-warn::after { background: var(--warn); }
+  .stat-card.c-harvest::after { background: var(--harvest); }
+  .stat-card.c-profit::after { background: var(--profit); }
+  .stat-card.c-purple::after { background: var(--purple); }
+  .stat-card.c-loss::after { background: var(--loss); }
+  .stat-label { font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 2px; }
+  .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; font-weight: 700; line-height: 1.2; }
+  .stat-value.warn { color: var(--warn); }
+  .stat-value.harvest { color: var(--harvest); }
+  .stat-value.profit { color: var(--profit); }
+  .stat-value.purple { color: var(--purple); }
+  .stat-value.loss { color: var(--loss); }
+  .stat-sub { font-size: 0.68rem; color: var(--text-dim); margin-top: 3px; }
+
+  /* Sections */
+  .section-block { background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 18px; margin-bottom: 14px; }
+  :root[data-theme="light"] .section-block { box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  .section-block-title { font-size: 0.78rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+  .section-block-title::before { content: ''; display: inline-block; width: 3px; height: 14px; background: var(--warn); border-radius: 2px; }
+
+  .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .kv-row { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 10px; background: var(--surface2); border-radius: 7px; font-size: 0.8rem; gap: 8px; }
+  .kv-row.full { grid-column: 1/-1; }
+  .kv-key { color: var(--text-dim); }
+  .kv-val { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 600; color: var(--text); text-align: right; }
+  .kv-val.warn { color: var(--warn); }
+  .kv-val.harvest { color: var(--harvest); }
+  .kv-val.profit { color: var(--profit); }
+  .kv-val.loss { color: var(--loss); }
+
+  /* Alert boxes */
+  .alert { border-radius: 9px; padding: 14px 16px; font-size: 0.83rem; line-height: 1.55; display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+  .alert.success { background: var(--profit-bg); border: 1px solid #40916c33; color: var(--profit); }
+  .alert.danger { background: var(--loss-bg); border: 1px solid #d94f4f33; color: var(--loss); }
+  .alert.warn { background: var(--warn-bg); border: 1px solid #d4a04e33; color: var(--warn); }
+  .alert-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+  .alert strong { font-weight: 700; }
+
+  /* Timeline table */
+  .tbl-wrap { overflow-x: auto; border-radius: 9px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.79rem; }
+  thead th { text-align: right; padding: 10px 12px; font-size: 0.63rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--surface2); }
+  thead th:first-child, thead th:nth-child(3) { text-align: left; }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; text-align: right; }
+  tbody td:first-child { text-align: left; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.82rem; }
+  tbody td:nth-child(3) { text-align: left; font-family: 'DM Sans', sans-serif; font-size: 0.78rem; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  tr.row-retire td { background: var(--warn-bg) !important; border-left: 3px solid var(--warn); }
+  tr.row-retire td:first-child { border-left: 3px solid var(--warn); }
+  tr.row-deplete td { background: var(--loss-bg) !important; border-left: 3px solid var(--loss); }
+  tr.row-deplete td:first-child { border-left: 3px solid var(--loss); }
+  .badge { display: inline-block; font-size: 0.6rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.04em; margin-left: 4px; vertical-align: middle; }
+  .badge-warn { background: var(--warn-bg); color: var(--warn); border: 1px solid #d4a04e44; }
+  .badge-loss { background: var(--loss-bg); color: var(--loss); border: 1px solid #d94f4f44; }
+  .badge-profit { background: var(--profit-bg); color: var(--profit); border: 1px solid #40916c44; }
+
+  .text-warn { color: var(--warn); }
+  .text-loss { color: var(--loss); }
+  .text-profit { color: var(--profit); }
+  .text-harvest { color: var(--harvest); }
+  .text-dim { color: var(--text-dim); }
+
+  :root[data-theme="light"] h1 { background: linear-gradient(135deg, #1c2b3a 30%, var(--warn) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  :root[data-theme="light"] input[type="range"] { background: var(--surface3); }
+</style>
+<script src="theme.js"></script>
+</head>
+<body>
+<div class="container">
+  <div class="topnav">
+    <a href="index.html" class="back-link">← Home</a>
+    <span class="page-title">Retirement Planner</span>
+  </div>
+  <header>
+    <h1>Retirement Planner</h1>
+    <p class="tagline">How much do you need to retire comfortably?</p>
+  </header>
+
+  <div class="layout">
+    <!-- ── Left Panel ── -->
+    <div class="left-panels">
+      <div class="panel">
+        <div class="panel-title">👤 Your Profile</div>
+
+        <div class="field">
+          <label>Current Age</label>
+          <div class="input-wrap">
+            <input type="number" id="currentAge" value="30" min="18" max="80" oninput="calculate()">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Retirement Age</label>
+          <div class="input-wrap">
+            <input type="number" id="retireAge" value="60" min="40" max="80" oninput="calculate()">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Life Expectancy</label>
+          <div class="input-wrap">
+            <input type="number" id="lifeExpect" value="85" min="60" max="100" oninput="calculate()">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Current Monthly Expenses (₹)</label>
+          <div class="input-wrap">
+            <span class="input-prefix">₹</span>
+            <input type="number" id="monthlyExp" class="has-prefix" value="50000" min="0" oninput="calculate()">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">📈 Growth Assumptions</div>
+
+        <div class="field">
+          <label>Inflation Rate (%)</label>
+          <div class="input-wrap">
+            <input type="number" id="inflation" class="has-suffix" value="6" min="1" max="20" step="0.1" oninput="syncSlider('inflation','rInflation'); calculate()">
+            <span class="input-suffix">%</span>
+          </div>
+          <div class="range-wrap">
+            <input type="range" id="rInflation" min="3" max="12" step="0.1" value="6" oninput="syncField('rInflation','inflation'); calculate()">
+            <span class="range-val" id="rvInflation">6%</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Pre-retirement Return (%)</label>
+          <div class="input-wrap">
+            <input type="number" id="preReturn" class="has-suffix" value="12" min="1" max="30" step="0.1" oninput="syncSlider('preReturn','rPreReturn'); calculate()">
+            <span class="input-suffix">%</span>
+          </div>
+          <div class="range-wrap">
+            <input type="range" id="rPreReturn" min="6" max="20" step="0.1" value="12" oninput="syncField('rPreReturn','preReturn'); calculate()">
+            <span class="range-val" id="rvPreReturn">12%</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Post-retirement Return (%)</label>
+          <div class="input-wrap">
+            <input type="number" id="postReturn" class="has-suffix" value="7" min="1" max="20" step="0.1" oninput="syncSlider('postReturn','rPostReturn'); calculate()">
+            <span class="input-suffix">%</span>
+          </div>
+          <div class="range-wrap">
+            <input type="range" id="rPostReturn" min="4" max="12" step="0.1" value="7" oninput="syncField('rPostReturn','postReturn'); calculate()">
+            <span class="range-val" id="rvPostReturn">7%</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Current Savings / Corpus (₹)</label>
+          <div class="input-wrap">
+            <span class="input-prefix">₹</span>
+            <input type="number" id="currentSavings" class="has-prefix" value="0" min="0" oninput="calculate()">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Right Panel ── -->
+    <div id="resultsArea">
+      <!-- Summary strip -->
+      <div class="summary-strip">
+        <div class="stat-card c-warn">
+          <div class="stat-label">Years to Retirement</div>
+          <div class="stat-value warn" id="sYearsToRetire">—</div>
+          <div class="stat-sub" id="sYearsToRetireSub"></div>
+        </div>
+        <div class="stat-card c-harvest">
+          <div class="stat-label">Required Corpus</div>
+          <div class="stat-value harvest" id="sCorpusNeeded">—</div>
+          <div class="stat-sub">at retirement age</div>
+        </div>
+        <div class="stat-card c-profit">
+          <div class="stat-label">Monthly SIP Needed</div>
+          <div class="stat-value profit" id="sSIPNeeded">—</div>
+          <div class="stat-sub" id="sSIPSub"></div>
+        </div>
+        <div class="stat-card c-purple">
+          <div class="stat-label">Retirement Duration</div>
+          <div class="stat-value purple" id="sRetireDuration">—</div>
+          <div class="stat-sub">years of retirement</div>
+        </div>
+      </div>
+
+      <!-- Alert -->
+      <div id="alertBox"></div>
+
+      <!-- The Numbers -->
+      <div class="section-block">
+        <div class="section-block-title">The Numbers</div>
+        <div class="kv-grid">
+          <div class="kv-row">
+            <span class="kv-key">Monthly expenses today</span>
+            <span class="kv-val" id="kvExpToday">—</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key">Monthly expenses at retirement</span>
+            <span class="kv-val warn" id="kvExpRetire">—</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key">Annual expenses at retirement</span>
+            <span class="kv-val" id="kvAnnualExp">—</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key">Corpus required (annuity PV)</span>
+            <span class="kv-val harvest" id="kvCorpus">—</span>
+          </div>
+          <div class="kv-row" id="kvFVRow">
+            <span class="kv-key">Future value of current savings</span>
+            <span class="kv-val profit" id="kvFVSavings">—</span>
+          </div>
+          <div class="kv-row" id="kvRemainingRow">
+            <span class="kv-key">Remaining corpus to build</span>
+            <span class="kv-val warn" id="kvRemaining">—</span>
+          </div>
+          <div class="kv-row full">
+            <span class="kv-key">Monthly SIP to build remaining corpus</span>
+            <span class="kv-val profit" id="kvSIP">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="section-block">
+        <div class="section-block-title">Retirement Timeline</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Age</th>
+                <th>Year</th>
+                <th>Event</th>
+                <th>Corpus / Balance</th>
+                <th>Monthly Withdrawal</th>
+              </tr>
+            </thead>
+            <tbody id="timelineBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function syncSlider(inputId, sliderId) {
+  const v = parseFloat(document.getElementById(inputId).value);
+  document.getElementById(sliderId).value = v;
+  updateRangeLabel(sliderId);
+}
+function syncField(sliderId, inputId) {
+  const v = parseFloat(document.getElementById(sliderId).value);
+  document.getElementById(inputId).value = v;
+  updateRangeLabel(sliderId);
+}
+function updateRangeLabel(id) {
+  const v = parseFloat(document.getElementById(id).value);
+  const labelId = 'rv' + id.replace('r','').replace(/^r/,'');
+  const map = { rInflation:'rvInflation', rPreReturn:'rvPreReturn', rPostReturn:'rvPostReturn' };
+  const el = document.getElementById(map[id]);
+  if (el) el.textContent = v.toFixed(1) + '%';
+}
+
+function fmtINR(n) {
+  if (isNaN(n) || !isFinite(n)) return '—';
+  return '₹' + Math.round(Math.abs(n)).toLocaleString('en-IN');
+}
+function fmtINRK(n) {
+  if (isNaN(n) || !isFinite(n)) return '—';
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 1e7) return sign + '₹' + (abs/1e7).toFixed(2) + ' Cr';
+  if (abs >= 1e5) return sign + '₹' + (abs/1e5).toFixed(2) + ' L';
+  return sign + fmtINR(n);
+}
+function v(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function calculate() {
+  const currentAge   = v('currentAge');
+  const retireAge    = v('retireAge');
+  const lifeExpect   = v('lifeExpect');
+  const monthlyExp   = v('monthlyExp');
+  const inflation    = v('inflation') / 100;
+  const preReturn    = v('preReturn') / 100;
+  const postReturn   = v('postReturn') / 100;
+  const currentSavings = v('currentSavings');
+
+  // Update range labels
+  ['rInflation','rPreReturn','rPostReturn'].forEach(updateRangeLabel);
+
+  if (retireAge <= currentAge) { showAlert('warn','⚠️ Retirement age must be greater than current age.'); return; }
+  if (lifeExpect <= retireAge) { showAlert('warn','⚠️ Life expectancy must be greater than retirement age.'); return; }
+
+  const yearsToRetire    = retireAge - currentAge;
+  const retireDuration   = lifeExpect - retireAge;
+  const retireMonths     = retireDuration * 12;
+  const currentYear      = new Date().getFullYear();
+
+  // Monthly expenses at retirement (inflation-adjusted)
+  const expAtRetire = monthlyExp * Math.pow(1 + inflation, yearsToRetire);
+  const annualExpAtRetire = expAtRetire * 12;
+
+  // Real return post-retirement (monthly)
+  // Using nominal post-retirement return, not real, for corpus computation
+  // Corpus = PMT × [(1-(1+r)^-n)/r], r = monthly post-retirement return
+  const rPost = postReturn / 12;
+  let corpusNeeded;
+  if (rPost === 0) {
+    corpusNeeded = expAtRetire * retireMonths;
+  } else {
+    corpusNeeded = expAtRetire * (1 - Math.pow(1 + rPost, -retireMonths)) / rPost;
+  }
+
+  // Future value of current savings at retirement
+  const fvSavings = currentSavings * Math.pow(1 + preReturn / 12, yearsToRetire * 12);
+
+  // Remaining corpus needed
+  const remainingCorpus = Math.max(0, corpusNeeded - fvSavings);
+
+  // Monthly SIP needed
+  const rPre = preReturn / 12;
+  const nPre = yearsToRetire * 12;
+  let sipNeeded;
+  if (rPre === 0 || nPre === 0) {
+    sipNeeded = remainingCorpus / nPre;
+  } else {
+    sipNeeded = remainingCorpus * rPre / (Math.pow(1 + rPre, nPre) - 1);
+  }
+
+  // ── Update Summary Strip ──
+  document.getElementById('sYearsToRetire').textContent = yearsToRetire;
+  document.getElementById('sYearsToRetireSub').textContent = `retire at age ${retireAge}`;
+  document.getElementById('sCorpusNeeded').textContent = fmtINRK(corpusNeeded);
+  document.getElementById('sSIPNeeded').textContent = fmtINR(sipNeeded);
+  document.getElementById('sSIPSub').textContent = `starting today`;
+  document.getElementById('sRetireDuration').textContent = retireDuration;
+
+  // ── The Numbers ──
+  document.getElementById('kvExpToday').textContent = fmtINR(monthlyExp);
+  document.getElementById('kvExpRetire').textContent = fmtINR(expAtRetire);
+  document.getElementById('kvAnnualExp').textContent = fmtINR(annualExpAtRetire);
+  document.getElementById('kvCorpus').textContent = fmtINRK(corpusNeeded);
+
+  const hasSavings = currentSavings > 0;
+  document.getElementById('kvFVRow').style.display    = hasSavings ? '' : 'none';
+  document.getElementById('kvRemainingRow').style.display = hasSavings ? '' : 'none';
+  if (hasSavings) {
+    document.getElementById('kvFVSavings').textContent = fmtINRK(fvSavings);
+    document.getElementById('kvRemaining').textContent = fmtINRK(remainingCorpus);
+  }
+  document.getElementById('kvSIP').textContent = fmtINR(sipNeeded);
+
+  // ── Timeline ──
+  // Simulate year-by-year
+  const rows = [];
+  const retireYear = currentYear + yearsToRetire;
+
+  // Accumulation phase: grow actual corpus = fvSavings + SIP contributions
+  // Build a simple yearly snapshot
+  // During accumulation: corpus grows monthly with SIP
+  let corpusAtEachAge = {};
+  {
+    let corpus = currentSavings;
+    const rMonthly = preReturn / 12;
+    for (let age = currentAge; age <= retireAge; age++) {
+      if (age > currentAge) {
+        // Grow for 12 months with monthly SIP
+        for (let m = 0; m < 12; m++) {
+          corpus = corpus * (1 + rMonthly) + sipNeeded;
+        }
+      }
+      corpusAtEachAge[age] = corpus;
+    }
+  }
+
+  // Withdrawal phase
+  let withdrawCorpus = corpusNeeded; // theoretical
+  // We'll use actual SIP corpus at retirement
+  const actualCorpusAtRetire = corpusAtEachAge[retireAge];
+  let withdrawBalance = actualCorpusAtRetire;
+  const rPostMonthly = postReturn / 12;
+  let corpusDepletedAge = null;
+
+  let withdrawAtEachAge = {};
+  for (let age = retireAge; age <= lifeExpect; age++) {
+    const monthlyWithdrawal = expAtRetire * Math.pow(1 + inflation, age - retireAge);
+    if (age > retireAge) {
+      for (let m = 0; m < 12; m++) {
+        withdrawBalance = withdrawBalance * (1 + rPostMonthly) - monthlyWithdrawal;
+        if (withdrawBalance < 0 && corpusDepletedAge === null) {
+          corpusDepletedAge = age;
+        }
+      }
+      if (withdrawBalance < 0) withdrawBalance = 0;
+    }
+    withdrawAtEachAge[age] = { balance: withdrawBalance, monthlyWithdrawal };
+  }
+
+  // Build timeline rows every 5 years
+  const timelineAges = new Set();
+  for (let age = currentAge; age <= lifeExpect; age += 5) timelineAges.add(age);
+  timelineAges.add(retireAge);
+  timelineAges.add(lifeExpect);
+  if (corpusDepletedAge) timelineAges.add(corpusDepletedAge);
+
+  const sortedAges = Array.from(timelineAges).sort((a, b) => a - b);
+
+  const tbody = document.getElementById('timelineBody');
+  tbody.innerHTML = sortedAges.map(age => {
+    const year = currentYear + (age - currentAge);
+    const isRetire = age === retireAge;
+    const isDeplete = corpusDepletedAge && age === corpusDepletedAge;
+    const isEOL = age === lifeExpect;
+
+    let event = '';
+    let corpusDisplay = '';
+    let withdrawDisplay = '—';
+    let rowClass = '';
+
+    if (isRetire) { event = 'Retirement <span class="badge badge-warn">Retire</span>'; rowClass = 'row-retire'; }
+    else if (isDeplete) { event = 'Corpus Depletes <span class="badge badge-loss">Depleted</span>'; rowClass = 'row-deplete'; }
+    else if (isEOL) { event = 'End of Plan <span class="badge badge-profit">EOL</span>'; }
+    else if (age === currentAge) { event = 'Today <span class="badge badge-profit">Now</span>'; }
+    else { event = '—'; }
+
+    if (age <= retireAge) {
+      const c = corpusAtEachAge[age] || 0;
+      corpusDisplay = `<span class="text-profit">${fmtINRK(c)}</span>`;
+    } else {
+      const d = withdrawAtEachAge[age] || { balance: 0, monthlyWithdrawal: 0 };
+      corpusDisplay = d.balance > 0
+        ? `<span class="text-harvest">${fmtINRK(d.balance)}</span>`
+        : `<span class="text-loss">₹0</span>`;
+      withdrawDisplay = `<span class="text-warn">${fmtINR(d.monthlyWithdrawal)}</span>`;
+    }
+
+    return `<tr class="${rowClass}">
+      <td>${age}</td>
+      <td>${year}</td>
+      <td>${event}</td>
+      <td>${corpusDisplay}</td>
+      <td>${withdrawDisplay}</td>
+    </tr>`;
+  }).join('');
+
+  // ── Alert ──
+  if (corpusDepletedAge) {
+    const shortfall = sipNeeded * 1.15; // suggest 15% more
+    const addlSIP = shortfall - sipNeeded;
+    showAlert('danger', `⚠️ Corpus depletes at age <strong>${corpusDepletedAge}</strong> — increase SIP by <strong>${fmtINR(addlSIP)}/month</strong> to cover full life expectancy (${lifeExpect} years).`);
+  } else {
+    // How many years beyond life expectancy is corpus sufficient?
+    // Simulate beyond life expectancy
+    let extraBalance = actualCorpusAtRetire;
+    let extraAge = retireAge;
+    const maxSimAge = lifeExpect + 20;
+    let coverAge = lifeExpect;
+    for (let age = retireAge + 1; age <= maxSimAge; age++) {
+      const mw = expAtRetire * Math.pow(1 + inflation, age - retireAge);
+      for (let m = 0; m < 12; m++) {
+        extraBalance = extraBalance * (1 + rPostMonthly) - mw;
+        if (extraBalance <= 0) { coverAge = age - 1; break; }
+      }
+      if (extraBalance <= 0) break;
+      if (age === maxSimAge) coverAge = maxSimAge;
+    }
+    const beyondYears = Math.max(0, coverAge - lifeExpect);
+    if (beyondYears > 0) {
+      showAlert('success', `✅ Your plan covers <strong>${beyondYears} year${beyondYears !== 1 ? 's' : ''} beyond</strong> your life expectancy (age ${lifeExpect}). Corpus sustains until age <strong>${coverAge}</strong>.`);
+    } else {
+      showAlert('success', `✅ Your plan covers the full retirement period through age <strong>${lifeExpect}</strong>.`);
+    }
+  }
+}
+
+function showAlert(type, html) {
+  const box = document.getElementById('alertBox');
+  const cls = type === 'success' ? 'success' : type === 'danger' ? 'danger' : 'warn';
+  box.innerHTML = `<div class="alert ${cls}"><span class="alert-icon">${type === 'success' ? '✅' : '⚠️'}</span><div>${html}</div></div>`;
+}
+
+// Init range labels
+['rInflation','rPreReturn','rPostReturn'].forEach(updateRangeLabel);
+calculate();
+</script>
+</body>
+</html>

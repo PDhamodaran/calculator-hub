@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIP &amp; Lump Sum Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080b10; --surface:#0f1419; --surface2:#161d26; --surface3:#1c2530;
+  --border:#1e2a38; --text:#dfe6ee; --text-dim:#7b8da0; --text-muted:#4a5c6e;
+  --accent:#2d6a4f; --accent-bright:#40916c; --accent-light:#52b788; --accent-glow:#40916c22;
+  --harvest:#4e8fd4; --harvest-bg:#4e8fd412; --harvest-border:#4e8fd433;
+  --loss:#d94f4f; --loss-bg:#d94f4f12;
+  --warn:#d4a04e; --warn-bg:#d4a04e12;
+  --profit:#40916c; --profit-bg:#40916c12;
+  --purple:#9d7fe8; --purple-bg:#9d7fe812;
+  --rose:#d4607a; --rose-bg:#d4607a12;
+}
+:root[data-theme="light"] {
+  --bg:#f4f6f9; --surface:#ffffff; --surface2:#eef1f6; --surface3:#e4e8f0;
+  --border:#cdd5e0; --text:#1c2b3a; --text-dim:#526070; --text-muted:#8a9baa;
+  --accent:#1e5c3a; --accent-bright:#2d8a5e; --accent-light:#239659; --accent-glow:#2d8a5e18;
+  --harvest:#1a5faa; --harvest-bg:#1a5faa0f; --harvest-border:#1a5faa30;
+  --loss:#c03030; --loss-bg:#c030300f; --warn:#9a6010; --warn-bg:#9a60100f;
+  --profit:#1e7a4a; --profit-bg:#1e7a4a0f; --purple:#6d4ec4; --purple-bg:#6d4ec410;
+  --rose:#b0304a; --rose-bg:#b0304a10;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; line-height:1.55; }
+.mono { font-family:'JetBrains Mono',monospace; }
+.container { max-width:1160px; margin:0 auto; padding:20px 16px; }
+
+.topnav { display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+.back-link { font-size:0.78rem; color:var(--text-dim); text-decoration:none; display:flex; align-items:center; gap:5px; padding:6px 12px; background:var(--surface); border:1px solid var(--border); border-radius:7px; transition:all .2s; }
+.back-link:hover { color:var(--text); border-color:var(--accent-light); }
+.page-title { font-size:0.9rem; font-weight:700; color:var(--accent-light); }
+
+header { margin-bottom:24px; padding:20px 0 18px; border-bottom:1px solid var(--border); }
+h1 { font-size:1.5rem; font-weight:700; letter-spacing:-0.025em; background:linear-gradient(135deg,#e0e8f0 30%,var(--accent-light) 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:4px; }
+.tagline { font-size:0.82rem; color:var(--text-dim); }
+
+.layout { display:grid; grid-template-columns:360px 1fr; gap:18px; align-items:start; }
+@media(max-width:860px){ .layout { grid-template-columns:1fr; } }
+
+.panel { background:var(--surface); border:1px solid var(--border); border-radius:11px; padding:20px; }
+:root[data-theme="light"] .panel { box-shadow:0 1px 4px rgba(0,0,0,.07); }
+.panel-title { font-size:0.85rem; font-weight:700; margin-bottom:16px; color:var(--text); }
+
+/* Segment buttons */
+.seg { display:flex; gap:2px; background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:3px; margin-bottom:18px; }
+.seg-btn { flex:1; padding:8px 6px; text-align:center; font-size:0.78rem; font-weight:600; color:var(--text-dim); cursor:pointer; border-radius:7px; border:none; background:none; font-family:inherit; transition:all .2s; }
+.seg-btn.active { background:var(--surface3); color:var(--accent-light); }
+.seg-btn:hover:not(.active) { color:var(--text); }
+
+.field { margin-bottom:14px; }
+.field label { display:block; font-size:0.68rem; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-muted); margin-bottom:6px; }
+.input-wrap { position:relative; }
+.input-prefix { position:absolute; left:11px; top:50%; transform:translateY(-50%); font-family:'JetBrains Mono',monospace; font-size:0.85rem; color:var(--text-dim); pointer-events:none; }
+.input-suffix { position:absolute; right:11px; top:50%; transform:translateY(-50%); font-family:'JetBrains Mono',monospace; font-size:0.8rem; color:var(--text-dim); pointer-events:none; }
+input[type="number"] { width:100%; background:var(--surface2); border:1px solid var(--border); color:var(--text); font-family:'JetBrains Mono',monospace; font-size:0.88rem; padding:9px 12px; border-radius:7px; outline:none; transition:border-color .2s; }
+input.has-prefix { padding-left:26px; }
+input.has-suffix { padding-right:30px; }
+input[type="number"]:focus { border-color:var(--accent-light); box-shadow:0 0 0 3px var(--accent-glow); }
+
+.range-wrap { display:flex; align-items:center; gap:10px; margin-top:6px; }
+input[type="range"] { flex:1; -webkit-appearance:none; height:4px; background:var(--surface3); border-radius:2px; border:none; padding:0; cursor:pointer; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; background:var(--accent-light); border-radius:50%; cursor:pointer; }
+.range-val { font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--accent-light); min-width:44px; text-align:right; }
+
+/* Section visibility */
+.mode-section { display:none; }
+.mode-section.active { display:block; }
+
+/* Compare grid */
+.compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.compare-grid .sub-label { font-size:0.72rem; font-weight:700; color:var(--accent-light); margin-bottom:10px; text-transform:uppercase; letter-spacing:.05em; }
+
+/* Summary cards */
+.summary-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:16px; }
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; position:relative; overflow:hidden; }
+.stat-card::after { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+.stat-card.c-green::after { background:var(--accent-light); }
+.stat-card.c-harvest::after { background:var(--harvest); }
+.stat-card.c-warn::after { background:var(--warn); }
+.stat-card.c-purple::after { background:var(--purple); }
+.stat-label { font-size:0.66rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin-bottom:2px; }
+.stat-value { font-family:'JetBrains Mono',monospace; font-size:1.2rem; font-weight:700; }
+.stat-value.green { color:var(--accent-light); }
+.stat-value.harvest { color:var(--harvest); }
+.stat-value.warn { color:var(--warn); }
+.stat-value.purple { color:var(--purple); }
+.stat-sub { font-size:0.7rem; color:var(--text-dim); margin-top:2px; }
+
+/* Stacked bar chart */
+.bar-chart { background:var(--surface2); border-radius:9px; padding:16px; margin-bottom:16px; }
+.bar-chart-title { font-size:0.75rem; font-weight:600; color:var(--text-dim); margin-bottom:12px; text-transform:uppercase; letter-spacing:.05em; }
+.bar-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:0.75rem; }
+.bar-label { width:46px; text-align:right; color:var(--text-dim); font-family:'JetBrains Mono',monospace; font-size:0.7rem; }
+.bar-track { flex:1; height:18px; background:var(--surface3); border-radius:4px; overflow:hidden; display:flex; }
+.bar-seg { height:100%; transition:width .4s ease; }
+.bar-seg.invested { background:var(--harvest); }
+.bar-seg.gain { background:var(--accent-light); }
+.bar-legend { display:flex; gap:14px; margin-top:10px; }
+.bar-leg-item { display:flex; align-items:center; gap:6px; font-size:0.75rem; color:var(--text-dim); }
+.bar-leg-dot { width:10px; height:10px; border-radius:2px; }
+
+/* Table */
+.tbl-wrap { overflow-x:auto; border-radius:9px; border:1px solid var(--border); }
+table { width:100%; border-collapse:collapse; font-size:0.79rem; }
+thead th { text-align:right; padding:10px 12px; font-size:0.63rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); border-bottom:1px solid var(--border); white-space:nowrap; background:var(--surface2); }
+thead th:first-child { text-align:left; }
+tbody td { padding:9px 12px; border-bottom:1px solid var(--border); font-family:'JetBrains Mono',monospace; font-size:0.78rem; text-align:right; }
+tbody td:first-child { text-align:left; font-family:'DM Sans',sans-serif; font-weight:600; font-size:0.8rem; }
+tbody tr:last-child td { border-bottom:none; }
+tbody tr:hover { background:var(--surface2); }
+.text-green { color:var(--accent-light); }
+.text-harvest { color:var(--harvest); }
+.text-warn { color:var(--warn); }
+.text-dim { color:var(--text-dim); }
+
+/* Compare cards */
+.compare-result-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; }
+.compare-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px; }
+.compare-card h3 { font-size:0.8rem; font-weight:700; margin-bottom:12px; }
+.compare-card h3.sip-h { color:var(--accent-light); }
+.compare-card h3.ls-h { color:var(--harvest); }
+.compare-card .big-val { font-family:'JetBrains Mono',monospace; font-size:1.3rem; font-weight:700; margin-bottom:4px; }
+.compare-card .big-val.sip-v { color:var(--accent-light); }
+.compare-card .big-val.ls-v { color:var(--harvest); }
+.compare-card .cv-row { display:flex; justify-content:space-between; font-size:0.77rem; padding:4px 0; border-bottom:1px solid var(--border); }
+.compare-card .cv-row:last-child { border-bottom:none; }
+.compare-card .cv-row span:first-child { color:var(--text-dim); }
+.compare-card .cv-row span:last-child { font-family:'JetBrains Mono',monospace; }
+
+.section-title { font-size:0.78rem; font-weight:700; color:var(--text-dim); margin-bottom:12px; text-transform:uppercase; letter-spacing:.05em; }
+</style>
+<script src="theme.js"></script>
+</head>
+<body>
+<div class="container">
+  <div class="topnav">
+    <a href="index.html" class="back-link">← Home</a>
+    <span class="page-title">SIP &amp; Lump Sum Calculator</span>
+  </div>
+  <header>
+    <h1>SIP &amp; Lump Sum Calculator</h1>
+    <p class="tagline">Systematic Investment · Lump Sum · Side-by-side comparison</p>
+  </header>
+
+  <div class="layout">
+    <!-- Left Panel -->
+    <div class="panel">
+      <div class="seg" id="modeSeg">
+        <button class="seg-btn active" onclick="setMode('sip')">SIP</button>
+        <button class="seg-btn" onclick="setMode('lumpsum')">Lump Sum</button>
+        <button class="seg-btn" onclick="setMode('compare')">Compare</button>
+      </div>
+
+      <!-- SIP Section -->
+      <div class="mode-section active" id="sec-sip">
+        <div class="field">
+          <label>Monthly Investment</label>
+          <div class="input-wrap">
+            <span class="input-prefix">₹</span>
+            <input type="number" id="sipAmount" class="has-prefix" value="10000" min="100" oninput="calc()">
+          </div>
+        </div>
+        <div class="field">
+          <label>Expected Annual Return</label>
+          <div class="input-wrap">
+            <input type="number" id="sipRate" class="has-suffix" value="12" min="1" max="50" step="0.1" oninput="syncRangeFrom('sipRate','rSipRate');calc()">
+            <span class="input-suffix">%</span>
+          </div>
+          <div class="range-wrap">
+            <input type="range" id="rSipRate" min="1" max="30" step="0.5" value="12" oninput="syncInputFrom('rSipRate','sipRate');calc()">
+            <span class="range-val" id="rvSipRate">12%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Tenure</label>
+          <div class="input-wrap">
+            <input type="number" id="sipYears" class="has-suffix" value="15" min="1" max="40" oninput="syncRangeFrom('sipYears','rSipYears');calc()">
+            <span class="input-suffix">yr</span>
+          </div>
+          <div class="range-wrap">
+            <input type="range" id="rSipYears" min="1" max="40" step="1" value="15" oninput="syncInputFrom('rSipYears','sipYears');calc()">
+            <span class="range-val" id="rvSipYears">15 yr</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lump Sum Section -->
+      <div class="mode-section" id="sec-lumpsum">
+        <div class="field">
+          <label>Investment Amount</label>
+          <div class="input-wrap">
+            <span class="input-prefix">₹</span>
+            <input type="number" id="lsAmount" class="has-prefix" value="500000" min="1000" oninput="calc()">
+          </div>
+        </div>
+        <div class="field">
+          <label>Expected Annual Return</label>
+          <div class="input-wrap">
+            <input type="number" id="lsRate" class="has-suffix" value="12" min="1" max="50" step="0.1" oninput="syncRangeFrom('lsRate','rLsRate');calc()">
+            <span class="input-suffix">%</span>
+          </div>
+          <div class="range-wrap">
+            <input type="range" id="rLsRate" min="1" max="30" step="0.5" value="12" oninput="syncInputFrom('rLsRate','lsRate');calc()">
+            <span class="range-val" id="rvLsRate">12%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Tenure</label>
+          <div class="input-wrap">
+            <input type="number" id="lsYears" class="has-suffix" value="15" min="1" max="40" oninput="syncRangeFrom('lsYears','rLsYears');calc()">
+            <span class="input-suffix">yr</span>
+          </div>
+          <div class="range-wrap">
+            <input type="range" id="rLsYears" min="1" max="40" step="1" value="15" oninput="syncInputFrom('rLsYears','lsYears');calc()">
+            <span class="range-val" id="rvLsYears">15 yr</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compare Section -->
+      <div class="mode-section" id="sec-compare">
+        <div class="compare-grid">
+          <div>
+            <div class="sub-label">SIP</div>
+            <div class="field">
+              <label>Monthly (₹)</label>
+              <div class="input-wrap">
+                <span class="input-prefix">₹</span>
+                <input type="number" id="cSipAmount" class="has-prefix" value="10000" min="100" oninput="calc()">
+              </div>
+            </div>
+            <div class="field">
+              <label>Return %</label>
+              <div class="input-wrap">
+                <input type="number" id="cSipRate" class="has-suffix" value="12" min="1" step="0.1" oninput="calc()">
+                <span class="input-suffix">%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Years</label>
+              <div class="input-wrap">
+                <input type="number" id="cSipYears" class="has-suffix" value="15" min="1" max="40" oninput="calc()">
+                <span class="input-suffix">yr</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="sub-label" style="color:var(--harvest)">Lump Sum</div>
+            <div class="field">
+              <label>Amount (₹)</label>
+              <div class="input-wrap">
+                <span class="input-prefix">₹</span>
+                <input type="number" id="cLsAmount" class="has-prefix" value="500000" min="1000" oninput="calc()">
+              </div>
+            </div>
+            <div class="field">
+              <label>Return %</label>
+              <div class="input-wrap">
+                <input type="number" id="cLsRate" class="has-suffix" value="12" min="1" step="0.1" oninput="calc()">
+                <span class="input-suffix">%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Years</label>
+              <div class="input-wrap">
+                <input type="number" id="cLsYears" class="has-suffix" value="15" min="1" max="40" oninput="calc()">
+                <span class="input-suffix">yr</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Results -->
+    <div id="results">
+      <!-- SIP / Lump Sum single results -->
+      <div id="singleResults">
+        <div class="summary-grid">
+          <div class="stat-card c-harvest">
+            <div class="stat-label">Total Invested</div>
+            <div class="stat-value harvest" id="rInvested">—</div>
+            <div class="stat-sub" id="rInvestedSub"></div>
+          </div>
+          <div class="stat-card c-green">
+            <div class="stat-label">Wealth Gained</div>
+            <div class="stat-value green" id="rGain">—</div>
+            <div class="stat-sub" id="rGainSub"></div>
+          </div>
+          <div class="stat-card c-warn">
+            <div class="stat-label">Maturity Value</div>
+            <div class="stat-value warn" id="rMaturity">—</div>
+            <div class="stat-sub" id="rMaturitySub"></div>
+          </div>
+          <div class="stat-card c-purple">
+            <div class="stat-label" id="rRateLabel">XIRR</div>
+            <div class="stat-value purple" id="rRate">—</div>
+            <div class="stat-sub" id="rRateSub"></div>
+          </div>
+        </div>
+
+        <!-- Stacked bar chart -->
+        <div class="bar-chart" id="barChartWrap">
+          <div class="bar-chart-title">Invested vs Wealth Gained — Year-wise</div>
+          <div id="barChartRows"></div>
+          <div class="bar-legend">
+            <div class="bar-leg-item"><div class="bar-leg-dot" style="background:var(--harvest)"></div>Invested</div>
+            <div class="bar-leg-item"><div class="bar-leg-dot" style="background:var(--accent-light)"></div>Gain</div>
+          </div>
+        </div>
+
+        <!-- Year-wise table -->
+        <div class="section-title">Year-wise Growth</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Invested</th>
+                <th>Value</th>
+                <th>Gain</th>
+                <th>Gain %</th>
+              </tr>
+            </thead>
+            <tbody id="yearTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Compare results -->
+      <div id="compareResults" style="display:none">
+        <div class="compare-result-grid" id="compareCards"></div>
+        <div class="section-title">Side-by-side Year-wise Growth</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>SIP Invested</th>
+                <th>SIP Value</th>
+                <th>LS Value</th>
+                <th>SIP Gain %</th>
+                <th>LS Gain %</th>
+              </tr>
+            </thead>
+            <tbody id="compareTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentMode = 'sip';
+
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.seg-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['sip','lumpsum','compare'][i] === mode);
+  });
+  document.querySelectorAll('.mode-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + mode).classList.add('active');
+  document.getElementById('singleResults').style.display = mode === 'compare' ? 'none' : 'block';
+  document.getElementById('compareResults').style.display = mode === 'compare' ? 'block' : 'none';
+  calc();
+}
+
+function syncRangeFrom(inputId, rangeId) {
+  const v = document.getElementById(inputId).value;
+  document.getElementById(rangeId).value = v;
+  updateRangeLabel(rangeId);
+}
+function syncInputFrom(rangeId, inputId) {
+  const v = document.getElementById(rangeId).value;
+  document.getElementById(inputId).value = v;
+  updateRangeLabel(rangeId);
+}
+function updateRangeLabel(rangeId) {
+  const v = parseFloat(document.getElementById(rangeId).value);
+  const labelId = 'rv' + rangeId.charAt(1).toUpperCase() + rangeId.slice(2);
+  const el = document.getElementById(labelId);
+  if (!el) return;
+  if (rangeId.toLowerCase().includes('rate')) el.textContent = v + '%';
+  else el.textContent = v + ' yr';
+}
+
+function fmtINR(n) {
+  return '₹' + Math.round(n).toLocaleString('en-IN');
+}
+function fmtPct(n) { return n.toFixed(2) + '%'; }
+
+function calcSIP(monthly, annualRate, years) {
+  const r = annualRate / 12 / 100;
+  const n = years * 12;
+  const fv = monthly * ((Math.pow(1 + r, n) - 1) / r) * (1 + r);
+  return fv;
+}
+
+function calcLS(principal, annualRate, years) {
+  return principal * Math.pow(1 + annualRate / 100, years);
+}
+
+function sipYearTable(monthly, annualRate, years) {
+  const rows = [];
+  const r = annualRate / 12 / 100;
+  for (let y = 1; y <= years; y++) {
+    const n = y * 12;
+    const invested = monthly * n;
+    const value = monthly * ((Math.pow(1 + r, n) - 1) / r) * (1 + r);
+    const gain = value - invested;
+    const gainPct = (gain / invested) * 100;
+    rows.push({ y, invested, value, gain, gainPct });
+  }
+  return rows;
+}
+
+function lsYearTable(principal, annualRate, years) {
+  const rows = [];
+  for (let y = 1; y <= years; y++) {
+    const value = principal * Math.pow(1 + annualRate / 100, y);
+    const gain = value - principal;
+    const gainPct = (gain / principal) * 100;
+    rows.push({ y, invested: principal, value, gain, gainPct });
+  }
+  return rows;
+}
+
+function renderBarChart(rows) {
+  const maxVal = Math.max(...rows.map(r => r.value));
+  const step = Math.ceil(rows.length / 8);
+  const filtered = rows.filter((r, i) => i % step === 0 || i === rows.length - 1);
+  document.getElementById('barChartRows').innerHTML = filtered.map(r => {
+    const invW = (r.invested / maxVal) * 100;
+    const gainW = (r.gain / maxVal) * 100;
+    return `<div class="bar-row">
+      <div class="bar-label">Yr ${r.y}</div>
+      <div class="bar-track">
+        <div class="bar-seg invested" style="width:${invW}%"></div>
+        <div class="bar-seg gain" style="width:${gainW}%"></div>
+      </div>
+      <div style="font-size:0.72rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace;min-width:80px;text-align:right">${fmtINR(r.value)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderYearTable(rows) {
+  document.getElementById('yearTableBody').innerHTML = rows.map(r => `
+    <tr>
+      <td>Year ${r.y}</td>
+      <td class="text-harvest">${fmtINR(r.invested)}</td>
+      <td class="text-warn">${fmtINR(r.value)}</td>
+      <td class="text-green">${fmtINR(r.gain)}</td>
+      <td class="text-green">${r.gainPct.toFixed(1)}%</td>
+    </tr>`).join('');
+}
+
+function calc() {
+  if (currentMode === 'sip') {
+    const monthly = parseFloat(document.getElementById('sipAmount').value) || 0;
+    const rate = parseFloat(document.getElementById('sipRate').value) || 0;
+    const years = parseInt(document.getElementById('sipYears').value) || 0;
+    if (!monthly || !rate || !years) return;
+
+    const invested = monthly * years * 12;
+    const maturity = calcSIP(monthly, rate, years);
+    const gain = maturity - invested;
+
+    document.getElementById('rInvested').textContent = fmtINR(invested);
+    document.getElementById('rInvestedSub').textContent = `${monthly.toLocaleString('en-IN')}/mo × ${years * 12} months`;
+    document.getElementById('rGain').textContent = fmtINR(gain);
+    document.getElementById('rGainSub').textContent = `${((gain / invested) * 100).toFixed(1)}% return on invested`;
+    document.getElementById('rMaturity').textContent = fmtINR(maturity);
+    document.getElementById('rMaturitySub').textContent = `After ${years} years`;
+    document.getElementById('rRateLabel').textContent = 'XIRR (Approx)';
+    document.getElementById('rRate').textContent = rate.toFixed(2) + '%';
+    document.getElementById('rRateSub').textContent = 'Expected annual return';
+
+    const rows = sipYearTable(monthly, rate, years);
+    renderBarChart(rows);
+    renderYearTable(rows);
+
+  } else if (currentMode === 'lumpsum') {
+    const principal = parseFloat(document.getElementById('lsAmount').value) || 0;
+    const rate = parseFloat(document.getElementById('lsRate').value) || 0;
+    const years = parseInt(document.getElementById('lsYears').value) || 0;
+    if (!principal || !rate || !years) return;
+
+    const maturity = calcLS(principal, rate, years);
+    const gain = maturity - principal;
+    const cagr = (Math.pow(maturity / principal, 1 / years) - 1) * 100;
+
+    document.getElementById('rInvested').textContent = fmtINR(principal);
+    document.getElementById('rInvestedSub').textContent = 'One-time investment';
+    document.getElementById('rGain').textContent = fmtINR(gain);
+    document.getElementById('rGainSub').textContent = `${((gain / principal) * 100).toFixed(1)}% absolute return`;
+    document.getElementById('rMaturity').textContent = fmtINR(maturity);
+    document.getElementById('rMaturitySub').textContent = `After ${years} years`;
+    document.getElementById('rRateLabel').textContent = 'CAGR';
+    document.getElementById('rRate').textContent = cagr.toFixed(2) + '%';
+    document.getElementById('rRateSub').textContent = 'Compounded annual growth';
+
+    const rows = lsYearTable(principal, rate, years);
+    renderBarChart(rows);
+    renderYearTable(rows);
+
+  } else if (currentMode === 'compare') {
+    const sipMonthly = parseFloat(document.getElementById('cSipAmount').value) || 0;
+    const sipRate    = parseFloat(document.getElementById('cSipRate').value) || 0;
+    const sipYrs     = parseInt(document.getElementById('cSipYears').value) || 0;
+    const lsPrincipal= parseFloat(document.getElementById('cLsAmount').value) || 0;
+    const lsRate     = parseFloat(document.getElementById('cLsRate').value) || 0;
+    const lsYrs      = parseInt(document.getElementById('cLsYears').value) || 0;
+    if (!sipMonthly || !sipRate || !sipYrs || !lsPrincipal || !lsRate || !lsYrs) return;
+
+    const sipInvested = sipMonthly * sipYrs * 12;
+    const sipMaturity = calcSIP(sipMonthly, sipRate, sipYrs);
+    const sipGain     = sipMaturity - sipInvested;
+
+    const lsMaturity  = calcLS(lsPrincipal, lsRate, lsYrs);
+    const lsGain      = lsMaturity - lsPrincipal;
+
+    document.getElementById('compareCards').innerHTML = `
+      <div class="compare-card">
+        <h3 class="sip-h">SIP</h3>
+        <div class="big-val sip-v">${fmtINR(sipMaturity)}</div>
+        <div class="stat-sub" style="margin-bottom:10px">Maturity Value</div>
+        <div class="cv-row"><span>Monthly Investment</span><span class="text-harvest">${fmtINR(sipMonthly)}</span></div>
+        <div class="cv-row"><span>Total Invested</span><span class="text-harvest">${fmtINR(sipInvested)}</span></div>
+        <div class="cv-row"><span>Wealth Gained</span><span class="text-green">${fmtINR(sipGain)}</span></div>
+        <div class="cv-row"><span>Return %</span><span class="text-green">${((sipGain / sipInvested) * 100).toFixed(1)}%</span></div>
+        <div class="cv-row"><span>Expected Rate</span><span>${sipRate}% p.a.</span></div>
+        <div class="cv-row"><span>Duration</span><span>${sipYrs} years</span></div>
+      </div>
+      <div class="compare-card">
+        <h3 class="ls-h">Lump Sum</h3>
+        <div class="big-val ls-v">${fmtINR(lsMaturity)}</div>
+        <div class="stat-sub" style="margin-bottom:10px">Maturity Value</div>
+        <div class="cv-row"><span>One-time Investment</span><span class="text-harvest">${fmtINR(lsPrincipal)}</span></div>
+        <div class="cv-row"><span>Total Invested</span><span class="text-harvest">${fmtINR(lsPrincipal)}</span></div>
+        <div class="cv-row"><span>Wealth Gained</span><span class="text-green">${fmtINR(lsGain)}</span></div>
+        <div class="cv-row"><span>Absolute Return</span><span class="text-green">${((lsGain / lsPrincipal) * 100).toFixed(1)}%</span></div>
+        <div class="cv-row"><span>CAGR</span><span>${lsRate}% p.a.</span></div>
+        <div class="cv-row"><span>Duration</span><span>${lsYrs} years</span></div>
+      </div>`;
+
+    const maxYears = Math.max(sipYrs, lsYrs);
+    const sipRows  = sipYearTable(sipMonthly, sipRate, sipYrs);
+    const lsRows   = lsYearTable(lsPrincipal, lsRate, lsYrs);
+    const sipMap   = Object.fromEntries(sipRows.map(r => [r.y, r]));
+    const lsMap    = Object.fromEntries(lsRows.map(r => [r.y, r]));
+
+    let html = '';
+    for (let y = 1; y <= maxYears; y++) {
+      const s = sipMap[y], l = lsMap[y];
+      html += `<tr>
+        <td>Year ${y}</td>
+        <td class="text-harvest">${s ? fmtINR(s.invested) : '—'}</td>
+        <td class="text-green">${s ? fmtINR(s.value) : '—'}</td>
+        <td style="color:var(--harvest)">${l ? fmtINR(l.value) : '—'}</td>
+        <td class="text-green">${s ? s.gainPct.toFixed(1) + '%' : '—'}</td>
+        <td style="color:var(--harvest)">${l ? l.gainPct.toFixed(1) + '%' : '—'}</td>
+      </tr>`;
+    }
+    document.getElementById('compareTableBody').innerHTML = html;
+  }
+}
+
+// Init range labels
+['rSipRate','rSipYears','rLsRate','rLsYears'].forEach(updateRangeLabel);
+calc();
+</script>
+</body>
+</html>

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Percentage Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080b10; --surface: #0f1419; --surface2: #161d26; --surface3: #1c2530;
+    --border: #1e2a38; --text: #dfe6ee; --text-dim: #7b8da0; --text-muted: #4a5c6e;
+    --accent: #2d6a4f; --accent-bright: #40916c; --accent-light: #52b788; --accent-glow: #40916c22;
+    --harvest: #4e8fd4; --harvest-bg: #4e8fd412; --harvest-border: #4e8fd433;
+    --loss: #d94f4f; --loss-bg: #d94f4f12;
+    --warn: #d4a04e; --warn-bg: #d4a04e12;
+    --profit: #40916c; --profit-bg: #40916c12;
+    --purple: #9d7fe8; --purple-bg: #9d7fe812;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.55; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
+
+  .topnav { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .back-link { font-size: 0.78rem; color: var(--text-dim); text-decoration: none; display: flex; align-items: center; gap: 5px; padding: 6px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; transition: border-color 0.2s; }
+  .back-link:hover { color: var(--text); border-color: var(--purple); }
+  .page-title { font-size: 0.9rem; font-weight: 700; color: var(--purple); }
+
+  header { margin-bottom: 28px; padding: 20px 0 18px; border-bottom: 1px solid var(--border); }
+  h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; background: linear-gradient(135deg, #e0e8f0 30%, var(--purple) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 4px; }
+  .tagline { font-size: 0.82rem; color: var(--text-dim); }
+
+  /* Grid layout */
+  .calc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+
+  /* Card */
+  .calc-card { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; overflow: hidden; }
+  .calc-card::before { content: ''; display: block; height: 3px; }
+  .calc-card.purple::before { background: linear-gradient(90deg, #6b5ce7, var(--purple)); }
+  .calc-card.blue::before   { background: linear-gradient(90deg, #3a7bd5, var(--harvest)); }
+  .calc-card.green::before  { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+  .calc-card.warn::before   { background: linear-gradient(90deg, var(--warn), #e8b84e); }
+  .calc-card.rose::before   { background: linear-gradient(90deg, #b03060, #d4607a); }
+  .calc-card.teal::before   { background: linear-gradient(90deg, #1e8a8a, #4ecac4); }
+
+  .card-hdr { padding: 14px 18px 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .card-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+  .icon-purple { background: var(--purple-bg); }
+  .icon-blue   { background: var(--harvest-bg); }
+  .icon-green  { background: var(--accent-glow); }
+  .icon-warn   { background: var(--warn-bg); }
+  .icon-rose   { background: #d4607a12; }
+  .icon-teal   { background: #4ecac412; }
+  .card-title  { font-size: 0.88rem; font-weight: 700; }
+  .card-sub    { font-size: 0.7rem; color: var(--text-muted); margin-top: 1px; }
+
+  .card-body { padding: 16px 18px; }
+
+  /* Inputs */
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 5px; }
+  .input-row { display: flex; gap: 8px; align-items: center; }
+  .input-row .field { flex: 1; margin-bottom: 0; }
+  .input-sep { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; padding-top: 18px; }
+  .input-wrap { position: relative; }
+  .input-suffix { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.78rem; color: var(--text-dim); pointer-events: none; font-family: 'JetBrains Mono', monospace; }
+  input[type="number"], input[type="text"], select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.88rem;
+    padding: 8px 11px; border-radius: 7px; outline: none; transition: border-color 0.2s;
+  }
+  input.has-suffix { padding-right: 30px; }
+  input:focus, select:focus { border-color: var(--purple); box-shadow: 0 0 0 3px var(--purple-bg); }
+  select { font-family: 'DM Sans', sans-serif; font-size: 0.84rem; cursor: pointer; }
+
+  /* Result box */
+  .result-box { margin-top: 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 14px 16px; }
+  .result-primary { font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 700; color: var(--purple); line-height: 1.2; }
+  .result-primary.green  { color: var(--accent-light); }
+  .result-primary.blue   { color: var(--harvest); }
+  .result-primary.warn   { color: var(--warn); }
+  .result-primary.rose   { color: #d4607a; }
+  .result-primary.teal   { color: #4ecac4; }
+  .result-label { font-size: 0.72rem; color: var(--text-muted); margin-top: 3px; }
+  .result-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .result-sub { font-size: 0.78rem; }
+  .result-sub span { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .result-divider { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+
+  /* Tip table */
+  .tip-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; margin-top: 4px; }
+  .tip-table th { text-align: left; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  .tip-table th:not(:first-child) { text-align: right; }
+  .tip-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); color: var(--text-dim); }
+  .tip-table td:not(:first-child) { text-align: right; font-family: 'JetBrains Mono', monospace; }
+  .tip-table tr:last-child td { border-bottom: none; }
+  .tip-table tr.tip-highlight td { color: var(--text); background: var(--surface3); font-weight: 600; }
+
+  /* Segment toggle */
+  .seg-toggle { display: flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 12px; }
+  .seg-btn { flex: 1; padding: 7px 4px; font-size: 0.72rem; font-weight: 600; border: none; background: transparent; color: var(--text-muted); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+  .seg-btn.active { background: var(--purple-bg); color: var(--purple); }
+
+  /* Badge */
+  .badge-pill { display: inline-block; font-size: 0.62rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+  .badge-up   { background: var(--profit-bg); color: var(--profit); border: 1px solid var(--profit); }
+  .badge-dn   { background: var(--loss-bg);   color: var(--loss);   border: 1px solid var(--loss); }
+
+  /* Light theme */
+  :root[data-theme="light"] {
+    --bg: #f4f6f9; --surface: #ffffff; --surface2: #eef1f6; --surface3: #e4e8f0;
+    --border: #cdd5e0; --text: #1c2b3a; --text-dim: #526070; --text-muted: #8a9baa;
+    --accent: #1e5c3a; --accent-bright: #2d8a5e; --accent-light: #239659; --accent-glow: #2d8a5e18;
+    --harvest: #1a5faa; --harvest-bg: #1a5faa0f; --harvest-border: #1a5faa30;
+    --loss: #c03030; --loss-bg: #c030300f;
+    --warn: #9a6010; --warn-bg: #9a60100f;
+    --profit: #1e7a4a; --profit-bg: #1e7a4a0f;
+    --purple: #6d4ec4; --purple-bg: #6d4ec410;
+  }
+  :root[data-theme="light"] .calc-card { box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  :root[data-theme="light"] h1 { background: linear-gradient(135deg, #1c2b3a 30%, var(--purple) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+</style>
+<script src="theme.js"></script>
+</head>
+<body>
+<div class="container">
+
+  <div class="topnav">
+    <a href="index.html" class="back-link">← Home</a>
+    <span class="page-title">% Percentage Calculator</span>
+  </div>
+
+  <header>
+    <h1>Percentage Calculator</h1>
+    <p class="tagline">Quick percentage tools — find %, change, markup, margin, tip split, and more</p>
+  </header>
+
+  <div class="calc-grid">
+
+    <!-- 1. What is X% of Y -->
+    <div class="calc-card purple">
+      <div class="card-hdr">
+        <div class="card-icon icon-purple">%</div>
+        <div>
+          <div class="card-title">What is X% of Y?</div>
+          <div class="card-sub">Find the percentage of a number</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="input-row">
+          <div class="field">
+            <label>Percentage (%)</label>
+            <div class="input-wrap">
+              <input type="number" id="c1_pct" placeholder="e.g. 15" class="has-suffix" oninput="calc1()">
+              <span class="input-suffix">%</span>
+            </div>
+          </div>
+          <div class="input-sep">of</div>
+          <div class="field">
+            <label>Value</label>
+            <input type="number" id="c1_val" placeholder="e.g. 5000" oninput="calc1()">
+          </div>
+        </div>
+        <div class="result-box" id="c1_res" style="display:none">
+          <div class="result-primary" id="c1_ans"></div>
+          <div class="result-label" id="c1_lbl"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. X is what % of Y -->
+    <div class="calc-card blue">
+      <div class="card-hdr">
+        <div class="card-icon icon-blue">÷</div>
+        <div>
+          <div class="card-title">X is what % of Y?</div>
+          <div class="card-sub">Find what percentage one number is of another</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="input-row">
+          <div class="field">
+            <label>Part (X)</label>
+            <input type="number" id="c2_x" placeholder="e.g. 750" oninput="calc2()">
+          </div>
+          <div class="input-sep">is % of</div>
+          <div class="field">
+            <label>Total (Y)</label>
+            <input type="number" id="c2_y" placeholder="e.g. 5000" oninput="calc2()">
+          </div>
+        </div>
+        <div class="result-box" id="c2_res" style="display:none">
+          <div class="result-primary blue" id="c2_ans"></div>
+          <div class="result-label" id="c2_lbl"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. X is Y% of what -->
+    <div class="calc-card green">
+      <div class="card-hdr">
+        <div class="card-icon icon-green">🔍</div>
+        <div>
+          <div class="card-title">X is Y% of what?</div>
+          <div class="card-sub">Find the original total from a partial value</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="input-row">
+          <div class="field">
+            <label>Part (X)</label>
+            <input type="number" id="c3_x" placeholder="e.g. 750" oninput="calc3()">
+          </div>
+          <div class="input-sep">is</div>
+          <div class="field">
+            <label>Percentage (%)</label>
+            <div class="input-wrap">
+              <input type="number" id="c3_pct" placeholder="e.g. 15" class="has-suffix" oninput="calc3()">
+              <span class="input-suffix">%</span>
+            </div>
+          </div>
+        </div>
+        <div class="result-box" id="c3_res" style="display:none">
+          <div class="result-primary green" id="c3_ans"></div>
+          <div class="result-label" id="c3_lbl"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Percentage Change -->
+    <div class="calc-card warn">
+      <div class="card-hdr">
+        <div class="card-icon icon-warn">↕</div>
+        <div>
+          <div class="card-title">Percentage Change</div>
+          <div class="card-sub">Increase or decrease between two values</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="input-row">
+          <div class="field">
+            <label>From (Old)</label>
+            <input type="number" id="c4_from" placeholder="e.g. 4000" oninput="calc4()">
+          </div>
+          <div class="input-sep">→</div>
+          <div class="field">
+            <label>To (New)</label>
+            <input type="number" id="c4_to" placeholder="e.g. 5200" oninput="calc4()">
+          </div>
+        </div>
+        <div class="result-box" id="c4_res" style="display:none">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="result-primary warn" id="c4_ans"></div>
+            <span id="c4_badge"></span>
+          </div>
+          <div class="result-label" id="c4_lbl"></div>
+          <hr class="result-divider">
+          <div class="result-row">
+            <div class="result-sub">Difference: <span id="c4_diff"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Add / Remove % -->
+    <div class="calc-card rose">
+      <div class="card-hdr">
+        <div class="card-icon icon-rose">±</div>
+        <div>
+          <div class="card-title">Add / Remove Percentage</div>
+          <div class="card-sub">Discounts, GST, markup, surcharge</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="seg-toggle" id="c5_mode">
+          <button class="seg-btn active" onclick="setMode('c5_mode',this,'add');calc5()">Add %</button>
+          <button class="seg-btn" onclick="setMode('c5_mode',this,'remove');calc5()">Remove %</button>
+        </div>
+        <div class="input-row">
+          <div class="field">
+            <label>Original Value</label>
+            <input type="number" id="c5_val" placeholder="e.g. 10000" oninput="calc5()">
+          </div>
+          <div class="input-sep">±</div>
+          <div class="field">
+            <label>Percentage (%)</label>
+            <div class="input-wrap">
+              <input type="number" id="c5_pct" placeholder="e.g. 18" class="has-suffix" oninput="calc5()">
+              <span class="input-suffix">%</span>
+            </div>
+          </div>
+        </div>
+        <div class="result-box" id="c5_res" style="display:none">
+          <div class="result-primary rose" id="c5_ans"></div>
+          <div class="result-label" id="c5_lbl"></div>
+          <hr class="result-divider">
+          <div class="result-row">
+            <div class="result-sub">Original: <span id="c5_orig"></span></div>
+            <div class="result-sub" id="c5_diff_wrap">Difference: <span id="c5_diff"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. Markup / Margin -->
+    <div class="calc-card teal">
+      <div class="card-hdr">
+        <div class="card-icon icon-teal">📦</div>
+        <div>
+          <div class="card-title">Markup vs Margin</div>
+          <div class="card-sub">Cost price, selling price, profit %</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="input-row">
+          <div class="field">
+            <label>Cost Price (₹)</label>
+            <input type="number" id="c6_cost" placeholder="e.g. 800" oninput="calc6()">
+          </div>
+          <div class="input-sep"></div>
+          <div class="field">
+            <label>Selling Price (₹)</label>
+            <input type="number" id="c6_sell" placeholder="e.g. 1200" oninput="calc6()">
+          </div>
+        </div>
+        <div class="result-box" id="c6_res" style="display:none">
+          <div class="result-row" style="gap:20px">
+            <div>
+              <div class="result-primary teal" id="c6_markup"></div>
+              <div class="result-label">Markup (on cost)</div>
+            </div>
+            <div>
+              <div class="result-primary green" id="c6_margin"></div>
+              <div class="result-label">Margin (on sale)</div>
+            </div>
+          </div>
+          <hr class="result-divider">
+          <div class="result-row">
+            <div class="result-sub">Profit: <span id="c6_profit"></span></div>
+            <div class="result-sub">ROI: <span id="c6_roi"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Tip & Bill Split -->
+    <div class="calc-card purple" style="grid-column: span 1">
+      <div class="card-hdr">
+        <div class="card-icon icon-purple">🍽</div>
+        <div>
+          <div class="card-title">Tip & Bill Split</div>
+          <div class="card-sub">Restaurant bill with tip across people</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>Bill Amount (₹)</label>
+          <input type="number" id="c7_bill" placeholder="e.g. 2400" oninput="calc7()">
+        </div>
+        <div class="input-row">
+          <div class="field">
+            <label>Tip %</label>
+            <div class="input-wrap">
+              <input type="number" id="c7_tip" value="10" class="has-suffix" oninput="calc7()">
+              <span class="input-suffix">%</span>
+            </div>
+          </div>
+          <div class="input-sep"></div>
+          <div class="field">
+            <label>No. of People</label>
+            <input type="number" id="c7_people" value="2" min="1" oninput="calc7()">
+          </div>
+        </div>
+        <div id="c7_res" style="display:none">
+          <table class="tip-table" id="c7_table"></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. Percentage Difference -->
+    <div class="calc-card blue">
+      <div class="card-hdr">
+        <div class="card-icon icon-blue">⇄</div>
+        <div>
+          <div class="card-title">Percentage Difference</div>
+          <div class="card-sub">Symmetric difference between two values</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="input-row">
+          <div class="field">
+            <label>Value A</label>
+            <input type="number" id="c8_a" placeholder="e.g. 480" oninput="calc8()">
+          </div>
+          <div class="input-sep">vs</div>
+          <div class="field">
+            <label>Value B</label>
+            <input type="number" id="c8_b" placeholder="e.g. 520" oninput="calc8()">
+          </div>
+        </div>
+        <div class="result-box" id="c8_res" style="display:none">
+          <div class="result-primary blue" id="c8_ans"></div>
+          <div class="result-label">% difference (relative to average)</div>
+          <hr class="result-divider">
+          <div class="result-row">
+            <div class="result-sub">Average: <span id="c8_avg"></span></div>
+            <div class="result-sub">Absolute diff: <span id="c8_abs"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. CAGR Calculator -->
+    <div class="calc-card green">
+      <div class="card-hdr">
+        <div class="card-icon icon-green">📈</div>
+        <div>
+          <div class="card-title">CAGR Calculator</div>
+          <div class="card-sub">Compound Annual Growth Rate</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="input-row">
+          <div class="field">
+            <label>Start Value (₹)</label>
+            <input type="number" id="c9_start" placeholder="e.g. 100000" oninput="calc9()">
+          </div>
+          <div class="input-sep">→</div>
+          <div class="field">
+            <label>End Value (₹)</label>
+            <input type="number" id="c9_end" placeholder="e.g. 185000" oninput="calc9()">
+          </div>
+        </div>
+        <div class="field">
+          <label>Years</label>
+          <input type="number" id="c9_yrs" placeholder="e.g. 5" oninput="calc9()">
+        </div>
+        <div class="result-box" id="c9_res" style="display:none">
+          <div class="result-primary green" id="c9_ans"></div>
+          <div class="result-label">Compound Annual Growth Rate</div>
+          <hr class="result-divider">
+          <div class="result-row">
+            <div class="result-sub">Total gain: <span id="c9_gain"></span></div>
+            <div class="result-sub">Total return: <span id="c9_total"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /calc-grid -->
+</div>
+
+<script>
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function n(id) { return parseFloat(document.getElementById(id).value); }
+function fmtN(v, dec=2) {
+  if (!isFinite(v)) return '—';
+  return v.toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+function fmtC(v) { return '₹' + fmtN(v); }
+function pct(v) { return fmtN(v) + '%'; }
+function show(id, vis) { document.getElementById(id).style.display = vis ? '' : 'none'; }
+
+function setMode(groupId, btn, val) {
+  document.getElementById(groupId).querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  btn.dataset.val = val;
+}
+function getMode(groupId) {
+  const active = document.getElementById(groupId).querySelector('.seg-btn.active');
+  return active?.dataset.val || active?.textContent.toLowerCase().includes('add') ? 'add' : 'remove';
+}
+
+// ── Calc 1: What is X% of Y ───────────────────────────────────────────────────
+function calc1() {
+  const p = n('c1_pct'), v = n('c1_val');
+  if (!isFinite(p) || !isFinite(v)) { show('c1_res', false); return; }
+  const ans = (p / 100) * v;
+  document.getElementById('c1_ans').textContent = fmtN(ans);
+  document.getElementById('c1_lbl').textContent = `${pct(p)} of ${fmtN(v)} = ${fmtN(ans)}`;
+  show('c1_res', true);
+}
+
+// ── Calc 2: X is what % of Y ──────────────────────────────────────────────────
+function calc2() {
+  const x = n('c2_x'), y = n('c2_y');
+  if (!isFinite(x) || !isFinite(y) || y === 0) { show('c2_res', false); return; }
+  const ans = (x / y) * 100;
+  document.getElementById('c2_ans').textContent = pct(ans);
+  document.getElementById('c2_lbl').textContent = `${fmtN(x)} is ${pct(ans)} of ${fmtN(y)}`;
+  show('c2_res', true);
+}
+
+// ── Calc 3: X is Y% of what ───────────────────────────────────────────────────
+function calc3() {
+  const x = n('c3_x'), p = n('c3_pct');
+  if (!isFinite(x) || !isFinite(p) || p === 0) { show('c3_res', false); return; }
+  const ans = (x / p) * 100;
+  document.getElementById('c3_ans').textContent = fmtN(ans);
+  document.getElementById('c3_lbl').textContent = `${fmtN(x)} is ${pct(p)} of ${fmtN(ans)}`;
+  show('c3_res', true);
+}
+
+// ── Calc 4: Percentage Change ─────────────────────────────────────────────────
+function calc4() {
+  const from = n('c4_from'), to = n('c4_to');
+  if (!isFinite(from) || !isFinite(to) || from === 0) { show('c4_res', false); return; }
+  const change = ((to - from) / Math.abs(from)) * 100;
+  const diff = to - from;
+  const isUp = change >= 0;
+  const ans = document.getElementById('c4_ans');
+  ans.textContent = (isUp ? '+' : '') + pct(change);
+  ans.className = 'result-primary ' + (isUp ? 'green' : 'rose');
+  document.getElementById('c4_badge').innerHTML = `<span class="badge-pill ${isUp ? 'badge-up' : 'badge-dn'}">${isUp ? '▲ Increase' : '▼ Decrease'}</span>`;
+  document.getElementById('c4_lbl').textContent = `From ${fmtN(from)} to ${fmtN(to)}`;
+  document.getElementById('c4_diff').textContent = (diff >= 0 ? '+' : '') + fmtN(diff);
+  document.getElementById('c4_diff').style.color = diff >= 0 ? 'var(--profit)' : 'var(--loss)';
+  show('c4_res', true);
+}
+
+// ── Calc 5: Add / Remove % ────────────────────────────────────────────────────
+function calc5() {
+  const val = n('c5_val'), p = n('c5_pct');
+  if (!isFinite(val) || !isFinite(p)) { show('c5_res', false); return; }
+  const active = document.getElementById('c5_mode').querySelector('.seg-btn.active');
+  const isAdd = active.textContent.includes('Add');
+  const diff = (p / 100) * val;
+  const ans = isAdd ? val + diff : val - diff;
+  document.getElementById('c5_ans').textContent = fmtN(ans);
+  document.getElementById('c5_lbl').textContent = isAdd
+    ? `${fmtN(val)} + ${pct(p)} = ${fmtN(ans)}`
+    : `${fmtN(val)} − ${pct(p)} = ${fmtN(ans)}`;
+  document.getElementById('c5_orig').textContent = fmtN(val);
+  document.getElementById('c5_diff').textContent = (isAdd ? '+' : '−') + fmtN(diff);
+  document.getElementById('c5_diff').style.color = isAdd ? 'var(--profit)' : 'var(--loss)';
+  show('c5_res', true);
+}
+
+// ── Calc 6: Markup / Margin ───────────────────────────────────────────────────
+function calc6() {
+  const cost = n('c6_cost'), sell = n('c6_sell');
+  if (!isFinite(cost) || !isFinite(sell) || cost <= 0 || sell <= 0) { show('c6_res', false); return; }
+  const profit = sell - cost;
+  const markup = (profit / cost) * 100;
+  const margin = (profit / sell) * 100;
+  const roi    = (profit / cost) * 100;
+  document.getElementById('c6_markup').textContent = pct(markup);
+  document.getElementById('c6_margin').textContent = pct(margin);
+  document.getElementById('c6_profit').textContent = fmtN(profit);
+  document.getElementById('c6_profit').style.color = profit >= 0 ? 'var(--profit)' : 'var(--loss)';
+  document.getElementById('c6_roi').textContent = pct(roi);
+  document.getElementById('c6_roi').style.color = roi >= 0 ? 'var(--profit)' : 'var(--loss)';
+  show('c6_res', true);
+}
+
+// ── Calc 7: Tip & Bill Split ──────────────────────────────────────────────────
+function calc7() {
+  const bill = n('c7_bill'), tipPct = n('c7_tip'), people = parseInt(document.getElementById('c7_people').value) || 1;
+  if (!isFinite(bill) || bill <= 0) { show('c7_res', false); return; }
+  const rows = [5, 10, 15, 18, 20].map(t => {
+    const tip = (t / 100) * bill;
+    const total = bill + tip;
+    const pp = total / people;
+    const tipPP = tip / people;
+    const isSelected = t === Math.round(isFinite(tipPct) ? tipPct : 0);
+    return `<tr${isSelected ? ' class="tip-highlight"' : ''}>
+      <td>${t}%${isSelected ? ' ◀' : ''}</td>
+      <td>${fmtC(tip)}</td>
+      <td>${fmtC(total)}</td>
+      <td>${fmtC(pp)}</td>
+      <td>${fmtC(tipPP)}</td>
+    </tr>`;
+  });
+  // Add custom tip row if not standard
+  const ct = isFinite(tipPct) ? tipPct : 0;
+  const customTip = (ct / 100) * bill;
+  const customTotal = bill + customTip;
+  const customPP = customTotal / people;
+  if (![5,10,15,18,20].includes(Math.round(ct))) {
+    rows.unshift(`<tr class="tip-highlight">
+      <td>${fmtN(ct,1)}% ◀</td>
+      <td>${fmtC(customTip)}</td>
+      <td>${fmtC(customTotal)}</td>
+      <td>${fmtC(customPP)}</td>
+      <td>${fmtC(customTip/people)}</td>
+    </tr>`);
+  }
+  document.getElementById('c7_table').innerHTML = `
+    <thead><tr><th>Tip %</th><th>Tip Amt</th><th>Total</th><th>Per Person</th><th>Tip/Person</th></tr></thead>
+    <tbody>${rows.join('')}</tbody>`;
+  show('c7_res', true);
+}
+
+// ── Calc 8: Percentage Difference ────────────────────────────────────────────
+function calc8() {
+  const a = n('c8_a'), b = n('c8_b');
+  if (!isFinite(a) || !isFinite(b)) { show('c8_res', false); return; }
+  const avg = (a + b) / 2;
+  const diff = Math.abs(a - b);
+  const pctDiff = avg !== 0 ? (diff / avg) * 100 : 0;
+  document.getElementById('c8_ans').textContent = pct(pctDiff);
+  document.getElementById('c8_avg').textContent = fmtN(avg);
+  document.getElementById('c8_abs').textContent = fmtN(diff);
+  show('c8_res', true);
+}
+
+// ── Calc 9: CAGR ─────────────────────────────────────────────────────────────
+function calc9() {
+  const start = n('c9_start'), end = n('c9_end'), yrs = n('c9_yrs');
+  if (!isFinite(start) || !isFinite(end) || !isFinite(yrs) || start <= 0 || yrs <= 0) { show('c9_res', false); return; }
+  const cagr = (Math.pow(end / start, 1 / yrs) - 1) * 100;
+  const totalGain = end - start;
+  const totalReturn = ((end - start) / start) * 100;
+  document.getElementById('c9_ans').textContent = pct(cagr);
+  document.getElementById('c9_ans').style.color = cagr >= 0 ? 'var(--accent-light)' : 'var(--loss)';
+  document.getElementById('c9_gain').textContent = (totalGain >= 0 ? '+' : '') + fmtN(totalGain);
+  document.getElementById('c9_gain').style.color = totalGain >= 0 ? 'var(--profit)' : 'var(--loss)';
+  document.getElementById('c9_total').textContent = (totalReturn >= 0 ? '+' : '') + pct(totalReturn);
+  document.getElementById('c9_total').style.color = totalReturn >= 0 ? 'var(--profit)' : 'var(--loss)';
+  show('c9_res', true);
+}
+</script>
+</body>
+</html>

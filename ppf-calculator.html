@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PPF Calculator – Personal Finance Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="theme.js"></script>
+<style>
+:root {
+  --bg:#080b10; --surface:#0f1419; --surface2:#161d26; --surface3:#1c2530;
+  --border:#1e2a38; --text:#dfe6ee; --text-dim:#7b8da0; --text-muted:#4a5c6e;
+  --accent:#2d6a4f; --accent-bright:#40916c; --accent-light:#52b788; --accent-glow:#40916c22;
+  --harvest:#4e8fd4; --harvest-bg:#4e8fd412; --harvest-border:#4e8fd433;
+  --loss:#d94f4f; --loss-bg:#d94f4f12;
+  --warn:#d4a04e; --warn-bg:#d4a04e12;
+  --profit:#40916c; --profit-bg:#40916c12;
+  --purple:#9d7fe8; --purple-bg:#9d7fe812;
+  --rose:#d4607a; --rose-bg:#d4607a12;
+}
+:root[data-theme="light"] {
+  --bg:#f4f6f9; --surface:#ffffff; --surface2:#eef1f6; --surface3:#e4e8f0;
+  --border:#cdd5e0; --text:#1c2b3a; --text-dim:#526070; --text-muted:#8a9baa;
+  --accent:#1e5c3a; --accent-bright:#2d8a5e; --accent-light:#239659; --accent-glow:#2d8a5e18;
+  --harvest:#1a5faa; --harvest-bg:#1a5faa0f; --harvest-border:#1a5faa30;
+  --loss:#c03030; --loss-bg:#c030300f; --warn:#9a6010; --warn-bg:#9a60100f;
+  --profit:#1e7a4a; --profit-bg:#1e7a4a0f; --purple:#6d4ec4; --purple-bg:#6d4ec410;
+  --rose:#b0304a; --rose-bg:#b0304a10;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.55;}
+.container{max-width:1140px;margin:0 auto;padding:20px 16px;}
+
+.topnav{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.back-link{font-size:0.78rem;color:var(--text-dim);text-decoration:none;display:flex;align-items:center;gap:5px;padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:7px;transition:all .2s;}
+.back-link:hover{color:var(--text);border-color:var(--accent-light);}
+.page-badge{font-size:0.72rem;font-weight:700;color:var(--accent-light);background:var(--accent-glow);border:1px solid #40916c33;padding:3px 10px;border-radius:20px;font-family:'JetBrains Mono',monospace;}
+
+header{margin-bottom:22px;padding:18px 0 16px;border-bottom:1px solid var(--border);}
+h1{font-size:1.5rem;font-weight:700;letter-spacing:-.025em;background:linear-gradient(135deg,#e0e8f0 30%,var(--accent-light) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;}
+.tagline{font-size:0.82rem;color:var(--text-dim);}
+
+.layout{display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start;}
+@media(max-width:860px){.layout{grid-template-columns:1fr;}}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:20px;}
+.panel-title{font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:16px;}
+
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:6px;}
+.input-wrap{position:relative;}
+.input-prefix{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:var(--text-dim);pointer-events:none;}
+.input-suffix{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--text-dim);pointer-events:none;}
+input[type="number"],input[type="text"],select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.88rem;padding:9px 12px;border-radius:7px;outline:none;transition:border-color .2s;}
+input.has-prefix{padding-left:26px;}
+input.has-suffix{padding-right:34px;}
+input:focus,select:focus{border-color:var(--accent-light);box-shadow:0 0 0 3px var(--accent-glow);}
+input::-webkit-inner-spin-button,input::-webkit-outer-spin-button{opacity:.4;}
+select{font-family:'DM Sans',sans-serif;font-size:0.85rem;}
+
+.range-wrap{display:flex;align-items:center;gap:10px;margin-top:6px;}
+input[type="range"]{flex:1;-webkit-appearance:none;height:4px;background:var(--surface3);border-radius:2px;border:none;padding:0;cursor:pointer;}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--accent-light);border-radius:50%;cursor:pointer;}
+.range-val{font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--accent-light);min-width:30px;text-align:right;}
+
+.toggle-group{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px;}
+.toggle-btn{flex:1;padding:7px 10px;text-align:center;font-size:0.76rem;font-weight:600;color:var(--text-dim);cursor:pointer;border-radius:6px;border:none;background:none;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.toggle-btn.active{background:var(--surface3);color:var(--accent-light);}
+
+.divider{height:1px;background:var(--border);margin:16px 0;}
+.section-label-sm{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:10px;}
+
+/* Summary cards */
+.summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.c-green::after{background:var(--accent-light);}
+.stat-card.c-profit::after{background:var(--profit);}
+.stat-card.c-harvest::after{background:var(--harvest);}
+.stat-card.c-purple::after{background:var(--purple);}
+.stat-label{font-size:0.64rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:2px;}
+.stat-value{font-family:'JetBrains Mono',monospace;font-size:1.18rem;font-weight:700;}
+.stat-value.green{color:var(--accent-light);}
+.stat-value.profit{color:var(--profit);}
+.stat-value.harvest{color:var(--harvest);}
+.stat-value.purple{color:var(--purple);}
+.stat-sub{font-size:0.68rem;color:var(--text-dim);margin-top:2px;}
+
+/* Info boxes */
+.info-box{border-radius:9px;padding:12px 14px;margin-bottom:12px;font-size:0.8rem;}
+.info-box.green{background:var(--profit-bg);border:1px solid #40916c33;color:var(--accent-light);}
+.info-box.warn{background:var(--warn-bg);border:1px solid #d4a04e33;color:var(--warn);}
+.info-box.harvest{background:var(--harvest-bg);border:1px solid var(--harvest-border);color:var(--harvest);}
+.info-box b{font-weight:700;}
+
+/* Tabs */
+.tabs{display:flex;gap:2px;margin-bottom:14px;background:var(--surface2);border-radius:9px;padding:3px;border:1px solid var(--border);}
+.tab{flex:1;padding:8px;text-align:center;font-size:0.75rem;font-weight:600;color:var(--text-dim);cursor:pointer;border-radius:7px;transition:all .2s;border:none;background:none;font-family:inherit;}
+.tab.active{background:var(--surface3);color:var(--accent-light);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* Table */
+.tbl-wrap{overflow-x:auto;border-radius:9px;border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:0.78rem;}
+thead th{text-align:right;padding:9px 11px;font-size:0.61rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;background:var(--surface2);}
+thead th:first-child{text-align:left;}
+tbody td{padding:8px 11px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:0.76rem;text-align:right;}
+tbody td:first-child{text-align:left;font-family:'DM Sans',sans-serif;font-size:0.78rem;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--surface2);}
+tbody tr.highlight-loan td{background:#d4a04e08;border-left:2px solid var(--warn);}
+tbody tr.highlight-loan td:first-child{border-left:2px solid var(--warn);}
+tbody tr.highlight-wdraw td{background:#4e8fd408;border-left:2px solid var(--harvest);}
+tbody tr.ext-row td{background:#9d7fe808;font-style:italic;color:var(--text-dim);}
+tbody tr.total-row td{background:var(--surface3);font-weight:700;color:var(--accent-light);border-top:1px solid var(--border);}
+.text-green{color:var(--accent-light);}
+.text-profit{color:var(--profit);}
+.text-harvest{color:var(--harvest);}
+.text-warn{color:var(--warn);}
+.text-dim{color:var(--text-dim);}
+.text-purple{color:var(--purple);}
+
+.badge{display:inline-block;font-size:0.58rem;font-weight:700;padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;vertical-align:middle;margin-left:4px;}
+.badge-warn{background:var(--warn-bg);color:var(--warn);border:1px solid #d4a04e33;}
+.badge-harvest{background:var(--harvest-bg);color:var(--harvest);border:1px solid var(--harvest-border);}
+
+/* Extension section */
+.ext-section{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:16px;margin-bottom:14px;}
+.ext-section h4{font-size:0.8rem;font-weight:700;color:var(--purple);margin-bottom:10px;}
+.ext-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.ext-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;}
+.ext-card .ec-title{font-size:0.72rem;font-weight:700;color:var(--text-dim);margin-bottom:6px;}
+.ext-card .ec-val{font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:700;color:var(--purple);}
+.ext-card .ec-sub{font-size:0.66rem;color:var(--text-muted);margin-top:2px;}
+
+footer{text-align:center;padding:20px 0;border-top:1px solid var(--border);font-size:0.72rem;color:var(--text-muted);margin-top:32px;}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="topnav">
+    <a href="index.html" class="back-link">← Home</a>
+    <span class="page-badge">PPF Calculator</span>
+  </nav>
+
+  <header>
+    <h1>PPF Calculator</h1>
+    <p class="tagline">Public Provident Fund · 15-year lock-in · EEE tax status · Govt backed</p>
+  </header>
+
+  <div class="layout">
+    <!-- LEFT PANEL -->
+    <div class="panel">
+      <div class="panel-title">Inputs</div>
+
+      <div class="field">
+        <label>Yearly Contribution</label>
+        <div class="input-wrap">
+          <span class="input-prefix">₹</span>
+          <input type="number" id="contribution" class="has-prefix" min="500" max="150000" value="150000" step="500">
+        </div>
+        <div style="font-size:0.66rem;color:var(--text-muted);margin-top:4px;">Min ₹500 · Max ₹1,50,000 per year</div>
+      </div>
+
+      <div class="field">
+        <label>Contribution Timing</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" id="btn-soy" onclick="setTiming('start')">Start of Year</button>
+          <button class="toggle-btn" id="btn-eoy" onclick="setTiming('end')">End of Year</button>
+        </div>
+        <div style="font-size:0.66rem;color:var(--text-muted);margin-top:4px;">Start of year earns interest for full year</div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="section-label-sm">Existing Account (optional)</div>
+
+      <div class="field">
+        <label>Current Account Balance</label>
+        <div class="input-wrap">
+          <span class="input-prefix">₹</span>
+          <input type="number" id="existingBalance" class="has-prefix" min="0" value="0" step="1000">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Current Year of Account</label>
+        <div class="range-wrap">
+          <input type="range" id="currentYearSlider" min="1" max="15" value="1" oninput="syncCurrentYear(this.value)">
+          <span class="range-val" id="currentYearDisplay">1</span>
+        </div>
+        <input type="number" id="currentYear" min="1" max="15" value="1" style="margin-top:6px;" oninput="syncCurrentYearFromInput(this.value)">
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field">
+        <label>Interest Rate (% per annum)</label>
+        <div class="input-wrap">
+          <input type="number" id="rate" class="has-suffix" min="1" max="15" value="7.1" step="0.05">
+          <span class="input-suffix">%</span>
+        </div>
+        <div style="font-size:0.66rem;color:var(--text-muted);margin-top:4px;">Current PPF rate: 7.1% p.a. (Q1 FY26)</div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="section-label-sm">Extension after 15 years</div>
+
+      <div class="field">
+        <label>Extension Rate (% per annum)</label>
+        <div class="input-wrap">
+          <input type="number" id="extRate" class="has-suffix" min="1" max="15" value="7.1" step="0.05">
+          <span class="input-suffix">%</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Extension Blocks (5-year each)</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" id="ext-0" onclick="setExtBlocks(0)">None</button>
+          <button class="toggle-btn" id="ext-1" onclick="setExtBlocks(1)">+5 yrs</button>
+          <button class="toggle-btn" id="ext-2" onclick="setExtBlocks(2)">+10 yrs</button>
+        </div>
+      </div>
+
+    </div><!-- /left panel -->
+
+    <!-- RIGHT PANEL -->
+    <div>
+
+      <!-- Summary -->
+      <div class="summary-grid">
+        <div class="stat-card c-green">
+          <div class="stat-label">Total Invested</div>
+          <div class="stat-value green" id="s-invested">—</div>
+          <div class="stat-sub" id="s-invested-sub">across 15 years</div>
+        </div>
+        <div class="stat-card c-profit">
+          <div class="stat-label">Total Interest</div>
+          <div class="stat-value profit" id="s-interest">—</div>
+          <div class="stat-sub">tax-free interest earned</div>
+        </div>
+        <div class="stat-card c-harvest">
+          <div class="stat-label">Maturity Value</div>
+          <div class="stat-value harvest" id="s-maturity">—</div>
+          <div class="stat-sub" id="s-maturity-sub">at end of 15 years</div>
+        </div>
+        <div class="stat-card c-purple">
+          <div class="stat-label">Effective Annual Return</div>
+          <div class="stat-value purple" id="s-xirr">—</div>
+          <div class="stat-sub">CAGR on total invested</div>
+        </div>
+      </div>
+
+      <!-- Loan & Withdrawal info -->
+      <div class="info-box warn" id="loan-info">
+        <b>Loan Eligibility:</b> You can take a loan of up to <span id="loan-pct">25%</span> of the balance from 2 years prior from year 3 to year 6.
+      </div>
+      <div class="info-box harvest" id="wdraw-info">
+        <b>Partial Withdrawal:</b> From year 7 onwards, you can withdraw up to 50% of the balance at the end of year 4 prior to the withdrawal year.
+      </div>
+
+      <!-- Extension -->
+      <div class="ext-section" id="ext-section" style="display:none;">
+        <h4>5-Year Extension Analysis</h4>
+        <div class="ext-grid" id="ext-grid"></div>
+      </div>
+
+      <!-- Year-by-year table -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('main')">Year-by-Year</button>
+        <button class="tab" id="tab-ext-btn" onclick="switchTab('ext')" style="display:none;">Extension Years</button>
+      </div>
+
+      <div class="tab-panel active" id="panel-main">
+        <div class="tbl-wrap">
+          <table id="yearTable">
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Opening Balance</th>
+                <th>Contribution</th>
+                <th>Interest Earned</th>
+                <th>Closing Balance</th>
+                <th>Cum. Interest</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody id="yearTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-ext">
+        <div class="tbl-wrap">
+          <table id="extTable">
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Opening Balance</th>
+                <th>Contribution</th>
+                <th>Interest Earned</th>
+                <th>Closing Balance</th>
+                <th>Cum. Interest (ext)</th>
+              </tr>
+            </thead>
+            <tbody id="extTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /right panel -->
+  </div><!-- /layout -->
+
+</div><!-- /container -->
+<footer>Personal Finance Tools · PPF rates are subject to quarterly revision by Government of India · All calculations are indicative</footer>
+
+<script>
+// State
+let timing = 'start';
+let extBlocks = 0;
+
+function setTiming(t) {
+  timing = t;
+  document.getElementById('btn-soy').classList.toggle('active', t === 'start');
+  document.getElementById('btn-eoy').classList.toggle('active', t === 'end');
+  calc();
+}
+
+function setExtBlocks(n) {
+  extBlocks = n;
+  [0,1,2].forEach(i => document.getElementById('ext-'+i).classList.toggle('active', i === n));
+  calc();
+}
+
+function syncCurrentYear(v) {
+  document.getElementById('currentYear').value = v;
+  document.getElementById('currentYearDisplay').textContent = v;
+  calc();
+}
+
+function syncCurrentYearFromInput(v) {
+  let val = Math.min(15, Math.max(1, parseInt(v)||1));
+  document.getElementById('currentYearSlider').value = val;
+  document.getElementById('currentYearDisplay').textContent = val;
+  calc();
+}
+
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach((b,i) => b.classList.toggle('active', (i===0 && t==='main')||(i===1 && t==='ext')));
+  document.getElementById('panel-main').classList.toggle('active', t === 'main');
+  document.getElementById('panel-ext').classList.toggle('active', t === 'ext');
+}
+
+const fmt = v => '₹' + Math.round(v).toLocaleString('en-IN');
+const fmtD = v => v.toLocaleString('en-IN', {maximumFractionDigits:2});
+
+function calcCagr(invested, maturity, years) {
+  if (!invested || invested <= 0 || years <= 0) return 0;
+  return (Math.pow(maturity / invested, 1 / years) - 1) * 100;
+}
+
+function calc() {
+  const contribution = parseFloat(document.getElementById('contribution').value) || 0;
+  const rate = (parseFloat(document.getElementById('rate').value) || 7.1) / 100;
+  const extRate = (parseFloat(document.getElementById('extRate').value) || 7.1) / 100;
+  let openingBal = parseFloat(document.getElementById('existingBalance').value) || 0;
+  const startYr = parseInt(document.getElementById('currentYear').value) || 1;
+
+  // Clamp contribution
+  const contrib = Math.min(150000, Math.max(500, contribution));
+
+  // Build 15-year schedule from startYr to 15
+  const rows = [];
+  let cumInterest = 0;
+  let bal = openingBal;
+
+  // Fill in implicit prior years with zero contribution (just carry the balance)
+  // We don't show them — we start from startYr
+  for (let yr = startYr; yr <= 15; yr++) {
+    const open = bal;
+    let interest;
+    if (timing === 'start') {
+      // deposit at beginning, interest on (open + contrib)
+      interest = (open + contrib) * rate;
+    } else {
+      // deposit at end, interest on opening balance only
+      interest = open * rate;
+    }
+    const close = open + contrib + interest;
+    cumInterest += interest;
+    rows.push({ yr, open, contrib, interest, close, cumInterest });
+    bal = close;
+  }
+
+  const totalInvested = contrib * (16 - startYr) + openingBal;
+  const maturity = bal;
+  const totalInterest = cumInterest;
+  const years = 16 - startYr;
+  const cagr = calcCagr(totalInvested > 0 ? totalInvested : 1, maturity, years);
+
+  // Update summary
+  document.getElementById('s-invested').textContent = fmt(totalInvested);
+  document.getElementById('s-invested-sub').textContent = `across ${years} year${years!==1?'s':''}`;
+  document.getElementById('s-interest').textContent = fmt(totalInterest);
+  document.getElementById('s-maturity').textContent = fmt(maturity);
+  document.getElementById('s-maturity-sub').textContent = `at end of year 15`;
+  document.getElementById('s-xirr').textContent = fmtD(cagr) + '%';
+
+  // Loan info
+  const yr2PriorIdx = rows.findIndex(r => r.yr === Math.max(startYr, 1));
+  const loanBal2Prior = rows.length >= 2 ? rows[Math.min(1, rows.length-1)].close : (rows[0]?.close || 0);
+  const loanEligible = loanBal2Prior * 0.25;
+  document.getElementById('loan-info').innerHTML = `<b>Loan Eligibility (Years 3–6):</b> Up to 25% of balance from 2 years prior. Example: if Year 2 closing = ${fmt(loanBal2Prior)}, max loan = <b>${fmt(loanEligible)}</b>. Repayable within 36 months.`;
+
+  // Withdrawal info - 50% of balance 4 years prior, from year 7
+  const wdrawRow = rows.find(r => r.yr === 7);
+  const wdrawBase = wdrawRow ? rows[Math.max(0, rows.indexOf(wdrawRow) - 4)]?.close || 0 : 0;
+  const wdrawAmt = wdrawBase * 0.5;
+  document.getElementById('wdraw-info').innerHTML = `<b>Partial Withdrawal (Year 7+):</b> Up to 50% of balance 4 years before the withdrawal year. From Year 7, example max = <b>${fmt(wdrawAmt)}</b>. One withdrawal per year allowed.`;
+
+  // Build main table
+  const tbody = document.getElementById('yearTbody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const isLoan = r.yr >= 3 && r.yr <= 6;
+    const isWdraw = r.yr >= 7;
+    const tr = document.createElement('tr');
+    if (isLoan) tr.classList.add('highlight-loan');
+    else if (isWdraw) tr.classList.add('highlight-wdraw');
+
+    // Find 2-yr prior balance for loan
+    const priorIdx2 = rows.findIndex(row => row.yr === r.yr) - 2;
+    const prior2Bal = priorIdx2 >= 0 ? rows[priorIdx2].close : openingBal;
+    const loanAmt = prior2Bal * 0.25;
+
+    // Find 4-yr prior balance for withdrawal
+    const priorIdx4 = rows.findIndex(row => row.yr === r.yr) - 4;
+    const prior4Bal = priorIdx4 >= 0 ? rows[priorIdx4].close : 0;
+    const wdrawAmtRow = prior4Bal * 0.5;
+
+    let noteTxt = '';
+    if (isLoan) noteTxt = `<span class="badge badge-warn">Loan ≤${fmt(loanAmt)}</span>`;
+    if (isWdraw) noteTxt = `<span class="badge badge-harvest">Wdraw ≤${fmt(wdrawAmtRow)}</span>`;
+
+    tr.innerHTML = `
+      <td>Year ${r.yr}${noteTxt}</td>
+      <td>${fmt(r.open)}</td>
+      <td class="text-green">${fmt(r.contrib)}</td>
+      <td class="text-profit">${fmt(r.interest)}</td>
+      <td class="text-harvest">${fmt(r.close)}</td>
+      <td class="text-dim">${fmt(r.cumInterest)}</td>
+      <td></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Total row
+  const totTr = document.createElement('tr');
+  totTr.className = 'total-row';
+  totTr.innerHTML = `<td>Total</td><td></td><td class="text-green">${fmt(totalInvested - openingBal)}</td><td class="text-profit">${fmt(totalInterest)}</td><td class="text-harvest">${fmt(maturity)}</td><td></td><td></td>`;
+  tbody.appendChild(totTr);
+
+  // Extension blocks
+  if (extBlocks > 0) {
+    document.getElementById('ext-section').style.display = '';
+    document.getElementById('tab-ext-btn').style.display = '';
+
+    const extGrid = document.getElementById('ext-grid');
+    extGrid.innerHTML = '';
+
+    const extTbody = document.getElementById('extTbody');
+    extTbody.innerHTML = '';
+
+    let extBal = maturity;
+    let extCumInterest = 0;
+    let extTotalInvested = 0;
+
+    for (let block = 1; block <= extBlocks; block++) {
+      const blockStart = 15 + (block-1)*5 + 1;
+      const blockEnd = blockStart + 4;
+
+      // Passive (no contribution)
+      const passiveOpen = extBal;
+      let passiveBal = passiveOpen;
+      for (let i = 0; i < 5; i++) {
+        passiveBal = passiveBal * (1 + extRate);
+      }
+      const passiveInterest = passiveBal - passiveOpen;
+
+      // Active (with contribution)
+      let activeBal = passiveOpen;
+      let activeContribSum = 0;
+      for (let i = 0; i < 5; i++) {
+        if (timing === 'start') {
+          activeBal = (activeBal + contrib) * (1 + extRate);
+        } else {
+          activeBal = activeBal * (1 + extRate) + contrib;
+        }
+        activeContribSum += contrib;
+      }
+      const activeInterest = activeBal - passiveOpen - activeContribSum;
+
+      extGrid.innerHTML += `
+        <div class="ext-card">
+          <div class="ec-title">Block ${block}: Years ${blockStart}–${blockEnd} (Passive)</div>
+          <div class="ec-val">${fmt(passiveBal)}</div>
+          <div class="ec-sub">Interest: ${fmt(passiveInterest)} · No contribution</div>
+        </div>
+        <div class="ext-card">
+          <div class="ec-title">Block ${block}: Years ${blockStart}–${blockEnd} (Active)</div>
+          <div class="ec-val">${fmt(activeBal)}</div>
+          <div class="ec-sub">Interest: ${fmt(activeInterest)} · Contrib: ${fmt(activeContribSum)}</div>
+        </div>
+      `;
+
+      // Build extension table rows
+      let rowBal = extBal;
+      let rowCum = 0;
+      for (let yr = blockStart; yr <= blockEnd; yr++) {
+        const rOpen = rowBal;
+        let rInterest;
+        if (timing === 'start') {
+          rInterest = (rOpen + contrib) * extRate;
+        } else {
+          rInterest = rOpen * extRate;
+        }
+        const rClose = rOpen + contrib + rInterest;
+        rowCum += rInterest;
+        extCumInterest += rInterest;
+        extTotalInvested += contrib;
+
+        const tr = document.createElement('tr');
+        tr.className = 'ext-row';
+        tr.innerHTML = `
+          <td>Year ${yr}</td>
+          <td>${fmt(rOpen)}</td>
+          <td class="text-green">${fmt(contrib)}</td>
+          <td class="text-profit">${fmt(rInterest)}</td>
+          <td class="text-harvest">${fmt(rClose)}</td>
+          <td class="text-dim">${fmt(rowCum)}</td>
+        `;
+        extTbody.appendChild(tr);
+        rowBal = rClose;
+      }
+
+      extBal = rowBal;
+    }
+
+  } else {
+    document.getElementById('ext-section').style.display = 'none';
+    document.getElementById('tab-ext-btn').style.display = 'none';
+    switchTab('main');
+  }
+}
+
+// Attach listeners
+['contribution','existingBalance','currentYear','rate','extRate'].forEach(id => {
+  document.getElementById(id).addEventListener('input', calc);
+});
+document.getElementById('currentYearSlider').addEventListener('input', e => syncCurrentYear(e.target.value));
+
+calc();
+</script>
+</body>
+</html>

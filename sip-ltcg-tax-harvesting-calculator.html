@@ -1,0 +1,1774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIP LTCG Tax Harvesting Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #080b10;
+    --surface: #0f1419;
+    --surface2: #161d26;
+    --surface3: #1c2530;
+    --border: #1e2a38;
+    --border-active: #2d6a4f55;
+    --text: #dfe6ee;
+    --text-dim: #7b8da0;
+    --text-muted: #4a5c6e;
+    --accent: #2d6a4f;
+    --accent-bright: #40916c;
+    --accent-light: #52b788;
+    --accent-glow: #40916c22;
+    --profit: #40916c;
+    --profit-bg: #40916c12;
+    --loss: #d94f4f;
+    --loss-bg: #d94f4f12;
+    --harvest: #4e8fd4;
+    --harvest-bg: #4e8fd412;
+    --harvest-border: #4e8fd433;
+    --warn: #d4a04e;
+    --warn-bg: #d4a04e12;
+    --eligible: #52b78833;
+    --ineligible: #d94f4f22;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.55; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .container { max-width: 1160px; margin: 0 auto; padding: 20px 16px; }
+
+  header { text-align: center; margin-bottom: 24px; padding: 20px 0 18px; border-bottom: 1px solid var(--border); }
+  h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 5px; background: linear-gradient(135deg, #e0e8f0 30%, var(--accent-light) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .tagline { color: var(--text-dim); font-size: 0.82rem; }
+  .tagline strong { color: var(--accent-light); font-weight: 600; }
+
+  .tabs { display: flex; gap: 2px; margin-bottom: 20px; background: var(--surface); border-radius: 10px; padding: 3px; border: 1px solid var(--border); }
+  .tab { flex: 1; padding: 10px 14px; text-align: center; font-size: 0.82rem; font-weight: 600; color: var(--text-dim); cursor: pointer; border-radius: 8px; transition: all 0.25s; border: none; background: none; font-family: inherit; }
+  .tab.active { background: var(--surface2); color: var(--text); box-shadow: 0 2px 8px #0004; }
+  .tab:hover:not(.active) { color: var(--text); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 20px; margin-bottom: 20px; }
+  .panel-title { font-size: 0.9rem; font-weight: 700; margin-bottom: 3px; display: flex; align-items: center; gap: 8px; }
+  .panel-desc { font-size: 0.78rem; color: var(--text-dim); margin-bottom: 14px; line-height: 1.55; }
+  .panel-desc code { background: var(--surface2); padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; color: var(--accent-light); }
+
+  .settings-strip { display: flex; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; align-items: end; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field.grow { flex: 1; min-width: 150px; }
+  .field label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); }
+  input, select, textarea { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 9px 12px; border-radius: 7px; outline: none; transition: border-color 0.2s; }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent-bright); box-shadow: 0 0 0 3px var(--accent-glow); }
+  select { font-family: 'DM Sans', sans-serif; font-size: 0.83rem; }
+
+  .upload-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 32px; text-align: center; cursor: pointer; transition: all 0.25s; background: var(--surface2); position: relative; }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent-bright); background: var(--accent-glow); }
+  .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-icon { font-size: 2rem; margin-bottom: 8px; }
+  .upload-label { font-size: 0.88rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .upload-sub { font-size: 0.75rem; color: var(--text-dim); }
+
+  /* Multi-file list */
+  .file-list { margin-top: 14px; display: none; }
+  .file-list.visible { display: block; }
+  .file-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .file-list-title { font-size: 0.78rem; font-weight: 600; color: var(--accent-light); }
+  .btn-clear-all { font-size: 0.72rem; padding: 4px 12px; color: var(--loss); background: var(--loss-bg); border: 1px solid #d94f4f33; border-radius: 5px; cursor: pointer; font-family: inherit; }
+  .file-chip { display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: var(--profit-bg); border: 1px solid #40916c33; border-radius: 7px; font-size: 0.8rem; margin-bottom: 6px; }
+  .file-chip .fc-name { color: var(--profit); font-weight: 600; flex: 1; }
+  .file-chip .fc-meta { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-dim); white-space: nowrap; }
+  .file-chip .fc-remove { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.85rem; padding: 2px 6px; border-radius: 4px; }
+  .file-chip .fc-remove:hover { color: var(--loss); background: var(--loss-bg); }
+
+  .cmp-section { margin-top: 18px; padding: 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; display: none; }
+  .cmp-section.visible { display: block; }
+  .cmp-section h4 { font-size: 0.84rem; font-weight: 600; margin-bottom: 10px; }
+  .cmp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+  .cmp-item { display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+  .cmp-item-top { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+  .cmp-item .stock-label { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 0.88rem; }
+  .cmp-item .lot-info { font-size: 0.66rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+  .cmp-item input { width: 100%; font-size: 0.9rem; padding: 7px 10px; text-align: right; font-weight: 600; }
+  .cmp-item .fetch-status { font-size: 0.75rem; flex-shrink: 0; }
+  .fetch-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .fetch-note { font-size: 0.72rem; color: var(--text-muted); }
+  .fetch-note a { color: var(--text-dim); }
+  .btn-fetch { background: var(--surface3); border: 1px solid var(--border); color: var(--accent-light); padding: 7px 16px; border-radius: 7px; font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+  .btn-fetch:hover { border-color: var(--accent-bright); background: var(--accent-glow); }
+  .btn-fetch:disabled { opacity: 0.5; cursor: not-allowed; }
+  #fetchProgress { font-size: 0.78rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+
+  textarea.csv-paste { width: 100%; min-height: 140px; font-size: 0.76rem; line-height: 1.5; resize: vertical; }
+
+  .stock-group { border: 1px solid var(--border); border-radius: 9px; margin-bottom: 10px; overflow: hidden; }
+  .stock-group:hover { border-color: var(--border-active); }
+  .stock-group-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--surface2); cursor: pointer; user-select: none; flex-wrap: wrap; }
+  .stock-group-header input.sg-name { background: transparent; border: none; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.92rem; color: var(--text); padding: 0; width: 130px; }
+  .stock-group-header input.sg-name:focus { box-shadow: none; border-bottom: 1px solid var(--accent-bright); border-radius: 0; }
+  .cmp-inline { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--text-dim); }
+  .cmp-inline input { width: 80px; font-size: 0.8rem; padding: 5px 8px; }
+  .lot-count { font-size: 0.72rem; color: var(--text-muted); margin-left: auto; font-family: 'JetBrains Mono', monospace; }
+  .chevron { color: var(--text-muted); transition: transform 0.25s; font-size: 0.7rem; }
+  .stock-group.open .chevron { transform: rotate(180deg); }
+  .stock-group-body { display: none; padding: 12px 14px; border-top: 1px solid var(--border); }
+  .stock-group.open .stock-group-body { display: block; }
+
+  .lot-header { display: grid; grid-template-columns: 120px 70px 100px 80px 1fr 36px; gap: 6px; padding: 6px 0; font-size: 0.64rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+  .lot-row { display: grid; grid-template-columns: 120px 70px 100px 80px 1fr 36px; gap: 6px; padding: 4px 0; align-items: center; }
+  .lot-row input { font-size: 0.8rem; padding: 6px 8px; }
+  .lot-status { font-size: 0.66rem; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-align: center; white-space: nowrap; }
+  .lot-status.eligible { background: var(--eligible); color: var(--accent-light); }
+  .lot-status.ineligible { background: var(--ineligible); color: var(--loss); }
+  .lot-remove { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.85rem; padding: 3px; border-radius: 4px; }
+  .lot-remove:hover { color: var(--loss); background: var(--loss-bg); }
+
+  .btn { padding: 10px 20px; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.84rem; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent-bright)); color: #fff; box-shadow: 0 4px 14px var(--accent-glow); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-glow); }
+  .btn-ghost { background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--text); }
+  .btn-sm { padding: 7px 14px; font-size: 0.78rem; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .add-lot-btn { display: inline-flex; align-items: center; gap: 5px; margin-top: 8px; padding: 6px 14px; font-size: 0.78rem; font-weight: 500; color: var(--text-dim); background: var(--surface); border: 1px dashed var(--border); border-radius: 6px; cursor: pointer; font-family: inherit; }
+  .add-lot-btn:hover { border-color: var(--accent-bright); color: var(--accent-bright); }
+  .stock-remove-btn { padding: 6px 14px; font-size: 0.75rem; color: var(--loss); background: var(--loss-bg); border: 1px solid #d94f4f33; border-radius: 6px; cursor: pointer; font-family: inherit; margin-top: 8px; margin-left: 8px; }
+
+  .parsed-summary { margin-top: 16px; padding: 14px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; font-size: 0.82rem; display: none; }
+  .parsed-summary.visible { display: block; }
+  .parsed-summary h4 { font-size: 0.82rem; margin-bottom: 8px; color: var(--accent-light); }
+  .parsed-stock-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 0.8rem; align-items: center; flex-wrap: wrap; gap: 4px; }
+  .parsed-stock-row:last-child { border-bottom: none; }
+  .parsed-stock-name { font-weight: 600; }
+  .parsed-stock-detail { font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; color: var(--text-dim); }
+
+  .results { display: none; }
+  .results.visible { display: block; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; }
+  .stat-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .stat-card.c-profit::after { background: var(--profit); }
+  .stat-card.c-harvest::after { background: var(--harvest); }
+  .stat-card.c-warn::after { background: var(--warn); }
+  .stat-card.c-eligible::after { background: var(--accent-light); }
+  .stat-label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 3px; }
+  .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 700; }
+  .stat-value.v-profit { color: var(--profit); }
+  .stat-value.v-harvest { color: var(--harvest); }
+  .stat-value.v-warn { color: var(--warn); }
+  .stat-sub { font-size: 0.73rem; color: var(--text-dim); margin-top: 3px; }
+
+  .result-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 11px; margin-bottom: 20px; }
+  .result-title { padding: 16px 20px 12px; font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--border); }
+  .acc-controls { margin-left: auto; display: flex; gap: 6px; }
+  .acc-ctrl-btn { font-size: 0.67rem; padding: 3px 10px; border-radius: 5px; border: 1px solid var(--border); background: none; color: var(--text-muted); cursor: pointer; font-family: inherit; }
+  .acc-ctrl-btn:hover { border-color: var(--accent-light); color: var(--accent-light); }
+  /* Accordion */
+  .acc-list { padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .acc-stock { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .acc-stock.has-harvest { border-color: var(--harvest-border, #4e8fd433); }
+  .acc-stock.has-loss    { border-color: #d94f4f33; }
+  .acc-stock.is-inelig   { border-color: #d4a04e33; }
+  .acc-hdr { display: flex; align-items: center; gap: 10px; padding: 11px 14px; cursor: pointer; background: var(--surface2); transition: background 0.15s; user-select: none; flex-wrap: wrap; }
+  .acc-hdr:hover { background: var(--surface); }
+  .acc-hdr.is-open { border-bottom: 1px solid var(--border); }
+  .acc-stock.has-harvest .acc-hdr { border-left: 3px solid var(--harvest); }
+  .acc-stock.has-loss    .acc-hdr { border-left: 3px solid var(--loss, #d94f4f); }
+  .acc-stock.is-inelig   .acc-hdr { border-left: 3px solid var(--warn); }
+  .acc-arrow { font-size: 0.6rem; color: var(--text-muted); transition: transform 0.2s; width: 10px; flex-shrink: 0; }
+  .acc-hdr.is-open .acc-arrow { transform: rotate(90deg); }
+  .acc-name { font-weight: 700; font-size: 0.88rem; }
+  .acc-cmp { font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; color: var(--text-dim); }
+  .acc-badges { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; margin-left: auto; }
+  .acc-body { display: none; overflow-x: auto; }
+  .acc-body.is-open { display: block; }
+  .acc-table { width: 100%; border-collapse: collapse; font-size: 0.79rem; }
+  .acc-table thead th { text-align: right; padding: 8px 12px; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--surface); }
+  .acc-table thead th:first-child { text-align: left; }
+  .acc-table tbody td { padding: 9px 12px; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; text-align: right; white-space: nowrap; }
+  .acc-table tbody td:first-child { text-align: left; font-family: 'DM Sans', sans-serif; }
+  .acc-table tbody tr:last-child td { border-bottom: none; }
+  .acc-table tr.row-harvest td { background: var(--harvest-bg); }
+  .acc-tfoot td { background: var(--surface2) !important; font-weight: 700; border-top: 2px solid var(--border) !important; font-family: 'JetBrains Mono', monospace; padding: 9px 12px; text-align: right; font-size: 0.79rem; }
+  .acc-tfoot td:first-child { text-align: left; font-family: 'DM Sans', sans-serif; }
+  .badge { font-size: 0.66rem; padding: 3px 10px; border-radius: 20px; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+  .badge-blue { background: var(--harvest-bg); color: var(--harvest); border: 1px solid var(--harvest-border); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  thead th { text-align: left; padding: 12px 14px; font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.name-cell { font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.85rem; }
+  .text-profit { color: var(--profit); }
+  .text-loss { color: var(--loss); }
+  .text-harvest { color: var(--harvest); font-weight: 600; }
+  .text-dim { color: var(--text-dim); }
+  tr.row-harvest { background: var(--harvest-bg); }
+
+  .exec-plan { background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 20px; margin-bottom: 20px; }
+  .exec-plan h3 { font-size: 0.92rem; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .exec-step { padding: 12px 16px; background: var(--surface2); border-radius: 8px; border-left: 3px solid var(--accent-bright); margin-bottom: 8px; font-size: 0.82rem; line-height: 1.6; }
+  .exec-step .num { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--accent-light); margin-right: 4px; }
+  .exec-step strong { color: var(--harvest); }
+  .exec-step em { color: var(--text-dim); font-style: normal; font-size: 0.75rem; }
+  .note-box { margin-top: 16px; padding: 14px 18px; background: var(--warn-bg); border: 1px solid #d4a04e28; border-radius: 8px; font-size: 0.8rem; color: var(--warn); line-height: 1.7; }
+  .note-box strong { color: #e8b84e; }
+
+  /* ── Light theme ──────────────────────────────────────────────────────── */
+  :root[data-theme="light"] {
+    --bg: #f4f6f9; --surface: #ffffff; --surface2: #eef1f6; --surface3: #e4e8f0;
+    --border: #cdd5e0; --border-active: #2d8a5e55;
+    --text: #1c2b3a; --text-dim: #526070; --text-muted: #8a9baa;
+    --accent: #1e5c3a; --accent-bright: #2d8a5e; --accent-light: #239659; --accent-glow: #2d8a5e18;
+    --profit: #1e7a4a; --profit-bg: #1e7a4a10;
+    --loss: #b83030; --loss-bg: #b8303010;
+    --harvest: #1a5faa; --harvest-bg: #1a5faa0f; --harvest-border: #1a5faa30;
+    --warn: #9a6010; --warn-bg: #9a60100f;
+    --eligible: #2d8a5e25; --ineligible: #b8303022;
+  }
+  :root[data-theme="light"] .note-box strong { color: #7a4a08; }
+  :root[data-theme="light"] h1 { background: linear-gradient(135deg, #1c2b3a 30%, var(--accent-light) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+  /* ── Portfolio Summary ────────────────────────────────────────────────────── */
+  .psec { display:none; margin-top:24px; }
+  .psec.visible { display:block; }
+  .psec-box { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:20px; }
+  .psec-hdr { padding:14px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; }
+  .psec-title { font-size:0.88rem; font-weight:700; display:flex; align-items:center; gap:7px; }
+  .psec-hint { font-size:0.67rem; color:var(--text-muted); }
+  .pft { width:100%; border-collapse:collapse; font-size:0.78rem; }
+  .pft th { padding:9px 12px; text-align:right; font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-muted); border-bottom:1px solid var(--border); white-space:nowrap; cursor:pointer; user-select:none; }
+  .pft th:first-child { text-align:left; }
+  .pft th:hover { color:var(--accent-light); }
+  .pft td { padding:9px 12px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap; }
+  .pft td:first-child { text-align:left; font-weight:600; }
+  .pft tbody tr:hover td { background:var(--surface2); }
+  .pft .pft-total td { background:var(--surface2); font-weight:700; border-top:2px solid var(--border); border-bottom:none !important; }
+  .pft th.sort-active { color:var(--accent-light); }
+  .pft th .sort-arrow { opacity:0.4; margin-left:3px; font-size:0.6rem; }
+  .pft th.sort-active .sort-arrow { opacity:1; }
+  /* Filter bar */
+  .pf-filters { padding:10px 16px; border-bottom:1px solid var(--border); display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; background:var(--surface2); }
+  .pf-search-wrap { position:relative; }
+  .pf-search-wrap input { background:var(--surface); border:1px solid var(--border); color:var(--text); font-family:'DM Sans',sans-serif; font-size:0.8rem; padding:6px 10px 6px 28px; border-radius:7px; outline:none; width:160px; transition:border-color 0.2s; }
+  .pf-search-wrap input:focus { border-color:var(--accent-light); box-shadow:0 0 0 3px var(--accent-glow); }
+  .pf-search-icon { position:absolute; left:8px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:0.78rem; pointer-events:none; }
+  .pf-chips { display:flex; flex-wrap:wrap; gap:4px; }
+  .pf-chip { font-size:0.67rem; font-weight:700; padding:4px 10px; border-radius:20px; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--text-muted); font-family:'DM Sans',sans-serif; transition:all 0.15s; }
+  .pf-chip:hover { border-color:var(--text-dim); color:var(--text-dim); }
+  .pf-chip.active             { background:var(--accent-glow);  border-color:var(--accent-light); color:var(--accent-light); }
+  .pf-chip.chip-p.active      { background:var(--profit-bg);    border-color:var(--profit);       color:var(--profit); }
+  .pf-chip.chip-l.active      { background:var(--loss-bg);      border-color:var(--loss);         color:var(--loss); }
+  .pf-chip.chip-h.active      { background:var(--harvest-bg);   border-color:var(--harvest);      color:var(--harvest); }
+  .pf-chip.chip-w.active      { background:var(--warn-bg);      border-color:var(--warn);         color:var(--warn); }
+  .pf-range { display:flex; align-items:center; gap:5px; font-size:0.72rem; color:var(--text-muted); }
+  .pf-range input { width:62px; background:var(--surface); border:1px solid var(--border); color:var(--text); font-size:0.75rem; padding:5px 7px; border-radius:6px; outline:none; font-family:'JetBrains Mono',monospace; transition:border-color 0.2s; }
+  .pf-range input:focus { border-color:var(--accent-light); }
+  .pf-clear-btn { font-size:0.67rem; color:var(--text-muted); cursor:pointer; background:none; border:none; font-family:'DM Sans',sans-serif; padding:2px 6px; border-radius:4px; }
+  .pf-clear-btn:hover { color:var(--loss); }
+  .pf-result-count { font-size:0.68rem; color:var(--text-muted); margin-left:auto; white-space:nowrap; }
+  /* Checkbox column */
+  .pft th.cb-col, .pft td.cb-col { width:32px; padding:8px 10px; text-align:center !important; }
+  .pft input[type=checkbox] { width:14px; height:14px; accent-color:var(--harvest); cursor:pointer; vertical-align:middle; }
+  /* Selection summary bar */
+  .sel-bar { display:none; background:var(--surface2); border-top:1px solid var(--border); padding:14px 20px; gap:0; align-items:stretch; flex-wrap:wrap; }
+  .sel-bar.visible { display:flex; }
+  .sel-bar-label { font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--harvest); padding:0 20px 0 0; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+  .sel-kpi { display:flex; flex-direction:column; gap:3px; padding:0 20px; border-left:1px solid var(--border); }
+  .sel-kpi-label { font-size:0.6rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-muted); }
+  .sel-kpi-val { font-family:'JetBrains Mono',monospace; font-size:1rem; font-weight:700; color:var(--text); }
+  .sel-kpi-val.s-profit { color:var(--profit,#40916c); }
+  .sel-clear-sel { margin-left:auto; align-self:center; background:none; border:1px solid var(--border); border-radius:6px; padding:5px 12px; color:var(--text-dim); cursor:pointer; font-size:0.74rem; font-family:inherit; white-space:nowrap; }
+  .sel-clear-sel:hover { border-color:var(--harvest); color:var(--harvest); }
+  /* Sell qty input */
+  .sell-qty-inp { width:72px; background:var(--surface); border:1px solid var(--border); color:var(--text); font-family:'JetBrains Mono',monospace; font-size:0.82rem; padding:5px 8px; border-radius:6px; text-align:right; outline:none; transition:border-color 0.2s,box-shadow 0.2s; }
+  .sell-qty-inp:focus { border-color:var(--harvest); box-shadow:0 0 0 2px var(--harvest-bg); }
+  .sell-qty-inp.at-max { color:var(--accent-light); }
+  .sell-qty-inp.partial { color:var(--warn); }
+
+  /* ── Charts ─────────────────────────────────────────────────────────────── */
+  .ch-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:16px; }
+  @media (max-width:760px) { .ch-grid { grid-template-columns:1fr; } .ch-wide { grid-column:span 1 !important; } }
+  .ch-card { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
+  .ch-wide { grid-column:1/-1; }
+  .ch-title { font-size:0.67rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-muted); margin-bottom:10px; }
+  .ch-legend { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:10px; }
+  .ch-leg-item { display:flex; align-items:center; gap:5px; font-size:0.7rem; color:var(--text-dim); }
+  .ch-leg-dot { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+
+  @media (max-width: 700px) {
+    .lot-header, .lot-row { grid-template-columns: 100px 55px 85px 65px 55px 30px; gap: 3px; }
+    .lot-row input { font-size: 0.74rem; padding: 5px 5px; }
+    .cmp-grid { grid-template-columns: 1fr; }
+    .settings-strip { flex-direction: column; }
+  }
+</style>
+<script src="theme.js"></script>
+</head>
+<body>
+<div class="container">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+    <a href="index.html" style="font-size:0.78rem;color:var(--text-dim);text-decoration:none;display:flex;align-items:center;gap:5px;padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:7px">← Home</a>
+    <span style="font-size:0.9rem;font-weight:700;color:var(--accent-light)">LTCG Tax Harvesting</span>
+  </div>
+  <header>
+    <h1>SIP LTCG Tax Harvesting Calculator</h1>
+    <p class="tagline">Upload <strong>Zerodha Tradebook XLSX/CSV</strong> — supports multiple files across FYs → get exact lot-wise sell qty for ₹1.25L LTCG harvesting</p>
+  </header>
+
+  <div class="settings-strip">
+    <div class="field grow"><label>LTCG Exemption (₹/year)</label><input type="number" id="exemptionLimit" value="125000"></div>
+    <div class="field grow"><label>Already Booked LTCG (₹)</label><input type="number" id="bookedLTCG" value="0"></div>
+    <div class="field grow"><label>Strategy</label>
+      <select id="strategy">
+        <option value="max-harvest">Max Harvest (fill ₹1.25L)</option>
+        <option value="oldest-first">Oldest Lots First (FIFO)</option>
+        <option value="highest-gain">Highest Gain % First</option>
+      </select>
+    </div>
+    <div class="field grow"><label>Reference Date</label><input type="date" id="refDate"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="upload">📁 Upload Tradebook</button>
+    <button class="tab" data-tab="paste">📋 Paste Data</button>
+    <button class="tab" data-tab="manual">✏️ Manual Entry</button>
+  </div>
+
+  <!-- TAB 1: Upload -->
+  <div class="tab-panel active" id="tab-upload">
+    <div class="panel">
+      <div class="panel-title">📁 Upload Zerodha Tradebook (XLSX or CSV)</div>
+      <p class="panel-desc">
+        <strong>Zerodha Console → Reports → Tradebook → Download</strong><br>
+        Supports <code>.xlsx</code> and <code>.csv</code> — upload <strong>multiple files</strong> (different FYs) at once or one by one.<br>
+        Reads: <code>Symbol</code>, <code>Trade Date</code>, <code>Trade Type</code> (buy/sell), <code>Quantity</code>, <code>Price</code>.<br>
+        Automatically applies FIFO across all files — sells reduce oldest buy lots first, giving you net holdings.
+      </p>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" accept=".csv,.xlsx,.xls" multiple id="fileInput" onchange="handleFile(event)">
+        <div class="upload-icon">📄</div>
+        <div class="upload-label">Drop Tradebook files here or click to browse</div>
+        <div class="upload-sub">XLSX or CSV · multiple files supported (select all FY files at once)</div>
+      </div>
+
+      <!-- File List -->
+      <div class="file-list" id="fileList">
+        <div class="file-list-header">
+          <span class="file-list-title" id="fileListTitle"></span>
+          <button class="btn-clear-all" onclick="clearAllFiles()">✕ Clear All</button>
+        </div>
+        <div id="fileChips"></div>
+      </div>
+
+      <div class="parsed-summary" id="parsedSummary">
+        <h4>✅ Parsed Net Holdings (buys minus sells via FIFO — all files combined)</h4>
+        <div id="parsedList"></div>
+      </div>
+      <div class="cmp-section" id="cmpSection">
+        <h4>Enter Current Market Price (CMP) for each stock</h4>
+        <div class="fetch-bar">
+          <button class="btn-fetch" id="fetchBtn" onclick="fetchAllCMPs('cmpGrid','fetchBtn','fetchProgress')">⚡ Fetch Live Prices (NSE)</button>
+          <span id="fetchProgress"></span>
+          <span class="fetch-note">via Yahoo Finance · NSE data</span>
+        </div>
+        <div class="cmp-grid" id="cmpGrid"></div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="calculateFromParsed()">🔍 Calculate Harvest Plan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: Paste -->
+  <div class="tab-panel" id="tab-paste">
+    <div class="panel">
+      <div class="panel-title">📋 Paste Tradebook or Custom Data</div>
+      <p class="panel-desc">
+        Paste your Tradebook CSV content directly, or use simple format:<br>
+        <code>symbol, trade_date, buy/sell, qty, price</code> (one row per trade)
+      </p>
+      <textarea class="csv-paste" id="pasteInput" placeholder="Paste Zerodha Tradebook CSV rows here...
+
+Example (Zerodha format):
+Symbol,ISIN,Trade Date,Exchange,Segment,Series,Trade Type,Auction,Quantity,Price,Trade ID,Order ID,Order Execution Time
+DRREDDY,INE089A01031,2025-04-03,NSE,EQ,EQ,buy,FALSE,2,1175,203311513,1100000026382,2025-04-03T11:00:01
+SBI,INE062A01020,2024-06-15,NSE,EQ,EQ,buy,FALSE,10,750,203311514,1100000026383,2024-06-15T10:00:01
+
+Or simple format:
+SBI, 2024-01-15, buy, 10, 620
+SBI, 2024-02-15, buy, 10, 645"></textarea>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="parsePaste()">Parse Data</button>
+      </div>
+      <div class="parsed-summary" id="parsedSummaryPaste" style="display:none">
+        <h4>✅ Parsed Net Holdings</h4>
+        <div id="parsedListPaste"></div>
+      </div>
+      <div class="cmp-section" id="cmpSectionPaste">
+        <h4>Enter CMP for each stock</h4>
+        <div class="fetch-bar">
+          <button class="btn-fetch" id="fetchBtnPaste" onclick="fetchAllCMPs('cmpGridPaste','fetchBtnPaste','fetchProgressPaste')">⚡ Fetch Live Prices (NSE)</button>
+          <span id="fetchProgressPaste"></span>
+          <span class="fetch-note">via Yahoo Finance · NSE data</span>
+        </div>
+        <div class="cmp-grid" id="cmpGridPaste"></div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="calculateFromParsed()">🔍 Calculate Harvest Plan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: Manual -->
+  <div class="tab-panel" id="tab-manual">
+    <div class="panel">
+      <div class="panel-title">✏️ Manual Lot Entry</div>
+      <p class="panel-desc">Add each SIP purchase lot manually with date, qty, and buy price.</p>
+      <div id="stockGroups"></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost btn-sm" onclick="addStockGroup()">+ Add Stock</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadSample()">Load Sample</button>
+        <button class="btn btn-primary" onclick="calculateManual()">🔍 Calculate Harvest Plan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <div class="summary-grid" id="summaryGrid"></div>
+    <div class="result-wrap">
+      <div class="result-title">
+        Lot-wise Harvest Plan <span class="badge badge-blue" id="resultBadge"></span>
+        <div class="acc-controls">
+          <button class="acc-ctrl-btn" onclick="expandAllAcc(true)">Expand all</button>
+          <button class="acc-ctrl-btn" onclick="expandAllAcc(false)">Collapse all</button>
+        </div>
+      </div>
+      <div class="acc-list" id="rAccordion"></div>
+    </div>
+    <div class="exec-plan" id="execPlan"></div>
+    <div class="btn-row" style="margin-bottom:20px">
+      <button class="btn btn-ghost" onclick="exportCSV()">↓ Export Harvest Plan CSV</button>
+    </div>
+  </div>
+
+  <!-- Portfolio Summary Section -->
+  <div class="psec" id="portfolioSection">
+    <div class="psec-box">
+      <div class="psec-hdr">
+        <span class="psec-title">📊 Portfolio Summary — Grouped by Stock</span>
+        <span class="pf-result-count" id="pfResultCount"></span>
+      </div>
+      <!-- Filter bar -->
+      <div class="pf-filters">
+        <div class="pf-search-wrap">
+          <span class="pf-search-icon">⌕</span>
+          <input type="text" id="pfSearch" placeholder="Search stock…" oninput="applyPFFilter()" autocomplete="off">
+        </div>
+        <div class="pf-chips">
+          <button class="pf-chip active"  data-ftype="all"       onclick="setPFChip(this)">All</button>
+          <button class="pf-chip chip-p"  data-ftype="profit"    onclick="setPFChip(this)">↑ Profit</button>
+          <button class="pf-chip chip-l"  data-ftype="loss"      onclick="setPFChip(this)">↓ Loss</button>
+          <button class="pf-chip"         data-ftype="eligible"  onclick="setPFChip(this)">✓ LTCG Eligible</button>
+          <button class="pf-chip chip-h"  data-ftype="harvest"   onclick="setPFChip(this)">⚡ In Harvest</button>
+          <button class="pf-chip chip-w"  data-ftype="ineligible" onclick="setPFChip(this)">⏳ &lt;12 Months</button>
+        </div>
+        <div class="pf-range">
+          Gain% <input type="number" id="pfMinGain" placeholder="min" oninput="applyPFFilter()"> –
+          <input type="number" id="pfMaxGain" placeholder="max" oninput="applyPFFilter()">
+        </div>
+        <button class="pf-clear-btn" onclick="clearPFFilters()" title="Reset all filters">✕ Clear</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="pft" id="pfTable">
+          <thead><tr>
+            <th class="cb-col"><input type="checkbox" id="pfSelectAll" title="Select all visible" onchange="togglePFSelectAll(this)"></th>
+            <th data-col="name"         onclick="sortPF(this)">Stock <span class="sort-arrow">↕</span></th>
+            <th data-col="qty"          onclick="sortPF(this)">Qty <span class="sort-arrow">↕</span></th>
+            <th data-col="lots"         onclick="sortPF(this)">Lots <span class="sort-arrow">↕</span></th>
+            <th data-col="avgBuy"       onclick="sortPF(this)">Avg Buy <span class="sort-arrow">↕</span></th>
+            <th data-col="invested"     onclick="sortPF(this)">Invested <span class="sort-arrow">↕</span></th>
+            <th data-col="cmp"          onclick="sortPF(this)">CMP <span class="sort-arrow">↕</span></th>
+            <th data-col="value"        onclick="sortPF(this)">Curr. Value <span class="sort-arrow">↕</span></th>
+            <th data-col="gain"         onclick="sortPF(this)">Gain ₹ <span class="sort-arrow">↕</span></th>
+            <th data-col="gainPct"      onclick="sortPF(this)">Gain % <span class="sort-arrow">↕</span></th>
+            <th data-col="eligibleGain" onclick="sortPF(this)">Eligible LTCG <span class="sort-arrow">↕</span></th>
+            <th data-col="eligQty"      onclick="sortPF(this)">Sell-eligible Qty <span class="sort-arrow">↕</span></th>
+            <th data-col="eligInvested" onclick="sortPF(this)">Elig. Invested <span class="sort-arrow">↕</span></th>
+            <th data-col="harvestedAmt" onclick="sortPF(this)">Harvest Plan <span class="sort-arrow">↕</span></th>
+          </tr></thead>
+          <tbody id="pfBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sell Planner Section -->
+  <div class="psec" id="sellPlanSection">
+    <div class="psec-box">
+      <div class="psec-hdr">
+        <span class="psec-title">💹 Sell Planner — Selected Stocks</span>
+        <span class="psec-hint">Edit qty to sell · defaults to full eligible qty · deselect stocks in the table above</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="pft" id="sellPlanTable">
+          <thead><tr>
+            <th style="text-align:left">Stock</th>
+            <th>Eligible Qty</th>
+            <th>Sell Qty</th>
+            <th>Avg Buy ₹</th>
+            <th>CMP ₹</th>
+            <th>Sale Value</th>
+            <th>Cost Basis</th>
+            <th>Gain ₹</th>
+            <th>Gain %</th>
+          </tr></thead>
+          <tbody id="sellPlanBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="psec" id="chartsSection">
+    <div class="psec-box">
+      <div class="psec-hdr">
+        <span class="psec-title">📈 Portfolio Charts</span>
+      </div>
+      <div class="ch-grid">
+        <div class="ch-card ch-wide">
+          <div class="ch-title">Invested vs Current Value by Stock</div>
+          <canvas id="chValueBars"></canvas>
+        </div>
+        <div class="ch-card">
+          <div class="ch-title">Portfolio Allocation (Current Value)</div>
+          <canvas id="chDonut"></canvas>
+          <div class="ch-legend" id="chDonutLegend"></div>
+        </div>
+        <div class="ch-card">
+          <div class="ch-title">LTCG Exemption Usage</div>
+          <canvas id="chLTCG"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── roundRect polyfill (for older browsers) ──────────────────────────────────
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+    const rx = Array.isArray(r) ? r[0] : (r || 0);
+    this.moveTo(x + rx, y);
+    this.lineTo(x + w - rx, y);
+    this.arcTo(x + w, y, x + w, y + rx, rx);
+    this.lineTo(x + w, y + h - rx);
+    this.arcTo(x + w, y + h, x + w - rx, y + h, rx);
+    this.lineTo(x + rx, y + h);
+    this.arcTo(x, y + h, x, y + h - rx, rx);
+    this.lineTo(x, y + rx);
+    this.arcTo(x, y, x + rx, y, rx);
+    this.closePath();
+    return this;
+  };
+}
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let parsedStocks = {};
+let groupIdCounter = 0;
+
+// Each entry: { id, name, tradeCount, rawTrades: [{symbol, date, type, qty, price}] }
+let uploadedFiles = [];
+let fileIdCounter = 0;
+
+document.getElementById('refDate').value = new Date().toISOString().split('T')[0];
+
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    const name = t.dataset.tab;
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === name));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  });
+});
+
+// ─── Drag & Drop ──────────────────────────────────────────────────────────────
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag-over');
+  Array.from(e.dataTransfer.files).forEach(f => processFile(f));
+});
+
+function handleFile(e) {
+  Array.from(e.target.files).forEach(f => processFile(f));
+  e.target.value = ''; // allow same file re-upload
+}
+
+// ─── File Processing ──────────────────────────────────────────────────────────
+function processFile(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'xlsx' || ext === 'xls') {
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array', cellDates: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        // Get all rows as array-of-arrays; raw:false converts dates to strings
+        const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, dateNF: 'yyyy-mm-dd' });
+
+        // Zerodha XLSX has metadata rows at the top — scan to find the real header row
+        let headerRowIdx = -1;
+        for (let i = 0; i < Math.min(aoa.length, 20); i++) {
+          const row = aoa[i];
+          if (!row || !row.length) continue;
+          const cells = row.map(c => String(c == null ? '' : c).trim().toLowerCase());
+          // Header row must contain both "symbol" and at least one of quantity/trade
+          if (cells.includes('symbol') && (cells.some(c => c.includes('quantity') || c === 'qty') || cells.some(c => c.includes('trade')))) {
+            headerRowIdx = i;
+            break;
+          }
+        }
+
+        if (headerRowIdx === -1) {
+          const preview = aoa.slice(0, 6).map((r, i) => `Row ${i+1}: ${(r||[]).slice(0,8).join(' | ')}`).join('\n');
+          alert(`Could not find column headers in "${file.name}".\n\nExpected a row with: Symbol, Trade Date, Trade Type, Quantity, Price\n\nFirst 6 rows found:\n${preview}`);
+          return;
+        }
+
+        const rawTrades = parseXLSXRows(aoa, headerRowIdx, file.name);
+        addFileEntry(file.name, rawTrades);
+      } catch(err) {
+        alert('Error reading XLSX: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const rawTrades = parseCSVToRawTrades(ev.target.result, file.name);
+      addFileEntry(file.name, rawTrades);
+    };
+    reader.readAsText(file);
+  }
+}
+
+// ─── Parse XLSX rows (AOA) directly ──────────────────────────────────────────
+function parseXLSXRows(aoa, headerRowIdx, fileName) {
+  const headerRow = aoa[headerRowIdx].map(c => String(c == null ? '' : c).trim().toLowerCase());
+
+  const symbolIdx = headerRow.findIndex(h => h === 'symbol');
+  const dateIdx   = headerRow.findIndex(h => h.includes('trade date') || h === 'trade_date' || h === 'date');
+  const typeIdx   = headerRow.findIndex(h => h.includes('trade type') || h === 'trade_type' || h === 'type');
+  const qtyIdx    = headerRow.findIndex(h => h === 'quantity' || h === 'qty');
+  const priceIdx  = headerRow.findIndex(h => h === 'price');
+
+  if (symbolIdx === -1 || qtyIdx === -1 || priceIdx === -1) {
+    alert(`Missing required columns in "${fileName}".\nFound: ${headerRow.filter(Boolean).join(', ')}\nNeed: Symbol, Quantity, Price`);
+    return [];
+  }
+
+  const trades = [];
+  for (let i = headerRowIdx + 1; i < aoa.length; i++) {
+    const row = aoa[i];
+    if (!row || !row.length) continue;
+
+    const symbol = String(row[symbolIdx] == null ? '' : row[symbolIdx]).trim();
+    let date     = String(row[dateIdx]   == null ? '' : row[dateIdx]).trim();
+    const typeRaw = typeIdx >= 0 ? String(row[typeIdx] == null ? '' : row[typeIdx]).trim().toLowerCase() : 'buy';
+    const qty    = parseInt(row[qtyIdx])   || 0;
+    const price  = parseFloat(row[priceIdx]) || 0;
+
+    if (!symbol || !qty || !price) continue;
+
+    // Normalise date formats
+    date = normaliseDate(date);
+    if (!date) continue;
+
+    const type = typeRaw.includes('sell') ? 'sell' : 'buy';
+    trades.push({ symbol, date, type, qty, price });
+  }
+  return trades;
+}
+
+// Normalise any date string to YYYY-MM-DD
+function normaliseDate(raw) {
+  if (!raw) return null;
+  // Already ISO: 2024-03-15 or 2024-03-15T...
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+  // DD/MM/YYYY or DD-MM-YYYY
+  const m1 = raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (m1) return `${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
+  // MM/DD/YYYY (rare but handle)
+  const m2 = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m2) return `${m2[3]}-${m2[1].padStart(2,'0')}-${m2[2].padStart(2,'0')}`;
+  // Excel serial number (SheetJS may still emit this in some cases)
+  if (/^\d{5}$/.test(raw)) {
+    try {
+      const d = XLSX.SSF.parse_date_code(parseInt(raw));
+      if (d) return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+    } catch(e) {}
+  }
+  return null;
+}
+
+// ─── Parse CSV/text → raw trade array ────────────────────────────────────────
+function parseCSVToRawTrades(csv) {
+  const lines = csv.split('\n').map(l => l.trim()).filter(l => l);
+  if (lines.length < 2) return [];
+
+  // Scan for header row (handles metadata rows at top, same as XLSX)
+  let headerLineIdx = -1;
+  for (let i = 0; i < Math.min(lines.length, 20); i++) {
+    const cells = splitCSVLine(lines[i]).map(h => h.toLowerCase());
+    if (cells.includes('symbol') && (cells.some(c => c.includes('quantity') || c === 'qty') || cells.some(c => c.includes('trade')))) {
+      headerLineIdx = i;
+      break;
+    }
+  }
+
+  let symbolIdx, dateIdx, typeIdx, qtyIdx, priceIdx, startLine;
+
+  if (headerLineIdx !== -1) {
+    const header = splitCSVLine(lines[headerLineIdx]).map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+    symbolIdx = header.findIndex(h => h === 'symbol');
+    dateIdx   = header.findIndex(h => h.includes('trade date') || h === 'trade_date' || h === 'date');
+    typeIdx   = header.findIndex(h => h.includes('trade type') || h === 'trade_type' || h === 'type');
+    qtyIdx    = header.findIndex(h => h === 'quantity' || h === 'qty');
+    priceIdx  = header.findIndex(h => h === 'price');
+    startLine = headerLineIdx + 1;
+  } else {
+    // Fallback: simple 5-column format without header
+    symbolIdx = 0; dateIdx = 1; typeIdx = 2; qtyIdx = 3; priceIdx = 4;
+    startLine = isNaN(parseInt(lines[0].split(',')[3])) ? 1 : 0;
+  }
+
+  const trades = [];
+  for (let i = startLine; i < lines.length; i++) {
+    const cols = splitCSVLine(lines[i]);
+    if (cols.length <= Math.max(symbolIdx, dateIdx < 0 ? 0 : dateIdx, qtyIdx, priceIdx)) continue;
+
+    const symbol = cols[symbolIdx];
+    const rawDate = dateIdx >= 0 ? cols[dateIdx] : '';
+    const type    = (typeIdx >= 0 && typeIdx < cols.length ? cols[typeIdx] : 'buy').toLowerCase().trim();
+    const qty     = parseInt(cols[qtyIdx])   || 0;
+    const price   = parseFloat(cols[priceIdx]) || 0;
+
+    if (!symbol || !qty || !price) continue;
+
+    const date = normaliseDate(rawDate);
+    if (!date) continue;
+
+    trades.push({ symbol, date, type: type.includes('sell') ? 'sell' : 'buy', qty, price });
+  }
+  return trades;
+}
+
+// Properly split a CSV line respecting quoted fields
+function splitCSVLine(line) {
+  const cols = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === ',' && !inQ) { cols.push(cur.trim().replace(/^"|"$/g, '')); cur = ''; }
+    else { cur += c; }
+  }
+  cols.push(cur.trim().replace(/^"|"$/g, ''));
+  return cols;
+}
+
+// ─── Add file to state & refresh UI ──────────────────────────────────────────
+function addFileEntry(name, rawTrades) {
+  if (!rawTrades.length) {
+    alert(`No valid trades found in "${name}".`);
+    return;
+  }
+  const id = fileIdCounter++;
+  uploadedFiles.push({ id, name, tradeCount: rawTrades.length, rawTrades });
+  renderFileChips();
+  rebuildParsedStocks();
+}
+
+function removeFileEntry(id) {
+  uploadedFiles = uploadedFiles.filter(f => f.id !== id);
+  renderFileChips();
+  if (uploadedFiles.length === 0) {
+    parsedStocks = {};
+    document.getElementById('fileList').classList.remove('visible');
+    document.getElementById('parsedSummary').classList.remove('visible');
+    document.getElementById('cmpSection').classList.remove('visible');
+    document.getElementById('results').classList.remove('visible');
+  } else {
+    rebuildParsedStocks();
+  }
+}
+
+function clearAllFiles() {
+  uploadedFiles = [];
+  parsedStocks = {};
+  document.getElementById('fileList').classList.remove('visible');
+  document.getElementById('parsedSummary').classList.remove('visible');
+  document.getElementById('cmpSection').classList.remove('visible');
+  document.getElementById('results').classList.remove('visible');
+}
+
+function renderFileChips() {
+  const list = document.getElementById('fileList');
+  const chips = document.getElementById('fileChips');
+  const title = document.getElementById('fileListTitle');
+  if (!uploadedFiles.length) { list.classList.remove('visible'); return; }
+
+  const totalTrades = uploadedFiles.reduce((s, f) => s + f.tradeCount, 0);
+  title.textContent = `${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''} · ${totalTrades} trade rows`;
+  list.classList.add('visible');
+
+  chips.innerHTML = uploadedFiles.map(f => `
+    <div class="file-chip">
+      <span>✓</span>
+      <span class="fc-name">${f.name}</span>
+      <span class="fc-meta">${f.tradeCount} rows</span>
+      <button class="fc-remove" onclick="removeFileEntry(${f.id})">✕</button>
+    </div>`).join('');
+}
+
+// ─── Rebuild parsedStocks from all uploaded files (combined FIFO) ─────────────
+function rebuildParsedStocks() {
+  // Merge all raw trades
+  const allRaw = uploadedFiles.flatMap(f => f.rawTrades);
+
+  // Preserve existing CMP values keyed by symbol
+  const prevCmp = {};
+  Object.entries(parsedStocks).forEach(([sym, d]) => { if (d.cmp) prevCmp[sym] = d.cmp; });
+
+  // Group by symbol
+  const stocks = {};
+  for (const t of allRaw) {
+    if (!stocks[t.symbol]) stocks[t.symbol] = { buys: [], totalSold: 0 };
+    if (t.type === 'buy') {
+      stocks[t.symbol].buys.push({ date: t.date, qty: t.qty, price: t.price });
+    } else if (t.type === 'sell') {
+      stocks[t.symbol].totalSold += t.qty;
+    }
+  }
+
+  // FIFO: consume oldest buys with sells
+  parsedStocks = {};
+  Object.entries(stocks).forEach(([symbol, data]) => {
+    data.buys.sort((a, b) => new Date(a.date) - new Date(b.date));
+    let remaining = data.totalSold;
+    const netLots = [];
+    for (const lot of data.buys) {
+      if (remaining >= lot.qty) { remaining -= lot.qty; }
+      else {
+        netLots.push({ date: lot.date, qty: lot.qty - remaining, price: lot.price });
+        remaining = 0;
+      }
+    }
+    if (netLots.length > 0) {
+      parsedStocks[symbol] = { lots: netLots, cmp: prevCmp[symbol] || 0 };
+    }
+  });
+
+  const count = Object.keys(parsedStocks).length;
+  if (count === 0) { alert('No net buy holdings found across uploaded files.'); return; }
+
+  showCMPEntry('cmpSection', 'cmpGrid');
+  showParsedSummary('parsedSummary', 'parsedList');
+}
+
+// ─── CMP Entry & Parsed Summary ───────────────────────────────────────────────
+function showCMPEntry(sectionId, gridId) {
+  const section = document.getElementById(sectionId);
+  const grid = document.getElementById(gridId);
+  section.classList.add('visible');
+  const symbols = Object.keys(parsedStocks).sort();
+  grid.innerHTML = symbols.map(s => {
+    const totalQty = parsedStocks[s].lots.reduce((sum, l) => sum + l.qty, 0);
+    const lotCount = parsedStocks[s].lots.length;
+    const existingCmp = parsedStocks[s].cmp || '';
+    return `<div class="cmp-item">
+      <div class="cmp-item-top">
+        <span class="stock-label">${s}</span>
+        <span class="fetch-status" id="fs-${s}"></span>
+      </div>
+      <span class="lot-info">${totalQty} qty · ${lotCount} lots</span>
+      <input type="number" step="0.01" placeholder="₹ CMP" value="${existingCmp}" data-cmp-symbol="${s}"
+        onchange="parsedStocks['${s}'].cmp = parseFloat(this.value) || 0">
+    </div>`;
+  }).join('');
+}
+
+// ─── Live Price Fetching (Yahoo Finance / NSE) ────────────────────────────────
+async function fetchCMPForSymbol(symbol) {
+  // Yahoo Finance: NSE symbols use .NS suffix
+  // Some Zerodha symbols differ from Yahoo's (e.g. M&M → MM.NS, BAJAJ-AUTO → BAJAJAUTO.NS)
+  const yhSym = symbol
+    .replace('&', '')       // M&M → MM
+    .replace(/-/g, '')      // BAJAJ-AUTO → BAJAJAUTO
+    + '.NS';
+
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yhSym}?interval=1d&range=1d`;
+
+  // Attempt 1: direct (works when browser doesn't block CORS on yahoo)
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 6000);
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(tid);
+    if (r.ok) {
+      const d = await r.json();
+      const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      if (price) return { price, source: 'direct' };
+    }
+  } catch(e) {}
+
+  // Attempt 2: via corsproxy.io
+  try {
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 8000);
+    const r = await fetch(proxyUrl, { signal: ctrl.signal });
+    clearTimeout(tid);
+    if (r.ok) {
+      const d = await r.json();
+      const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      if (price) return { price, source: 'proxy' };
+    }
+  } catch(e) {}
+
+  return null;
+}
+
+async function fetchAllCMPs(gridId, btnId, progressId) {
+  const symbols = Object.keys(parsedStocks).sort();
+  const btn = document.getElementById(btnId);
+  const prog = document.getElementById(progressId);
+  btn.disabled = true;
+  btn.textContent = '⏳ Fetching…';
+
+  let done = 0, ok = 0, fail = 0;
+  prog.textContent = `0 / ${symbols.length}`;
+
+  await Promise.all(symbols.map(async s => {
+    const statusEl = document.getElementById(`fs-${s}`);
+    if (statusEl) statusEl.textContent = '⏳';
+    const result = await fetchCMPForSymbol(s);
+    done++;
+    prog.textContent = `${done} / ${symbols.length}`;
+    if (result) {
+      ok++;
+      parsedStocks[s].cmp = result.price;
+      // Update the input field
+      const inp = document.querySelector(`[data-cmp-symbol="${s}"]`);
+      if (inp) inp.value = result.price.toFixed(2);
+      if (statusEl) statusEl.title = `₹${result.price.toFixed(2)} (${result.source})`;
+      if (statusEl) statusEl.textContent = '✓';
+      if (statusEl) statusEl.style.color = 'var(--profit)';
+    } else {
+      fail++;
+      if (statusEl) statusEl.textContent = '✗';
+      if (statusEl) statusEl.style.color = 'var(--loss)';
+      if (statusEl) statusEl.title = 'Could not fetch — enter manually';
+    }
+  }));
+
+  btn.disabled = false;
+  btn.textContent = '⚡ Fetch Live Prices (NSE)';
+  if (fail === 0) {
+    prog.textContent = `✓ All ${ok} prices fetched`;
+    prog.style.color = 'var(--profit)';
+  } else {
+    prog.textContent = `${ok} fetched · ${fail} failed (enter manually)`;
+    prog.style.color = fail === symbols.length ? 'var(--loss)' : 'var(--warn)';
+  }
+}
+
+function showParsedSummary(summaryId, listId) {
+  const el = document.getElementById(summaryId);
+  el.classList.add('visible'); el.style.display = 'block';
+  const symbols = Object.keys(parsedStocks).sort();
+  document.getElementById(listId).innerHTML = symbols.map(s => {
+    const lots = parsedStocks[s].lots;
+    const totalQty = lots.reduce((sum, l) => sum + l.qty, 0);
+    const avgPrice = lots.reduce((sum, l) => sum + l.price * l.qty, 0) / totalQty;
+    return `<div class="parsed-stock-row">
+      <span class="parsed-stock-name">${s}</span>
+      <span class="parsed-stock-detail">${totalQty} qty · ${lots.length} lots · avg ₹${avgPrice.toFixed(1)} · ${lots[0].date} → ${lots[lots.length-1].date}</span>
+    </div>`;
+  }).join('');
+}
+
+// ─── Paste tab ────────────────────────────────────────────────────────────────
+function parsePaste() {
+  const text = document.getElementById('pasteInput').value.trim();
+  if (!text) return alert('Please paste data.');
+  const rawTrades = parseCSVToRawTrades(text);
+  if (!rawTrades.length) return alert('No valid trades found in pasted data.');
+  // For paste tab we replace parsedStocks directly (single source)
+  const stocks = {};
+  for (const t of rawTrades) {
+    if (!stocks[t.symbol]) stocks[t.symbol] = { buys: [], totalSold: 0 };
+    if (t.type === 'buy') stocks[t.symbol].buys.push({ date: t.date, qty: t.qty, price: t.price });
+    else if (t.type === 'sell') stocks[t.symbol].totalSold += t.qty;
+  }
+  parsedStocks = {};
+  Object.entries(stocks).forEach(([symbol, data]) => {
+    data.buys.sort((a, b) => new Date(a.date) - new Date(b.date));
+    let remaining = data.totalSold;
+    const netLots = [];
+    for (const lot of data.buys) {
+      if (remaining >= lot.qty) { remaining -= lot.qty; }
+      else { netLots.push({ date: lot.date, qty: lot.qty - remaining, price: lot.price }); remaining = 0; }
+    }
+    if (netLots.length > 0) parsedStocks[symbol] = { lots: netLots, cmp: 0 };
+  });
+  if (!Object.keys(parsedStocks).length) return alert('No net buy holdings found.');
+  showCMPEntry('cmpSectionPaste', 'cmpGridPaste');
+  showParsedSummary('parsedSummaryPaste', 'parsedListPaste');
+}
+
+// ─── Calculate from parsed stocks ────────────────────────────────────────────
+function calculateFromParsed() {
+  const missing = Object.entries(parsedStocks).filter(([s, d]) => !d.cmp || d.cmp <= 0);
+  if (missing.length > 0) return alert(`Enter CMP for: ${missing.map(m => m[0]).join(', ')}`);
+  const refDate = new Date(document.getElementById('refDate').value || new Date().toISOString().split('T')[0]);
+  const allLots = [];
+  Object.entries(parsedStocks).forEach(([symbol, data]) => {
+    data.lots.forEach(lot => {
+      const buyDate = new Date(lot.date);
+      const days = Math.floor((refDate - buyDate) / 86400000);
+      const gps = data.cmp - lot.price;
+      allLots.push({ name: symbol, cmp: data.cmp, date: lot.date, buyDate, qty: lot.qty, price: lot.price, days, isEligible: days >= 365, gainPerShare: gps, totalGain: gps * lot.qty, gainPct: ((data.cmp - lot.price) / lot.price) * 100 });
+    });
+  });
+  runCalculation(allLots);
+}
+
+// ─── Manual Entry ─────────────────────────────────────────────────────────────
+function addStockGroup(name='', cmp='', lots=[]) {
+  const gid = groupIdCounter++;
+  const div = document.createElement('div'); div.className = 'stock-group open'; div.id = `sg-${gid}`;
+  div.innerHTML = `<div class="stock-group-header" onclick="toggleGroup(event,${gid})">
+    <input placeholder="Stock Name" value="${name}" class="sg-name" onclick="event.stopPropagation()">
+    <div class="cmp-inline">CMP ₹<input type="number" placeholder="CMP" value="${cmp}" class="sg-cmp" step="0.01" onclick="event.stopPropagation()"></div>
+    <span class="lot-count sg-lot-count">0</span><span class="chevron">▼</span>
+  </div><div class="stock-group-body">
+    <div class="lot-header"><div>Buy Date</div><div>Qty</div><div>Buy ₹</div><div>Gain</div><div>Status</div><div></div></div>
+    <div class="lot-container" id="lots-${gid}"></div>
+    <div style="display:flex;flex-wrap:wrap"><button class="add-lot-btn" onclick="addLot(${gid})">+ Lot</button>
+    <button class="stock-remove-btn" onclick="document.getElementById('sg-${gid}').remove()">Remove</button></div>
+  </div>`;
+  document.getElementById('stockGroups').appendChild(div);
+  if (!lots.length) addLot(gid); else lots.forEach(l => addLot(gid, l.date, l.qty, l.buyPrice));
+  updateLC(gid);
+}
+
+function toggleGroup(e, gid) { if (e.target.tagName === 'INPUT') return; document.getElementById(`sg-${gid}`).classList.toggle('open'); }
+
+function addLot(gid, date='', qty='', price='') {
+  const c = document.getElementById(`lots-${gid}`);
+  const r = document.createElement('div'); r.className = 'lot-row';
+  r.innerHTML = `<input type="date" data-f="date" value="${date}"><input type="number" data-f="qty" placeholder="Qty" value="${qty}"><input type="number" data-f="price" step="0.01" placeholder="₹" value="${price}"><span class="mono" style="font-size:0.76rem;color:var(--text-dim)">—</span><span class="lot-status">—</span><button class="lot-remove" onclick="this.parentElement.remove();updateLC(${gid})">✕</button>`;
+  c.appendChild(r); updateLC(gid);
+  r.querySelectorAll('input').forEach(inp => inp.addEventListener('change', () => updateLV(gid)));
+  if (date && price) updateLV(gid);
+}
+
+function updateLC(gid) { const el = document.querySelector(`#sg-${gid} .sg-lot-count`); if(el) { const n = document.querySelectorAll(`#lots-${gid} .lot-row`).length; el.textContent = `${n} lot${n!==1?'s':''}`; }}
+
+function updateLV(gid) {
+  const g = document.getElementById(`sg-${gid}`); if(!g) return;
+  const cmp = parseFloat(g.querySelector('.sg-cmp').value)||0;
+  const ref = new Date(document.getElementById('refDate').value);
+  g.querySelectorAll(`#lots-${gid} .lot-row`).forEach(row => {
+    const d = row.querySelector('[data-f="date"]').value, p = parseFloat(row.querySelector('[data-f="price"]').value)||0;
+    if(d&&p&&cmp) {
+      const days = Math.floor((ref - new Date(d))/86400000), gain = cmp-p;
+      const ge = row.children[3]; ge.textContent = (gain>=0?'+':'')+'₹'+gain.toFixed(1); ge.style.color = gain>=0?'var(--profit)':'var(--loss)';
+      const st = row.querySelector('.lot-status');
+      if(days>=365){st.textContent='LTCG ✓';st.className='lot-status eligible';}else{st.textContent=Math.ceil(365-days)+'d';st.className='lot-status ineligible';}
+    }
+  });
+}
+
+function loadSample() {
+  document.getElementById('stockGroups').innerHTML=''; groupIdCounter=0;
+  addStockGroup('SBI',810,[{date:'2024-01-15',qty:10,buyPrice:620},{date:'2024-03-15',qty:10,buyPrice:680},{date:'2024-06-15',qty:10,buyPrice:720},{date:'2024-09-15',qty:10,buyPrice:750},{date:'2025-01-15',qty:10,buyPrice:770},{date:'2025-06-15',qty:10,buyPrice:795}]);
+  addStockGroup('Canara Bank',490,[{date:'2024-01-10',qty:20,buyPrice:380},{date:'2024-04-10',qty:20,buyPrice:410},{date:'2024-07-10',qty:20,buyPrice:430},{date:'2024-10-10',qty:20,buyPrice:445},{date:'2025-02-10',qty:20,buyPrice:470}]);
+  addStockGroup('ITC',470,[{date:'2024-04-15',qty:15,buyPrice:430},{date:'2024-07-15',qty:15,buyPrice:445},{date:'2024-10-15',qty:15,buyPrice:455},{date:'2025-01-15',qty:15,buyPrice:460}]);
+}
+
+function calculateManual() {
+  const ref = new Date(document.getElementById('refDate').value||new Date().toISOString().split('T')[0]);
+  const allLots = [];
+  document.querySelectorAll('.stock-group').forEach(g => {
+    const name = g.querySelector('.sg-name').value.trim(), cmp = parseFloat(g.querySelector('.sg-cmp').value)||0;
+    if(!name||!cmp) return;
+    g.querySelectorAll('.lot-row').forEach(r => {
+      const d=r.querySelector('[data-f="date"]').value, q=parseInt(r.querySelector('[data-f="qty"]').value)||0, p=parseFloat(r.querySelector('[data-f="price"]').value)||0;
+      if(!d||!q||!p) return;
+      const bd=new Date(d), days=Math.floor((ref-bd)/86400000), gps=cmp-p;
+      allLots.push({name,cmp,date:d,buyDate:bd,qty:q,price:p,days,isEligible:days>=365,gainPerShare:gps,totalGain:gps*q,gainPct:((cmp-p)/p)*100});
+    });
+  });
+  if(!allLots.length) return alert('No lots found.');
+  runCalculation(allLots);
+}
+
+// ─── Core Calculation ─────────────────────────────────────────────────────────
+function runCalculation(allLots) {
+  const limit    = parseFloat(document.getElementById('exemptionLimit').value)||125000;
+  const booked   = parseFloat(document.getElementById('bookedLTCG').value)||0;
+  const remaining = Math.max(0, limit - booked);
+  const strategy = document.getElementById('strategy').value;
+
+  const eligible  = allLots.filter(l => l.isEligible && l.gainPerShare > 0);
+  const ineligible = allLots.filter(l => !l.isEligible);
+  const eligLoss  = allLots.filter(l => l.isEligible && l.gainPerShare <= 0);
+
+  if (strategy === 'oldest-first') eligible.sort((a,b) => a.buyDate - b.buyDate);
+  else if (strategy === 'highest-gain') eligible.sort((a,b) => b.gainPct - a.gainPct);
+  else eligible.sort((a,b) => b.gainPerShare - a.gainPerShare);
+
+  let budget = remaining; const plan = []; let totalH = 0;
+  for (const lot of eligible) {
+    if (budget <= 0) break;
+    const mg = lot.gainPerShare * lot.qty;
+    if (mg <= budget) { plan.push({...lot, sellQty: lot.qty, harvested: mg, action: 'SELL ALL'}); budget -= mg; totalH += mg; }
+    else { const sq = Math.floor(budget / lot.gainPerShare); if (sq > 0) { const h = sq * lot.gainPerShare; plan.push({...lot, sellQty: sq, harvested: h, action: 'PARTIAL'}); budget -= h; totalH += h; }}
+  }
+
+  const pk = new Set(plan.map(p => p.name+'|'+p.date));
+  const notH = eligible.filter(l => !pk.has(l.name+'|'+l.date));
+  renderResults(allLots, eligible, ineligible, eligLoss, plan, notH, totalH, remaining, booked, limit);
+}
+
+function fmt(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+
+function renderResults(all, eligible, ineligible, eligLoss, plan, notH, harvested, remaining, booked, limit) {
+  const teg = eligible.reduce((s,l) => s + l.totalGain, 0);
+  const sv  = plan.reduce((s,p) => s + p.cmp * p.sellQty, 0);
+  const pct = remaining > 0 ? Math.min(100, (harvested / remaining) * 100) : 100;
+
+  document.getElementById('summaryGrid').innerHTML = `
+    <div class="stat-card c-eligible"><div class="stat-label">LTCG-eligible Lots</div><div class="stat-value">${eligible.length + eligLoss.length}</div><div class="stat-sub">${ineligible.length} lots under 12 months</div></div>
+    <div class="stat-card c-profit"><div class="stat-label">Total Eligible LTCG</div><div class="stat-value v-profit">${fmt(teg)}</div><div class="stat-sub">${eligible.length} profitable lots</div></div>
+    <div class="stat-card c-harvest"><div class="stat-label">Harvested Gain</div><div class="stat-value v-harvest">${fmt(harvested)}</div><div class="stat-sub">${plan.length} lots · sell ${fmt(sv)}</div></div>
+    <div class="stat-card c-warn"><div class="stat-label">Exemption Used</div><div class="stat-value v-warn">${pct.toFixed(0)}%</div><div class="stat-sub">${fmt(harvested)} of ${fmt(remaining)} (booked ${fmt(booked)})</div></div>`;
+
+  _exportPlan = plan;
+  const harvestStocks = new Set(plan.map(p => p.name)).size;
+  document.getElementById('resultBadge').textContent = `${harvestStocks} stock${harvestStocks!==1?'s':''} · ${plan.length} lots to sell`;
+
+  // ── Group all lots by stock name ──
+  const stockMap = {};
+  const addLot = (l, cat) => {
+    if (!stockMap[l.name]) stockMap[l.name] = { cmp: l.cmp, harvest:[], notH:[], loss:[], inelig:[] };
+    stockMap[l.name][cat].push(l);
+  };
+  plan.forEach(p      => addLot(p, 'harvest'));
+  notH.forEach(l      => addLot(l, 'notH'));
+  eligLoss.forEach(l  => addLot(l, 'loss'));
+  ineligible.forEach(l=> addLot(l, 'inelig'));
+
+  const rank = d => d.harvest.length ? 0 : d.notH.length ? 1 : d.loss.length ? 2 : 3;
+  const sorted = Object.entries(stockMap).sort(([,a],[,b]) => rank(a) - rank(b));
+
+  // ── Lot row builder (no Stock column) ──
+  const lotRow = (l, cat) => {
+    const gc   = l.gainPerShare >= 0 ? 'text-profit' : 'text-loss';
+    const sign = l.gainPerShare >= 0 ? '+' : '';
+    let sCell, hCell, aCell;
+    if (cat === 'harvest') {
+      sCell = `<td class="text-harvest">${l.action==='PARTIAL' ? l.sellQty+'/'+l.qty : l.sellQty}</td>`;
+      hCell = `<td class="text-harvest">${fmt(l.harvested)}</td>`;
+      aCell = `<td><span class="badge badge-blue">${l.action}</span></td>`;
+    } else {
+      const lbl = cat==='notH' ? 'Limit filled' : cat==='loss' ? 'In Loss' : '&lt;12m';
+      sCell = `<td class="text-dim">—</td>`;
+      hCell = `<td class="text-dim">—</td>`;
+      aCell = `<td class="text-dim" style="font-size:0.7rem">${lbl}</td>`;
+    }
+    return `<tr class="${cat==='harvest'?'row-harvest':''}">
+      <td>${l.date}</td><td>${l.days}d</td><td>${l.qty}</td>
+      <td>${fmt(l.price)}</td><td>${fmt(l.cmp)}</td>
+      <td class="${gc}">${sign}${fmt(l.gainPerShare)}</td>
+      <td class="${gc}">${sign}${fmt(l.totalGain)}</td>
+      ${sCell}${hCell}${aCell}</tr>`;
+  };
+
+  // ── Build accordion HTML ──
+  const accHTML = sorted.map(([name, data], idx) => {
+    const hasHarvest = data.harvest.length > 0;
+    const tSellQty   = data.harvest.reduce((s,p) => s + p.sellQty, 0);
+    const tHarvested = data.harvest.reduce((s,p) => s + p.harvested, 0);
+    const allL       = [...data.harvest, ...data.notH, ...data.loss, ...data.inelig];
+    const tQty       = allL.reduce((s,l) => s + l.qty, 0);
+    const id         = 'acc_' + idx;
+
+    const cls = hasHarvest ? 'has-harvest'
+              : data.loss.length ? 'has-loss'
+              : (data.inelig.length && !data.notH.length) ? 'is-inelig' : '';
+
+    let badges = `<span class="badge" style="background:var(--surface2);color:var(--text-dim);border:1px solid var(--border)">${allL.length} lot${allL.length!==1?'s':''} · ${tQty} sh</span>`;
+    if (hasHarvest)        badges += `<span class="badge badge-blue">SELL ${tSellQty} sh · ${fmt(tHarvested)}</span>`;
+    if (data.notH.length)  badges += `<span class="badge" style="background:none;color:var(--text-muted);border:1px solid var(--border)">Limit filled</span>`;
+    if (data.loss.length)  badges += `<span class="badge" style="background:#d94f4f12;color:#d94f4f;border:1px solid #d94f4f33">In Loss</span>`;
+    if (data.inelig.length)badges += `<span class="badge" style="background:var(--warn-bg);color:var(--warn);border:1px solid #d4a04e33">&lt;12M</span>`;
+
+    const bodyRows =
+      data.harvest.map(l => lotRow(l,'harvest')).join('') +
+      data.notH.map(l    => lotRow(l,'notH')).join('') +
+      data.loss.map(l    => lotRow(l,'loss')).join('') +
+      data.inelig.map(l  => lotRow(l,'inelig')).join('');
+
+    const tfoot = hasHarvest ? `<tfoot><tr class="acc-tfoot">
+      <td colspan="7" style="text-align:right">Stock total</td>
+      <td class="text-harvest">${tSellQty} sh</td>
+      <td class="text-harvest">${fmt(tHarvested)}</td><td></td>
+    </tr></tfoot>` : '';
+
+    return `<div class="acc-stock ${cls}">
+      <div class="acc-hdr${hasHarvest?' is-open':''}" id="acc-hdr-${id}" onclick="toggleAcc('${id}')">
+        <span class="acc-arrow">▶</span>
+        <span class="acc-name">${name}</span>
+        <span class="acc-cmp" style="margin-left:6px">₹${fmt(data.cmp)}</span>
+        <div class="acc-badges">${badges}</div>
+      </div>
+      <div class="acc-body${hasHarvest?' is-open':''}" id="acc-body-${id}">
+        <table class="acc-table">
+          <thead><tr>
+            <th style="text-align:left">Buy Date</th><th>Held</th><th>Lot Qty</th>
+            <th>Buy ₹</th><th>CMP ₹</th><th>Gain/Sh</th><th>Lot Gain</th>
+            <th>Sell Qty</th><th>Harvested</th><th>Action</th>
+          </tr></thead>
+          <tbody>${bodyRows}</tbody>${tfoot}
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('rAccordion').innerHTML = accHTML || '<p style="padding:20px;color:var(--text-muted);font-size:0.82rem">No lots found.</p>';
+
+  // Execution plan grouped by stock
+  const grouped = {};
+  plan.forEach(p => { if (!grouped[p.name]) grouped[p.name] = {cmp: p.cmp, lots: []}; grouped[p.name].lots.push(p); });
+  let steps = '', sn = 1;
+  Object.entries(grouped).forEach(([name, data]) => {
+    const tsq = data.lots.reduce((s,l) => s + l.sellQty, 0);
+    const th  = data.lots.reduce((s,l) => s + l.harvested, 0);
+    const ld  = data.lots.map(l => `${l.sellQty} from ${l.date} @${fmt(l.price)}`).join(', ');
+    steps += `<div class="exec-step"><span class="num">${sn++}.</span> Sell <strong>${tsq} shares of ${name}</strong> at CMP ${fmt(data.cmp)} → Books <strong>${fmt(th)}</strong> LTCG<br><em>Lots (FIFO): ${ld}</em></div>`;
+  });
+  const charges = plan.reduce((s,p) => s + p.cmp * p.sellQty, 0) * 0.002;
+
+  document.getElementById('execPlan').innerHTML = `<h3>📋 Zerodha Execution Plan</h3>${steps}
+    <div class="note-box"><strong>⚠ SIP Investor Notes:</strong><br>
+    • Zerodha sells in FIFO order — oldest lots go first automatically<br>
+    • Place CNC sell on Kite → Rebuy same qty next trading day<br>
+    • New buy resets the 12-month LTCG clock for those shares<br>
+    • Est. charges (STT + brokerage): ~₹${Math.round(charges).toLocaleString('en-IN')}<br>
+    • FY 2025-26: LTCG taxed at 12.5% above ₹1.25L exemption<br>
+    • Same-day buy+sell of same stock counts as intraday — always rebuy NEXT day<br>
+    • Execute before March 31 each FY for annual tax harvesting</div>`;
+
+  document.getElementById('results').classList.add('visible');
+  renderPortfolioSummary(all, plan);
+  renderCharts(all, plan, harvested, remaining, limit, booked);
+  document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ─── Portfolio Summary ─────────────────────────────────────────────────────────
+let _exportPlan = [];
+let pfData = [], pfSortCol = 'value', pfSortDir = -1;
+let pfFilter = { search: '', ftype: 'all', minGain: '', maxGain: '' };
+let pfSelected = new Set();
+let sellPlanQty = {}; // name → qty user wants to sell
+
+function buildPFData(allLots, plan) {
+  const map = {};
+  allLots.forEach(l => {
+    if (!map[l.name]) map[l.name] = { name:l.name, cmp:l.cmp, qty:0, lots:0, eligLots:0, ineligLots:0, invested:0, value:0, gain:0, eligibleGain:0, eligQty:0, eligInvested:0, harvestedAmt:0 };
+    const s = map[l.name];
+    s.qty += l.qty; s.lots++;
+    s.invested += l.price * l.qty;
+    s.value    += l.cmp   * l.qty;
+    s.gain     += l.totalGain;
+    if (l.isEligible && l.gainPerShare > 0) { s.eligibleGain += l.totalGain; s.eligQty += l.qty; s.eligInvested += l.price * l.qty; }
+    if (l.isEligible) s.eligLots++; else s.ineligLots++;
+  });
+  plan.forEach(p => { if (map[p.name]) map[p.name].harvestedAmt += p.harvested; });
+  return Object.values(map).map(s => ({ ...s, avgBuy: s.invested / s.qty, gainPct: s.gain / s.invested * 100 }));
+}
+
+function renderPortfolioSummary(allLots, plan) {
+  try {
+    pfData = buildPFData(allLots, plan);
+    pfFilter = { search: '', ftype: 'all', minGain: '', maxGain: '' };
+    pfSelected.clear();
+    sellPlanQty = {};
+    // reset UI controls
+    const srch = document.getElementById('pfSearch'); if (srch) srch.value = '';
+    const mn = document.getElementById('pfMinGain'); if (mn) mn.value = '';
+    const mx = document.getElementById('pfMaxGain'); if (mx) mx.value = '';
+    document.querySelectorAll('.pf-chip').forEach(c => c.classList.toggle('active', c.dataset.ftype === 'all'));
+    renderPFTable();
+  } catch(e) { console.warn('Portfolio summary error:', e); }
+  document.getElementById('portfolioSection').classList.add('visible');
+}
+
+function setPFChip(btn) {
+  document.querySelectorAll('.pf-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  pfFilter.ftype = btn.dataset.ftype;
+  renderPFTable();
+}
+
+function applyPFFilter() {
+  pfFilter.search  = (document.getElementById('pfSearch')?.value  || '').toLowerCase().trim();
+  pfFilter.minGain = document.getElementById('pfMinGain')?.value ?? '';
+  pfFilter.maxGain = document.getElementById('pfMaxGain')?.value ?? '';
+  renderPFTable();
+}
+
+function clearPFFilters() {
+  pfFilter = { search: '', ftype: 'all', minGain: '', maxGain: '' };
+  const srch = document.getElementById('pfSearch'); if (srch) srch.value = '';
+  const mn = document.getElementById('pfMinGain'); if (mn) mn.value = '';
+  const mx = document.getElementById('pfMaxGain'); if (mx) mx.value = '';
+  document.querySelectorAll('.pf-chip').forEach(c => c.classList.toggle('active', c.dataset.ftype === 'all'));
+  renderPFTable();
+}
+
+function sortPF(th) {
+  const col = th.dataset.col;
+  if (pfSortCol === col) pfSortDir *= -1; else { pfSortCol = col; pfSortDir = -1; }
+  document.querySelectorAll('.pft th').forEach(t => {
+    t.classList.remove('sort-active');
+    const arrow = t.querySelector('.sort-arrow'); if (arrow) arrow.textContent = '↕';
+  });
+  th.classList.add('sort-active');
+  const arrow = th.querySelector('.sort-arrow'); if (arrow) arrow.textContent = pfSortDir === -1 ? '↓' : '↑';
+  renderPFTable();
+}
+
+function togglePFSelect(name, cb) {
+  const stock = pfData.find(s => s.name === name);
+  if (cb.checked) {
+    pfSelected.add(name);
+    if (stock && sellPlanQty[name] === undefined) sellPlanQty[name] = stock.eligQty;
+  } else {
+    pfSelected.delete(name);
+    delete sellPlanQty[name];
+  }
+  const allCbs = document.querySelectorAll('.pf-row-cb');
+  const sa = document.getElementById('pfSelectAll');
+  if (sa) {
+    const n = [...allCbs].filter(c => c.checked).length;
+    sa.indeterminate = n > 0 && n < allCbs.length;
+    sa.checked = n === allCbs.length && allCbs.length > 0;
+  }
+  renderSellSection();
+}
+
+function togglePFSelectAll(cb) {
+  document.querySelectorAll('.pf-row-cb').forEach(c => {
+    c.checked = cb.checked;
+    const stock = pfData.find(s => s.name === c.dataset.name);
+    if (cb.checked) {
+      pfSelected.add(c.dataset.name);
+      if (stock && sellPlanQty[c.dataset.name] === undefined) sellPlanQty[c.dataset.name] = stock.eligQty;
+    } else {
+      pfSelected.delete(c.dataset.name);
+      delete sellPlanQty[c.dataset.name];
+    }
+  });
+  renderSellSection();
+}
+
+function clearPFSelection() {
+  pfSelected.clear();
+  sellPlanQty = {};
+  document.querySelectorAll('.pf-row-cb').forEach(c => c.checked = false);
+  const sa = document.getElementById('pfSelectAll');
+  if (sa) { sa.checked = false; sa.indeterminate = false; }
+  renderSellSection();
+}
+
+function onSellQtyChange(name, input) {
+  const stock = pfData.find(s => s.name === name);
+  if (!stock) return;
+  let v = parseInt(input.value, 10);
+  if (isNaN(v) || v < 0) v = 0;
+  if (v > stock.eligQty) v = stock.eligQty;
+  input.value = v;
+  sellPlanQty[name] = v;
+  input.className = 'sell-qty-inp ' + (v === stock.eligQty ? 'at-max' : 'partial');
+  renderSellTotals();
+}
+
+function renderSellTotals() {
+  const sel = pfData.filter(s => pfSelected.has(s.name));
+  let tQty = 0, tCost = 0, tSale = 0, tGain = 0;
+  sel.forEach(s => {
+    const qty = sellPlanQty[s.name] || 0;
+    const avgBuy = s.eligQty > 0 ? s.eligInvested / s.eligQty : 0;
+    tQty  += qty;
+    tCost += qty * avgBuy;
+    tSale += qty * s.cmp;
+    tGain += qty * (s.cmp - avgBuy);
+  });
+  const tr = document.getElementById('sellPlanTotalRow');
+  if (!tr) return;
+  const gc = tGain >= 0 ? 'text-profit' : 'text-loss';
+  const pct = tCost > 0 ? tGain / tCost * 100 : 0;
+  tr.innerHTML = `<td style="font-weight:700">Total · ${sel.length} stock${sel.length !== 1 ? 's' : ''}</td>
+    <td></td>
+    <td class="mono" style="font-weight:700">${tQty}</td>
+    <td></td><td></td>
+    <td class="mono" style="font-weight:700">${fmt(tSale)}</td>
+    <td class="mono">${fmt(tCost)}</td>
+    <td class="mono ${gc}" style="font-weight:700">${tGain >= 0 ? '+' : ''}${fmt(tGain)}</td>
+    <td class="${gc}" style="font-weight:700">${tCost > 0 ? (tGain >= 0 ? '+' : '') + pct.toFixed(1) + '%' : '—'}</td>`;
+}
+
+function renderSellSection() {
+  const sec = document.getElementById('sellPlanSection');
+  if (!sec) return;
+  const sel = pfData.filter(s => pfSelected.has(s.name));
+  if (sel.length === 0) { sec.classList.remove('visible'); return; }
+  sec.classList.add('visible');
+
+  const rows = sel.map(s => {
+    const avgBuy = s.eligQty > 0 ? s.eligInvested / s.eligQty : 0;
+    const qty = sellPlanQty[s.name] ?? s.eligQty;
+    sellPlanQty[s.name] = qty; // ensure initialised
+    const saleVal = qty * s.cmp;
+    const cost    = qty * avgBuy;
+    const gain    = saleVal - cost;
+    const pct     = cost > 0 ? gain / cost * 100 : 0;
+    const gc      = gain >= 0 ? 'text-profit' : 'text-loss';
+    const cls     = qty === s.eligQty ? 'at-max' : 'partial';
+    return `<tr>
+      <td style="font-weight:600;text-align:left">${s.name}</td>
+      <td class="mono" style="color:var(--accent-light)">${s.eligQty}</td>
+      <td class="mono"><input type="number" class="sell-qty-inp ${cls}" min="0" max="${s.eligQty}" value="${qty}"
+        oninput="onSellQtyChange('${s.name}',this)" onblur="onSellQtyChange('${s.name}',this)"></td>
+      <td class="mono">${fmt(avgBuy)}</td>
+      <td class="mono">${fmt(s.cmp)}</td>
+      <td class="mono"><strong>${fmt(saleVal)}</strong></td>
+      <td class="mono">${fmt(cost)}</td>
+      <td class="mono ${gc}">${gain >= 0 ? '+' : ''}${fmt(gain)}</td>
+      <td class="${gc}" style="font-weight:600">${cost > 0 ? (gain >= 0 ? '+' : '') + pct.toFixed(1) + '%' : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('sellPlanBody').innerHTML =
+    rows + `<tr class="pft-total" id="sellPlanTotalRow"></tr>`;
+  renderSellTotals();
+}
+
+function renderPFTable() {
+  // ── Filter ──
+  const q = pfFilter.search;
+  const filtered = pfData.filter(s => {
+    if (q && !s.name.toLowerCase().includes(q)) return false;
+    if (pfFilter.ftype === 'profit'    && s.gain <= 0)          return false;
+    if (pfFilter.ftype === 'loss'      && s.gain >= 0)          return false;
+    if (pfFilter.ftype === 'eligible'  && s.eligLots === 0)     return false;
+    if (pfFilter.ftype === 'harvest'   && s.harvestedAmt <= 0)  return false;
+    if (pfFilter.ftype === 'ineligible'&& s.ineligLots === 0)   return false;
+    if (pfFilter.minGain !== '' && s.gainPct < parseFloat(pfFilter.minGain)) return false;
+    if (pfFilter.maxGain !== '' && s.gainPct > parseFloat(pfFilter.maxGain)) return false;
+    return true;
+  });
+
+  // ── Sort ──
+  const sorted = [...filtered].sort((a, b) => {
+    const av = a[pfSortCol], bv = b[pfSortCol];
+    return typeof av === 'string' ? pfSortDir * av.localeCompare(bv) : pfSortDir * (av - bv);
+  });
+
+  // ── Totals (filtered) ──
+  const T = filtered.reduce((t, s) => ({
+    qty: t.qty+s.qty, invested: t.invested+s.invested, value: t.value+s.value,
+    gain: t.gain+s.gain, eligibleGain: t.eligibleGain+s.eligibleGain, eligQty: t.eligQty+s.eligQty, eligInvested: t.eligInvested+s.eligInvested, harvestedAmt: t.harvestedAmt+s.harvestedAmt
+  }), {qty:0,invested:0,value:0,gain:0,eligibleGain:0,eligQty:0,eligInvested:0,harvestedAmt:0});
+
+  // ── Result count badge ──
+  const countEl = document.getElementById('pfResultCount');
+  if (countEl) {
+    if (filtered.length === pfData.length) countEl.textContent = `${pfData.length} stock${pfData.length !== 1 ? 's' : ''}`;
+    else countEl.textContent = `${filtered.length} of ${pfData.length} stocks`;
+  }
+
+  // ── Search highlight helper ──
+  const hl = name => {
+    if (!q) return name;
+    const i = name.toLowerCase().indexOf(q);
+    if (i < 0) return name;
+    return name.slice(0,i) + `<mark style="background:var(--warn-bg);color:var(--warn);border-radius:2px;padding:0 1px">${name.slice(i,i+q.length)}</mark>` + name.slice(i+q.length);
+  };
+
+  // ── Rows ──
+  const rows = sorted.map(s => {
+    const gc = s.gain >= 0 ? 'text-profit' : 'text-loss';
+    const sign = s.gain >= 0 ? '+' : '';
+    const checked = pfSelected.has(s.name) ? 'checked' : '';
+    const harvestCell = s.harvestedAmt > 0
+      ? `<span style="font-size:0.7rem;padding:2px 7px;border-radius:5px;background:var(--harvest-bg);color:var(--harvest);border:1px solid var(--harvest-border)">${fmt(s.harvestedAmt)}</span>`
+      : `<span style="color:var(--text-muted)">—</span>`;
+    const lotsCell = `<span style="font-size:0.7rem;color:var(--profit)">${s.eligLots}✓</span>${s.ineligLots ? ` <span style="font-size:0.7rem;color:var(--loss)">${s.ineligLots}✗</span>` : ''}`;
+    return `<tr>
+      <td class="cb-col"><input type="checkbox" class="pf-row-cb" data-name="${s.name}" ${checked} onchange="togglePFSelect('${s.name}',this)"></td>
+      <td>${hl(s.name)}</td>
+      <td class="mono">${s.qty}</td>
+      <td>${lotsCell}</td>
+      <td class="mono">${fmt(s.avgBuy)}</td>
+      <td class="mono">${fmt(s.invested)}</td>
+      <td class="mono">${fmt(s.cmp)}</td>
+      <td class="mono"><strong>${fmt(s.value)}</strong></td>
+      <td class="mono ${gc}">${sign}${fmt(s.gain)}</td>
+      <td class="${gc}" style="font-weight:600">${sign}${s.gainPct.toFixed(1)}%</td>
+      <td class="mono">${s.eligibleGain > 0 ? '<span class="text-profit">+'+fmt(s.eligibleGain)+'</span>' : '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td class="mono">${s.eligQty > 0
+        ? `<span style="font-weight:700;color:var(--accent-light)">${s.eligQty}</span> <span style="font-size:0.68rem;color:var(--text-muted)">/ ${s.qty}</span>`
+        : '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td class="mono">${s.eligInvested > 0 ? fmt(s.eligInvested) : '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td>${harvestCell}</td>
+    </tr>`;
+  }).join('');
+
+  // ── Subtotal / empty row ──
+  let totalRow = '';
+  if (filtered.length === 0) {
+    totalRow = `<tr><td colspan="14" style="text-align:center;padding:24px;color:var(--text-muted);font-size:0.82rem">No stocks match the current filters — <button onclick="clearPFFilters()" style="background:none;border:none;cursor:pointer;color:var(--accent-light);font-size:0.82rem;font-family:inherit">Clear filters</button></td></tr>`;
+  } else {
+    const tgc = T.gain >= 0 ? 'text-profit' : 'text-loss', tsign = T.gain >= 0 ? '+' : '';
+    const label = filtered.length < pfData.length ? `Subtotal · ${filtered.length} stocks` : `Total · ${filtered.length} stocks`;
+    totalRow = `<tr class="pft-total"><td></td><td>${label}</td>
+      <td class="mono">${T.qty}</td><td></td><td></td>
+      <td class="mono">${fmt(T.invested)}</td><td></td>
+      <td class="mono">${fmt(T.value)}</td>
+      <td class="mono ${tgc}">${tsign}${fmt(T.gain)}</td>
+      <td class="${tgc}">${tsign}${T.invested ? (T.gain/T.invested*100).toFixed(1)+'%' : '—'}</td>
+      <td class="mono">${T.eligibleGain > 0 ? '<span class="text-profit">+'+fmt(T.eligibleGain)+'</span>' : '—'}</td>
+      <td class="mono" style="font-weight:700;color:var(--accent-light)">${T.eligQty > 0 ? T.eligQty : '—'}</td>
+      <td class="mono">${T.eligInvested > 0 ? fmt(T.eligInvested) : '—'}</td>
+      <td class="mono" style="color:var(--harvest)">${T.harvestedAmt > 0 ? fmt(T.harvestedAmt) : '—'}</td></tr>`;
+  }
+  document.getElementById('pfBody').innerHTML = rows + totalRow;
+  // sync select-all checkbox state after re-render
+  const sa = document.getElementById('pfSelectAll');
+  if (sa) {
+    const allCbs = document.querySelectorAll('.pf-row-cb');
+    const n = [...allCbs].filter(c => c.checked).length;
+    sa.indeterminate = n > 0 && n < allCbs.length;
+    sa.checked = n === allCbs.length && allCbs.length > 0;
+  }
+  renderSellSection();
+}
+
+// ─── Charts ────────────────────────────────────────────────────────────────────
+const CHART_COLORS = ['#4e8fd4','#52b788','#d4a04e','#9d7fe8','#d4607a','#4ecac4','#d47a4e','#7ab8e8','#8fd44e','#d4b04e','#7a8fd4','#c488e8'];
+
+function getThemeColors() {
+  const cs = getComputedStyle(document.documentElement);
+  const g = k => cs.getPropertyValue(k).trim();
+  return {
+    text: g('--text') || '#dfe6ee', textDim: g('--text-dim') || '#7b8da0', textMuted: g('--text-muted') || '#4a5c6e',
+    surface2: g('--surface2') || '#161d26', border: g('--border') || '#1e2a38',
+    profit: g('--profit') || '#40916c', loss: g('--loss') || '#d94f4f',
+    harvest: g('--harvest') || '#4e8fd4', warn: g('--warn') || '#d4a04e', accentLight: g('--accent-light') || '#52b788',
+  };
+}
+
+function setCanvasSize(canvas, width, height) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = width * dpr; canvas.height = height * dpr;
+  canvas.style.width = width + 'px'; canvas.style.height = height + 'px';
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr); return ctx;
+}
+
+function fmtK(n) {
+  if (n >= 1e7) return '₹' + (n/1e7).toFixed(1) + 'Cr';
+  if (n >= 1e5) return '₹' + (n/1e5).toFixed(1) + 'L';
+  if (n >= 1e3) return '₹' + (n/1e3).toFixed(1) + 'K';
+  return '₹' + Math.round(n);
+}
+
+function renderCharts(allLots, plan, harvested, remaining, limit, booked) {
+  // Make section visible first so clientWidth is available for sizing canvases
+  document.getElementById('chartsSection').classList.add('visible');
+  requestAnimationFrame(() => {
+    try {
+      const stocks = [...buildPFData(allLots, plan)].sort((a, b) => b.value - a.value);
+      const tc = getThemeColors();
+      drawValueBars(stocks, tc);
+      drawDonutChart(stocks, tc);
+      drawLTCGBar(harvested, booked, limit, tc);
+    } catch(e) { console.warn('Chart render error:', e); }
+  });
+}
+
+function drawValueBars(stocks, tc) {
+  const canvas = document.getElementById('chValueBars');
+  const W = Math.max(canvas.parentElement.clientWidth - 32, 320);
+  const barH = 20, rowH = barH * 2 + 14;
+  const pad = { top: 10, right: 70, bottom: 24, left: 100 };
+  const H = pad.top + pad.bottom + stocks.length * rowH;
+  const ctx = setCanvasSize(canvas, W, H);
+  const drawW = W - pad.left - pad.right;
+  const maxVal = Math.max(...stocks.map(s => Math.max(s.invested, s.value))) * 1.05;
+
+  stocks.forEach((s, i) => {
+    const y = pad.top + i * rowH;
+    // Label
+    ctx.fillStyle = tc.text; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.font = '600 11px "DM Sans", sans-serif';
+    const label = s.name.length > 13 ? s.name.slice(0,13)+'…' : s.name;
+    ctx.fillText(label, pad.left - 8, y + barH);
+    // Invested bar
+    const iw = (s.invested / maxVal) * drawW;
+    ctx.fillStyle = tc.border;
+    ctx.beginPath(); ctx.roundRect(pad.left, y, iw, barH, 3); ctx.fill();
+    // Value bar
+    const vw = (s.value / maxVal) * drawW;
+    ctx.fillStyle = (s.gain >= 0 ? tc.profit : tc.loss) + 'aa';
+    ctx.beginPath(); ctx.roundRect(pad.left, y + barH + 2, vw, barH, 3); ctx.fill();
+    // Value label
+    ctx.fillStyle = tc.textDim; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.font = '10px "JetBrains Mono", monospace';
+    ctx.fillText(fmtK(s.value), pad.left + vw + 5, y + barH + 2 + barH / 2);
+    // Gain % badge
+    const sign = s.gain >= 0 ? '+' : '';
+    ctx.fillStyle = s.gain >= 0 ? tc.profit : tc.loss;
+    ctx.textAlign = 'right'; ctx.font = '600 10px "DM Sans", sans-serif';
+    ctx.fillText(sign + s.gainPct.toFixed(1) + '%', W - 4, y + barH + 2 + barH / 2);
+  });
+
+  // Legend
+  ctx.font = '10px "DM Sans", sans-serif'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = tc.border; ctx.fillRect(pad.left, H - 14, 10, 8);
+  ctx.fillStyle = tc.textMuted; ctx.textAlign = 'left'; ctx.fillText('Invested', pad.left + 14, H - 6);
+  ctx.fillStyle = tc.profit + 'aa'; ctx.fillRect(pad.left + 80, H - 14, 10, 8);
+  ctx.fillStyle = tc.textMuted; ctx.fillText('Current Value', pad.left + 94, H - 6);
+}
+
+function drawDonutChart(stocks, tc) {
+  const canvas = document.getElementById('chDonut');
+  const W = Math.max(canvas.parentElement.clientWidth - 32, 200);
+  const H = 200;
+  const ctx = setCanvasSize(canvas, W, H);
+  const total = stocks.reduce((s, st) => s + st.value, 0);
+  const cx = W / 2, cy = H / 2, R = Math.min(cx, cy) - 8, r = R * 0.55;
+  let angle = -Math.PI / 2;
+  const slices = stocks.map((s, i) => {
+    const sa = angle, sweep = (s.value / total) * Math.PI * 2; angle += sweep;
+    return { name: s.name, value: s.value, pct: s.value / total * 100, startAngle: sa, sweep, color: CHART_COLORS[i % CHART_COLORS.length] };
+  });
+  slices.forEach(sl => {
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, R, sl.startAngle, sl.startAngle + sl.sweep); ctx.closePath();
+    ctx.fillStyle = sl.color; ctx.fill();
+    // Thin separator
+    ctx.strokeStyle = tc.surface2; ctx.lineWidth = 1.5; ctx.stroke();
+  });
+  // Hole
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = tc.surface2; ctx.fill();
+  // Center text
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = tc.text; ctx.font = '700 13px "JetBrains Mono", monospace';
+  ctx.fillText(fmtK(total), cx, cy - 7);
+  ctx.fillStyle = tc.textDim; ctx.font = '10px "DM Sans", sans-serif';
+  ctx.fillText('Portfolio', cx, cy + 10);
+  // Legend (HTML)
+  const legend = document.getElementById('chDonutLegend');
+  if (legend) legend.innerHTML = slices.map(sl =>
+    `<div class="ch-leg-item"><span class="ch-leg-dot" style="background:${sl.color}"></span>${sl.name} <span style="color:var(--text-muted)">${sl.pct.toFixed(1)}%</span></div>`
+  ).join('');
+}
+
+function drawLTCGBar(harvested, booked, limit, tc) {
+  const canvas = document.getElementById('chLTCG');
+  const W = Math.max(canvas.parentElement.clientWidth - 32, 200);
+  const H = 200;
+  const ctx = setCanvasSize(canvas, W, H);
+  const pad = { top: 36, left: 14, right: 14, bottom: 44 };
+  const bH = 44, bY = pad.top + (H - pad.top - pad.bottom - bH) / 2;
+  const bW = W - pad.left - pad.right;
+  const scale = Math.max(limit, booked + harvested) * 1.08 || limit;
+  const bookedW  = Math.min(booked   / scale * bW, bW);
+  const harvestW = Math.min(harvested / scale * bW, bW - bookedW);
+  const exemptX  = pad.left + Math.min(limit / scale * bW, bW);
+
+  // Track
+  ctx.fillStyle = tc.border; ctx.beginPath(); ctx.roundRect(pad.left, bY, bW, bH, 6); ctx.fill();
+  // Booked
+  if (booked > 0) { ctx.fillStyle = tc.loss + 'cc'; ctx.beginPath(); ctx.roundRect(pad.left, bY, bookedW, bH, 6); ctx.fill(); }
+  // Harvested
+  if (harvested > 0) {
+    ctx.fillStyle = tc.harvest + 'cc';
+    ctx.beginPath();
+    booked > 0 ? ctx.rect(pad.left + bookedW, bY, harvestW, bH) : ctx.roundRect(pad.left, bY, harvestW, bH, 6);
+    ctx.fill();
+  }
+  // Exemption limit dashed line
+  ctx.strokeStyle = tc.accentLight; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(exemptX, bY - 10); ctx.lineTo(exemptX, bY + bH + 10); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Limit label
+  ctx.fillStyle = tc.accentLight; ctx.font = '600 10px "DM Sans", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillText('₹1.25L', exemptX, bY - 14);
+
+  // Center % text
+  const usedPct = Math.min(100, (booked + harvested) / limit * 100);
+  ctx.fillStyle = tc.text; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '700 22px "JetBrains Mono", monospace';
+  ctx.fillText(usedPct.toFixed(0) + '%', W / 2, bY + bH / 2);
+
+  // Bottom labels row
+  const labelY = bY + bH + 10;
+  ctx.font = '600 10px "DM Sans", sans-serif'; ctx.textBaseline = 'top';
+  if (booked > 0) { ctx.fillStyle = tc.loss; ctx.textAlign = 'left'; ctx.fillText('Booked: ' + fmtK(booked), pad.left, labelY); }
+  ctx.fillStyle = tc.harvest; ctx.textAlign = 'center'; ctx.fillText('Harvested: ' + fmtK(harvested), W / 2, labelY);
+  const rem = Math.max(0, limit - booked - harvested);
+  if (rem > 0) { ctx.fillStyle = tc.profit; ctx.textAlign = 'right'; ctx.fillText('Left: ' + fmtK(rem), W - pad.right, labelY); }
+
+  // Subtitle
+  ctx.fillStyle = tc.textDim; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.font = '600 11px "DM Sans", sans-serif';
+  ctx.fillText(fmtK(booked + harvested) + ' used of ' + fmtK(limit) + ' FY exemption', W / 2, pad.top / 2 - 4);
+}
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+function toggleAcc(id) {
+  const hdr  = document.getElementById('acc-hdr-'  + id);
+  const body = document.getElementById('acc-body-' + id);
+  if (!hdr || !body) return;
+  const open = body.classList.toggle('is-open');
+  hdr.classList.toggle('is-open', open);
+}
+
+function expandAllAcc(expand) {
+  document.querySelectorAll('.acc-hdr').forEach(h  => h.classList.toggle('is-open', expand));
+  document.querySelectorAll('.acc-body').forEach(b => b.classList.toggle('is-open', expand));
+}
+
+function exportCSV() {
+  const rows = [['Stock','Buy Date','Days Held','Lot Qty','Buy Price','CMP','Gain/Unit','Lot Gain','Sell Qty','Harvested','Action']];
+  _exportPlan.forEach(p => rows.push([p.name, p.date, p.days, p.qty, p.price.toFixed(2), p.cmp.toFixed(2), p.gainPerShare.toFixed(2), p.totalGain.toFixed(2), p.sellQty, p.harvested.toFixed(2), p.action]));
+  const blob = new Blob([rows.map(r => r.join(',')).join('\n')], {type: 'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'sip_ltcg_harvest_plan.csv'; a.click();
+}
+
+addStockGroup();
+</script>
+</body>
+</html>

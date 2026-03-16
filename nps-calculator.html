@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NPS Calculator — National Pension System</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080b10; --surface:#0f1419; --surface2:#161d26; --surface3:#1c2530;
+    --border:#1e2a38; --text:#dfe6ee; --text-dim:#7b8da0; --text-muted:#4a5c6e;
+    --accent:#2d6a4f; --accent-bright:#40916c; --accent-light:#52b788; --accent-glow:#40916c22;
+    --harvest:#4e8fd4; --harvest-bg:#4e8fd412; --harvest-border:#4e8fd433;
+    --loss:#d94f4f; --loss-bg:#d94f4f12;
+    --warn:#d4a04e; --warn-bg:#d4a04e12;
+    --profit:#40916c; --profit-bg:#40916c12;
+    --purple:#9d7fe8; --purple-bg:#9d7fe812;
+    --rose:#d4607a; --rose-bg:#d4607a12;
+  }
+  :root[data-theme="light"] {
+    --bg:#f4f6f9; --surface:#ffffff; --surface2:#eef1f6; --surface3:#e4e8f0;
+    --border:#cdd5e0; --text:#1c2b3a; --text-dim:#526070; --text-muted:#8a9baa;
+    --accent:#1e5c3a; --accent-bright:#2d8a5e; --accent-light:#239659; --accent-glow:#2d8a5e18;
+    --harvest:#1a5faa; --harvest-bg:#1a5faa0f; --harvest-border:#1a5faa30;
+    --loss:#c03030; --loss-bg:#c030300f; --warn:#9a6010; --warn-bg:#9a60100f;
+    --profit:#1e7a4a; --profit-bg:#1e7a4a0f; --purple:#6d4ec4; --purple-bg:#6d4ec410;
+    --rose:#b0304a; --rose-bg:#b0304a10;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.55; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .container { max-width: 1160px; margin: 0 auto; padding: 20px 16px; }
+
+  .topnav { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .back-link { font-size: 0.78rem; color: var(--text-dim); text-decoration: none; display: flex; align-items: center; gap: 5px; padding: 6px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; transition: all 0.2s; }
+  .back-link:hover { color: var(--text); border-color: var(--harvest); }
+  .page-title { font-size: 0.9rem; font-weight: 700; color: var(--harvest); }
+
+  header { margin-bottom: 24px; padding: 20px 0 18px; border-bottom: 1px solid var(--border); }
+  h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; background: linear-gradient(135deg, #e0e8f0 30%, var(--harvest) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 4px; }
+  .tagline { font-size: 0.82rem; color: var(--text-dim); }
+
+  .layout { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+
+  .left-panels { display: flex; flex-direction: column; gap: 16px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 20px; }
+  :root[data-theme="light"] .panel { box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  .panel-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 16px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 6px; }
+  .input-wrap { position: relative; }
+  .input-prefix { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-dim); pointer-events: none; }
+  .input-suffix { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-dim); pointer-events: none; }
+  input[type="number"] { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; padding: 9px 12px; border-radius: 7px; outline: none; transition: border-color 0.2s; }
+  input.has-prefix { padding-left: 26px; }
+  input.has-suffix { padding-right: 30px; }
+  input:focus { border-color: var(--harvest); box-shadow: 0 0 0 3px var(--harvest-bg); }
+
+  .range-wrap { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+  input[type="range"] { flex: 1; -webkit-appearance: none; height: 4px; background: var(--surface3); border-radius: 2px; border: none; padding: 0; cursor: pointer; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; background: var(--harvest); border-radius: 50%; cursor: pointer; }
+  .range-val { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--harvest); min-width: 44px; text-align: right; }
+
+  /* Regime toggle */
+  .toggle-group { display: flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 3px; gap: 2px; }
+  .toggle-btn { flex: 1; padding: 7px; text-align: center; font-size: 0.8rem; font-weight: 600; color: var(--text-dim); cursor: pointer; border-radius: 6px; border: none; background: none; font-family: inherit; transition: all 0.2s; }
+  .toggle-btn.active { background: var(--harvest-bg); color: var(--harvest); border: 1px solid var(--harvest-border); }
+
+  /* Summary strip */
+  .summary-strip { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; position: relative; overflow: hidden; }
+  .stat-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .stat-card.c-harvest::after { background: var(--harvest); }
+  .stat-card.c-profit::after { background: var(--profit); }
+  .stat-card.c-purple::after { background: var(--purple); }
+  .stat-card.c-warn::after { background: var(--warn); }
+  .stat-card.c-loss::after { background: var(--loss); }
+  .stat-label { font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 2px; }
+  .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; font-weight: 700; line-height: 1.2; }
+  .stat-value.harvest { color: var(--harvest); }
+  .stat-value.profit { color: var(--profit); }
+  .stat-value.purple { color: var(--purple); }
+  .stat-value.warn { color: var(--warn); }
+  .stat-value.loss { color: var(--loss); }
+  .stat-sub { font-size: 0.68rem; color: var(--text-dim); margin-top: 3px; }
+
+  /* Section blocks */
+  .section-block { background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 18px; margin-bottom: 14px; }
+  :root[data-theme="light"] .section-block { box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  .section-block-title { font-size: 0.78rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+  .section-block-title::before { content: ''; display: inline-block; width: 3px; height: 14px; background: var(--harvest); border-radius: 2px; }
+
+  .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .kv-row { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 10px; background: var(--surface2); border-radius: 7px; font-size: 0.8rem; gap: 8px; }
+  .kv-row.full { grid-column: 1/-1; }
+  .kv-key { color: var(--text-dim); flex: 1; }
+  .kv-val { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 600; color: var(--text); text-align: right; white-space: nowrap; }
+  .kv-val.harvest { color: var(--harvest); }
+  .kv-val.profit { color: var(--profit); }
+  .kv-val.warn { color: var(--warn); }
+  .kv-val.loss { color: var(--loss); }
+  .kv-val.purple { color: var(--purple); }
+
+  /* Tax info box */
+  .info-box { border-radius: 9px; padding: 14px 16px; font-size: 0.82rem; line-height: 1.6; margin-bottom: 14px; }
+  .info-box.harvest { background: var(--harvest-bg); border: 1px solid var(--harvest-border); }
+  .info-box.profit { background: var(--profit-bg); border: 1px solid #40916c33; }
+  .info-box p { color: var(--text-dim); margin-bottom: 4px; }
+  .info-box p:last-child { margin-bottom: 0; }
+  .info-box strong { color: var(--text); }
+  .info-box .hl { color: var(--harvest); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .info-box .hl-profit { color: var(--profit); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+
+  /* Table */
+  .tbl-wrap { overflow-x: auto; border-radius: 9px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.79rem; }
+  thead th { text-align: right; padding: 10px 12px; font-size: 0.63rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap; background: var(--surface2); }
+  thead th:first-child { text-align: left; }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; text-align: right; }
+  tbody td:first-child { text-align: left; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.82rem; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr.row-final { background: var(--harvest-bg) !important; font-weight: 700; }
+  tbody tr.row-final td { border-left: none; }
+  .text-harvest { color: var(--harvest); }
+  .text-profit { color: var(--profit); }
+  .text-warn { color: var(--warn); }
+  .text-loss { color: var(--loss); }
+  .text-dim { color: var(--text-dim); }
+
+  /* Two-col tax grid */
+  .tax-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .tax-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 14px; }
+  .tax-box-title { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 10px; }
+  .tax-box-val { font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; font-weight: 700; color: var(--profit); margin-bottom: 4px; }
+  .tax-box-sub { font-size: 0.72rem; color: var(--text-dim); }
+  .tax-box.active-regime { border-color: var(--harvest-border); background: var(--harvest-bg); }
+  .tax-box.active-regime .tax-box-title { color: var(--harvest); }
+
+  :root[data-theme="light"] h1 { background: linear-gradient(135deg, #1c2b3a 30%, var(--harvest) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  :root[data-theme="light"] input[type="range"] { background: var(--surface3); }
+</style>
+<script src="theme.js"></script>
+</head>
+<body>
+<div class="container">
+  <div class="topnav">
+    <a href="index.html" class="back-link">← Home</a>
+    <span class="page-title">NPS Calculator</span>
+  </div>
+  <header>
+    <h1>NPS Calculator — National Pension System</h1>
+    <p class="tagline">Corpus projection · Annuity pension · Tax savings under 80CCD(1) &amp; 80CCD(1B)</p>
+  </header>
+
+  <div class="layout">
+    <!-- ── Left Panel ── -->
+    <div class="left-panels">
+      <div class="panel">
+        <div class="panel-title">👤 Details</div>
+
+        <div class="field">
+          <label>Current Age</label>
+          <input type="number" id="currentAge" value="30" min="18" max="59" oninput="calculate()">
+        </div>
+
+        <div class="field">
+          <label>Retirement Age</label>
+          <input type="number" id="retireAge" value="60" min="40" max="70" oninput="calculate()">
+        </div>
+
+        <div class="field">
+          <label>Monthly NPS Contribution (₹)</label>
+          <div class="input-wrap">
+            <span class="input-prefix">₹</span>
+            <input type="number" id="monthlyContrib" class="has-prefix" value="5000" min="500" oninput="calculate()">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Expected Annual Return (%)</label>
+          <div class="input-wrap">
+            <input type="number" id="annualReturn" class="has-suffix" value="10" min="1" max="20" step="0.1" oninput="syncSlider('annualReturn','rReturn'); calculate()">
+            <span class="input-suffix">%</span>
+          </div>
+          <div class="range-wrap">
+            <input type="range" id="rReturn" min="8" max="14" step="0.1" value="10" oninput="syncField('rReturn','annualReturn'); calculate()">
+            <span class="range-val" id="rvReturn">10%</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Annuity Rate (%) <span style="font-size:0.65rem;font-weight:400;color:var(--text-muted)">at retirement</span></label>
+          <div class="input-wrap">
+            <input type="number" id="annuityRate" class="has-suffix" value="6" min="3" max="12" step="0.1" oninput="syncSlider('annuityRate','rAnnuity'); calculate()">
+            <span class="input-suffix">%</span>
+          </div>
+          <div class="range-wrap">
+            <input type="range" id="rAnnuity" min="4" max="10" step="0.1" value="6" oninput="syncField('rAnnuity','annuityRate'); calculate()">
+            <span class="range-val" id="rvAnnuity">6%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">🧾 Tax Savings</div>
+
+        <div class="field">
+          <label>Annual Salary (₹) <span style="font-size:0.65rem;font-weight:400;color:var(--text-muted)">for 80C / 80CCD</span></label>
+          <div class="input-wrap">
+            <span class="input-prefix">₹</span>
+            <input type="number" id="annualSalary" class="has-prefix" value="1200000" min="0" oninput="calculate()">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Tax Regime</label>
+          <div class="toggle-group">
+            <button class="toggle-btn" id="btnNew" onclick="setRegime('new')">New Regime</button>
+            <button class="toggle-btn active" id="btnOld" onclick="setRegime('old')">Old Regime</button>
+          </div>
+        </div>
+
+        <div id="oldRegimeFields">
+          <div class="field">
+            <label>80C Already Used (₹) <span style="font-size:0.65rem;font-weight:400;color:var(--text-muted)">excl. NPS — max 1.5L total</span></label>
+            <div class="input-wrap">
+              <span class="input-prefix">₹</span>
+              <input type="number" id="already80C" class="has-prefix" value="100000" min="0" max="150000" oninput="calculate()">
+            </div>
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:4px">
+          <div style="background:var(--harvest-bg);border:1px solid var(--harvest-border);border-radius:7px;padding:10px 12px;font-size:0.78rem;color:var(--text-dim);">
+            <strong style="color:var(--harvest)">80CCD(1B)</strong> — Additional ₹50,000 deduction available under both regimes.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Right Panel ── -->
+    <div id="resultsArea">
+
+      <!-- Summary Strip -->
+      <div class="summary-strip">
+        <div class="stat-card c-harvest">
+          <div class="stat-label">NPS Corpus at Retirement</div>
+          <div class="stat-value harvest" id="sCorpus">—</div>
+          <div class="stat-sub" id="sCorpusSub"></div>
+        </div>
+        <div class="stat-card c-profit">
+          <div class="stat-label">Lump Sum (60%) Tax-Free</div>
+          <div class="stat-value profit" id="sLumpSum">—</div>
+          <div class="stat-sub">withdrawn tax-free at 60</div>
+        </div>
+        <div class="stat-card c-purple">
+          <div class="stat-label">Annuity Corpus (40%)</div>
+          <div class="stat-value purple" id="sAnnuity">—</div>
+          <div class="stat-sub">used to buy annuity</div>
+        </div>
+        <div class="stat-card c-warn">
+          <div class="stat-label">Monthly Pension</div>
+          <div class="stat-value warn" id="sPension">—</div>
+          <div class="stat-sub" id="sPensionSub"></div>
+        </div>
+      </div>
+
+      <!-- Tax Savings Section -->
+      <div class="section-block">
+        <div class="section-block-title">Tax Savings</div>
+        <div class="tax-compare">
+          <div class="tax-box" id="taxBoxNew">
+            <div class="tax-box-title">New Regime</div>
+            <div class="tax-box-val" id="taxSavedNew">—</div>
+            <div class="tax-box-sub" id="taxSavedNewSub"></div>
+          </div>
+          <div class="tax-box" id="taxBoxOld">
+            <div class="tax-box-title">Old Regime</div>
+            <div class="tax-box-val" id="taxSavedOld">—</div>
+            <div class="tax-box-sub" id="taxSavedOldSub"></div>
+          </div>
+        </div>
+        <div class="info-box harvest" id="effectiveCostBox">
+          <p id="effectiveCostText"></p>
+        </div>
+        <div class="kv-grid">
+          <div class="kv-row">
+            <span class="kv-key">Annual contribution</span>
+            <span class="kv-val" id="kvAnnualContrib">—</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key">80CCD(1) deduction</span>
+            <span class="kv-val harvest" id="kv80CCD1">—</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key">80CCD(1B) deduction</span>
+            <span class="kv-val harvest" id="kv80CCD1B">—</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key">Total NPS deduction</span>
+            <span class="kv-val harvest" id="kvTotalDedn">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- At Retirement Breakdown -->
+      <div class="section-block">
+        <div class="section-block-title">At Retirement — Breakdown</div>
+        <div class="kv-grid">
+          <div class="kv-row">
+            <span class="kv-key">Total invested</span>
+            <span class="kv-val" id="kvTotalInvested">—</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key">Total corpus</span>
+            <span class="kv-val harvest" id="kvTotalCorpus">—</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key">Wealth gain (returns)</span>
+            <span class="kv-val profit" id="kvGain">—</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key">CAGR achieved</span>
+            <span class="kv-val harvest" id="kvCAGR">—</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key">Lump sum (60%) — tax-free</span>
+            <span class="kv-val profit" id="kvLumpSum">—</span>
+          </div>
+          <div class="kv-row">
+            <span class="kv-key">Annuity corpus (40%)</span>
+            <span class="kv-val purple" id="kvAnnuityCorpus">—</span>
+          </div>
+          <div class="kv-row full">
+            <span class="kv-key">Monthly pension estimate</span>
+            <span class="kv-val warn" id="kvMonthlyPension">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Year-by-year table -->
+      <div class="section-block">
+        <div class="section-block-title">Year-by-Year Growth</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Age</th>
+                <th>Annual Contribution</th>
+                <th>Interest Earned</th>
+                <th>Year-end Corpus</th>
+              </tr>
+            </thead>
+            <tbody id="growthBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tax slab tables ───────────────────────────────────────────────────────────
+// FY 2024-25 slabs (used for indicative tax saving)
+
+function taxOldRegime(taxableIncome) {
+  // Old regime slabs (for individuals below 60)
+  // 0-2.5L: 0%, 2.5-5L: 5%, 5-10L: 20%, >10L: 30%
+  let tax = 0;
+  if (taxableIncome <= 250000) return 0;
+  if (taxableIncome <= 500000) tax = (taxableIncome - 250000) * 0.05;
+  else if (taxableIncome <= 1000000) tax = 12500 + (taxableIncome - 500000) * 0.20;
+  else tax = 112500 + (taxableIncome - 1000000) * 0.30;
+  // Rebate u/s 87A: if taxable income <= 5L, tax = 0
+  if (taxableIncome <= 500000) tax = 0;
+  // 4% cess
+  return tax * 1.04;
+}
+
+function taxNewRegime(taxableIncome) {
+  // New regime slabs FY 2024-25:
+  // 0-3L: 0%, 3-7L: 5%, 7-10L: 10%, 10-12L: 15%, 12-15L: 20%, >15L: 30%
+  let tax = 0;
+  if (taxableIncome <= 300000) return 0;
+  else if (taxableIncome <= 700000) tax = (taxableIncome - 300000) * 0.05;
+  else if (taxableIncome <= 1000000) tax = 20000 + (taxableIncome - 700000) * 0.10;
+  else if (taxableIncome <= 1200000) tax = 50000 + (taxableIncome - 1000000) * 0.15;
+  else if (taxableIncome <= 1500000) tax = 80000 + (taxableIncome - 1200000) * 0.20;
+  else tax = 140000 + (taxableIncome - 1500000) * 0.30;
+  // Rebate 87A: if taxable income <= 7L, tax = 0 (new regime)
+  if (taxableIncome <= 700000) tax = 0;
+  return tax * 1.04;
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let regime = 'old';
+
+function setRegime(r) {
+  regime = r;
+  document.getElementById('btnNew').classList.toggle('active', r === 'new');
+  document.getElementById('btnOld').classList.toggle('active', r === 'old');
+  document.getElementById('oldRegimeFields').style.display = r === 'old' ? '' : 'none';
+  calculate();
+}
+
+function syncSlider(inputId, sliderId) {
+  document.getElementById(sliderId).value = parseFloat(document.getElementById(inputId).value);
+  updateRangeLabel(sliderId);
+}
+function syncField(sliderId, inputId) {
+  document.getElementById(inputId).value = parseFloat(document.getElementById(sliderId).value);
+  updateRangeLabel(sliderId);
+}
+function updateRangeLabel(id) {
+  const v = parseFloat(document.getElementById(id).value);
+  const map = { rReturn: 'rvReturn', rAnnuity: 'rvAnnuity' };
+  const el = document.getElementById(map[id]);
+  if (el) el.textContent = v.toFixed(1) + '%';
+}
+
+function fmtINR(n) {
+  if (isNaN(n) || !isFinite(n)) return '—';
+  return '₹' + Math.round(Math.abs(n)).toLocaleString('en-IN');
+}
+function fmtINRK(n) {
+  if (isNaN(n) || !isFinite(n)) return '—';
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 1e7) return sign + '₹' + (abs / 1e7).toFixed(2) + ' Cr';
+  if (abs >= 1e5) return sign + '₹' + (abs / 1e5).toFixed(2) + ' L';
+  return sign + '₹' + Math.round(abs).toLocaleString('en-IN');
+}
+function v(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function calculate() {
+  updateRangeLabel('rReturn');
+  updateRangeLabel('rAnnuity');
+
+  const currentAge     = v('currentAge');
+  const retireAge      = v('retireAge');
+  const monthlyContrib = v('monthlyContrib');
+  const annualReturn   = v('annualReturn') / 100;
+  const annuityRate    = v('annuityRate') / 100;
+  const annualSalary   = v('annualSalary');
+  const already80C     = regime === 'old' ? Math.min(v('already80C'), 150000) : 0;
+
+  if (retireAge <= currentAge) return;
+  const years = retireAge - currentAge;
+  const annualContrib = monthlyContrib * 12;
+  const monthlyRate = annualReturn / 12;
+
+  // ── Build year-by-year corpus ──
+  let corpus = 0;
+  const growthRows = [];
+  for (let yr = 1; yr <= years; yr++) {
+    const age = currentAge + yr;
+    const prevCorpus = corpus;
+    // Compound monthly for accuracy
+    let c = prevCorpus;
+    for (let m = 0; m < 12; m++) {
+      c = c * (1 + monthlyRate) + monthlyContrib;
+    }
+    const interest = c - prevCorpus - annualContrib;
+    corpus = c;
+    growthRows.push({ age, annualContrib, interest, corpus });
+  }
+
+  const totalInvested = annualContrib * years;
+  const totalCorpus   = corpus;
+  const gain          = totalCorpus - totalInvested;
+
+  // CAGR: totalCorpus = totalInvested × (1+cagr)^years is wrong for SIP.
+  // CAGR here means: if you put totalInvested as lump sum today, what rate gives totalCorpus?
+  // Better: XIRR approximation — use (corpus/totalInvested)^(1/years) - 1 as simple proxy
+  const cagrApprox = (Math.pow(totalCorpus / totalInvested, 1 / years) - 1) * 100;
+
+  // NPS rules at retirement
+  const lumpSum      = totalCorpus * 0.60;
+  const annuityCorpus = totalCorpus * 0.40;
+  const monthlyPension = (annuityCorpus * annuityRate) / 12;
+
+  // ── Tax savings ──
+  // 80CCD(1): NPS contribution within 80C limit (10% of salary, counted within 1.5L)
+  // For old regime: 80C bucket = 1.5L. NPS 80CCD(1) = min(annualContrib, 10% salary).
+  //   Available 80C room for NPS = max(0, 150000 - already80C)
+  //   NPS 80CCD(1) deduction = min(annualContrib, 10%*salary, available80C)
+  // For new regime: 80C, 80D etc. not available. Only 80CCD(1B) = 50000 extra for NPS.
+  //   NPS 80CCD(1) = min(annualContrib, 10% salary) — available only in old regime
+  //   In new regime only 80CCD(1B) = 50000
+
+  const tenPctSalary  = annualSalary * 0.10;
+  let dedn80CCD1_old  = 0;
+  let dedn80CCD1B_old = 0;
+  let dedn80CCD1_new  = 0;
+  let dedn80CCD1B_new = 50000; // always available
+
+  // Old regime
+  const available80C = Math.max(0, 150000 - already80C);
+  dedn80CCD1_old  = Math.min(annualContrib, tenPctSalary, available80C);
+  dedn80CCD1B_old = Math.min(50000, Math.max(0, annualContrib - dedn80CCD1_old));
+
+  // New regime (only 80CCD(1B))
+  dedn80CCD1_new  = 0; // 80C bucket not available in new regime
+  dedn80CCD1B_new = Math.min(50000, annualContrib);
+
+  const totalDednOld = dedn80CCD1_old + dedn80CCD1B_old;
+  const totalDednNew = dedn80CCD1_new + dedn80CCD1B_new;
+
+  // Tax without NPS vs with NPS
+  // Old regime taxable income: salary - standard deduction (50K) - 80C (already + NPS 80CCD1) - 80CCD1B
+  const stdDedn = 50000;
+  // Old regime
+  const grossOld       = Math.max(0, annualSalary - stdDedn);
+  const taxableOldBase = Math.max(0, grossOld - already80C); // before NPS
+  const taxableOldWith = Math.max(0, taxableOldBase - dedn80CCD1_old - dedn80CCD1B_old);
+  const taxOldBase     = taxOldRegime(taxableOldBase);
+  const taxOldWith     = taxOldRegime(taxableOldWith);
+  const taxSavedOld    = taxOldBase - taxOldWith;
+
+  // New regime (standard dedn 75K from FY25)
+  const stdDednNew     = 75000;
+  const grossNew       = Math.max(0, annualSalary - stdDednNew);
+  const taxableNewBase = grossNew;
+  const taxableNewWith = Math.max(0, grossNew - dedn80CCD1B_new);
+  const taxNewBase     = taxNewRegime(taxableNewBase);
+  const taxNewWith     = taxNewRegime(taxableNewWith);
+  const taxSavedNew    = taxNewBase - taxNewWith;
+
+  // Effective cost
+  const selectedTaxSaved = regime === 'old' ? taxSavedOld : taxSavedNew;
+  const effectiveAnnualCost = annualContrib - selectedTaxSaved;
+  const effectiveMonthly    = effectiveAnnualCost / 12;
+
+  // ── Update DOM ──
+
+  // Summary strip
+  document.getElementById('sCorpus').textContent    = fmtINRK(totalCorpus);
+  document.getElementById('sCorpusSub').textContent  = `after ${years} years`;
+  document.getElementById('sLumpSum').textContent    = fmtINRK(lumpSum);
+  document.getElementById('sAnnuity').textContent    = fmtINRK(annuityCorpus);
+  document.getElementById('sPension').textContent    = fmtINR(monthlyPension);
+  document.getElementById('sPensionSub').textContent = `@ ${(annuityRate*100).toFixed(1)}% annuity`;
+
+  // Tax savings
+  document.getElementById('taxSavedNew').textContent    = fmtINR(taxSavedNew) + '/yr';
+  document.getElementById('taxSavedNewSub').textContent = `Deduction: ${fmtINR(totalDednNew)} via 80CCD(1B)`;
+  document.getElementById('taxSavedOld').textContent    = fmtINR(taxSavedOld) + '/yr';
+  document.getElementById('taxSavedOldSub').textContent = `Deduction: ${fmtINR(totalDednOld)} total`;
+
+  document.getElementById('taxBoxNew').classList.toggle('active-regime', regime === 'new');
+  document.getElementById('taxBoxOld').classList.toggle('active-regime', regime === 'old');
+
+  const effectiveCostPct = annualContrib > 0 ? ((effectiveMonthly / monthlyContrib) * 100).toFixed(0) : 100;
+  document.getElementById('effectiveCostText').innerHTML =
+    `<strong>₹${Math.round(monthlyContrib).toLocaleString('en-IN')}/month</strong> contribution effectively costs ` +
+    `<strong style="color:var(--profit)">₹${Math.round(effectiveMonthly).toLocaleString('en-IN')}/month</strong> after ` +
+    `${regime === 'old' ? 'old' : 'new'} regime tax benefit ` +
+    `<span style="color:var(--harvest)">(${effectiveCostPct}% of contribution)</span>.`;
+
+  document.getElementById('kvAnnualContrib').textContent = fmtINR(annualContrib);
+  document.getElementById('kv80CCD1').textContent = regime === 'old' ? fmtINR(dedn80CCD1_old) : fmtINR(dedn80CCD1_new);
+  document.getElementById('kv80CCD1B').textContent = regime === 'old' ? fmtINR(dedn80CCD1B_old) : fmtINR(dedn80CCD1B_new);
+  document.getElementById('kvTotalDedn').textContent = regime === 'old' ? fmtINR(totalDednOld) : fmtINR(totalDednNew);
+
+  // At Retirement
+  document.getElementById('kvTotalInvested').textContent  = fmtINRK(totalInvested);
+  document.getElementById('kvTotalCorpus').textContent    = fmtINRK(totalCorpus);
+  document.getElementById('kvGain').textContent           = fmtINRK(gain);
+  document.getElementById('kvCAGR').textContent           = cagrApprox.toFixed(2) + '%';
+  document.getElementById('kvLumpSum').textContent        = fmtINRK(lumpSum);
+  document.getElementById('kvAnnuityCorpus').textContent  = fmtINRK(annuityCorpus);
+  document.getElementById('kvMonthlyPension').textContent = fmtINR(monthlyPension) + '/month';
+
+  // Year-by-year table
+  document.getElementById('growthBody').innerHTML = growthRows.map((row, i) => {
+    const isFinal = i === growthRows.length - 1;
+    return `<tr${isFinal ? ' class="row-final"' : ''}>
+      <td>${row.age}</td>
+      <td class="text-dim">${fmtINR(row.annualContrib)}</td>
+      <td class="text-profit">${fmtINR(row.interest)}</td>
+      <td class="text-harvest">${fmtINRK(row.corpus)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Init
+setRegime('old');
+calculate();
+</script>
+</body>
+</html>

@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inflation & Future Value Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="theme.js"></script>
+<style>
+:root {
+  --bg:#080b10; --surface:#0f1419; --surface2:#161d26; --surface3:#1c2530;
+  --border:#1e2a38; --text:#dfe6ee; --text-dim:#7b8da0; --text-muted:#4a5c6e;
+  --accent:#2d6a4f; --accent-bright:#40916c; --accent-light:#52b788; --accent-glow:#40916c22;
+  --harvest:#4e8fd4; --harvest-bg:#4e8fd412; --harvest-border:#4e8fd433;
+  --loss:#d94f4f; --loss-bg:#d94f4f12;
+  --warn:#d4a04e; --warn-bg:#d4a04e12;
+  --profit:#40916c; --profit-bg:#40916c12;
+  --purple:#9d7fe8; --purple-bg:#9d7fe812;
+  --rose:#d4607a; --rose-bg:#d4607a12;
+}
+:root[data-theme="light"] {
+  --bg:#f4f6f9; --surface:#ffffff; --surface2:#eef1f6; --surface3:#e4e8f0;
+  --border:#cdd5e0; --text:#1c2b3a; --text-dim:#526070; --text-muted:#8a9baa;
+  --accent:#1e5c3a; --accent-bright:#2d8a5e; --accent-light:#239659; --accent-glow:#2d8a5e18;
+  --harvest:#1a5faa; --harvest-bg:#1a5faa0f; --harvest-border:#1a5faa30;
+  --loss:#c03030; --loss-bg:#c030300f; --warn:#9a6010; --warn-bg:#9a60100f;
+  --profit:#1e7a4a; --profit-bg:#1e7a4a0f; --purple:#6d4ec4; --purple-bg:#6d4ec410;
+  --rose:#b0304a; --rose-bg:#b0304a10;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.55;}
+.container{max-width:1140px;margin:0 auto;padding:20px 16px;}
+
+.topnav{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.back-link{font-size:0.78rem;color:var(--text-dim);text-decoration:none;display:flex;align-items:center;gap:5px;padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:7px;transition:all .2s;}
+.back-link:hover{color:var(--text);border-color:var(--rose);}
+.page-badge{font-size:0.72rem;font-weight:700;color:var(--rose);background:var(--rose-bg);border:1px solid #d4607a33;padding:3px 10px;border-radius:20px;font-family:'JetBrains Mono',monospace;}
+
+header{margin-bottom:22px;padding:18px 0 16px;border-bottom:1px solid var(--border);}
+h1{font-size:1.5rem;font-weight:700;letter-spacing:-.025em;background:linear-gradient(135deg,#e0e8f0 30%,var(--rose) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;}
+.tagline{font-size:0.82rem;color:var(--text-dim);}
+
+.layout{display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start;}
+@media(max-width:860px){.layout{grid-template-columns:1fr;}}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:20px;}
+.panel-title{font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:16px;}
+
+/* Main tabs (left panel) */
+.main-tabs{display:flex;gap:2px;margin-bottom:18px;background:var(--surface2);border-radius:9px;padding:3px;border:1px solid var(--border);}
+.main-tab{flex:1;padding:8px 6px;text-align:center;font-size:0.72rem;font-weight:600;color:var(--text-dim);cursor:pointer;border-radius:7px;transition:all .2s;border:none;background:none;font-family:'DM Sans',sans-serif;}
+.main-tab.active{background:var(--surface3);color:var(--rose);}
+.main-tab-panel{display:none;}
+.main-tab-panel.active{display:block;}
+
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:6px;}
+.input-wrap{position:relative;}
+.input-prefix{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:var(--text-dim);pointer-events:none;}
+.input-suffix{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--text-dim);pointer-events:none;}
+input[type="number"],select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.88rem;padding:9px 12px;border-radius:7px;outline:none;transition:border-color .2s;}
+input.has-prefix{padding-left:26px;}
+input.has-suffix{padding-right:34px;}
+input:focus,select:focus{border-color:var(--rose);box-shadow:0 0 0 3px var(--rose-bg);}
+input::-webkit-inner-spin-button,input::-webkit-outer-spin-button{opacity:.4;}
+
+.range-wrap{display:flex;align-items:center;gap:10px;margin-top:4px;}
+input[type="range"]{flex:1;-webkit-appearance:none;height:4px;background:var(--surface3);border-radius:2px;border:none;padding:0;cursor:pointer;}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--rose);border-radius:50%;cursor:pointer;}
+.range-val{font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--rose);min-width:40px;text-align:right;}
+
+/* Summary */
+.summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.c-rose::after{background:var(--rose);}
+.stat-card.c-warn::after{background:var(--warn);}
+.stat-card.c-harvest::after{background:var(--harvest);}
+.stat-card.c-purple::after{background:var(--purple);}
+.stat-card.c-profit::after{background:var(--profit);}
+.stat-card.c-loss::after{background:var(--loss);}
+.stat-card.full{grid-column:1/-1;}
+.stat-label{font-size:0.64rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:2px;}
+.stat-value{font-family:'JetBrains Mono',monospace;font-size:1.18rem;font-weight:700;}
+.stat-value.rose{color:var(--rose);}
+.stat-value.warn{color:var(--warn);}
+.stat-value.harvest{color:var(--harvest);}
+.stat-value.purple{color:var(--purple);}
+.stat-value.profit{color:var(--profit);}
+.stat-value.loss{color:var(--loss);}
+.stat-sub{font-size:0.68rem;color:var(--text-dim);margin-top:2px;}
+
+/* Visual bar */
+.pwr-section{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:16px;margin-bottom:14px;}
+.pwr-section h4{font-size:0.78rem;font-weight:700;color:var(--text-dim);margin-bottom:12px;}
+.pwr-bar-row{margin-bottom:8px;}
+.pwr-bar-label{display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-dim);margin-bottom:4px;}
+.pwr-bar-label span:last-child{color:var(--rose);font-family:'JetBrains Mono',monospace;}
+.pwr-bar-track{height:10px;background:var(--surface3);border-radius:5px;overflow:hidden;}
+.pwr-bar-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--rose),#e07a94);transition:width .4s;}
+
+/* Info box */
+.info-box{border-radius:9px;padding:12px 14px;margin-bottom:12px;font-size:0.8rem;}
+.info-box.rose{background:var(--rose-bg);border:1px solid #d4607a33;color:var(--rose);}
+.info-box.profit{background:var(--profit-bg);border:1px solid #40916c33;color:var(--accent-light);}
+.info-box.loss{background:var(--loss-bg);border:1px solid #d94f4f33;color:var(--loss);}
+.info-box.harvest{background:var(--harvest-bg);border:1px solid var(--harvest-border);color:var(--harvest);}
+.info-box b{font-weight:700;}
+
+/* Real return display */
+.real-return-card{border-radius:11px;padding:20px;text-align:center;margin-bottom:14px;border:1px solid var(--border);}
+.real-return-card.beating{background:var(--profit-bg);border-color:#40916c33;}
+.real-return-card.losing{background:var(--loss-bg);border-color:#d94f4f33;}
+.rr-status{font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;}
+.rr-status.beating{color:var(--accent-light);}
+.rr-status.losing{color:var(--loss);}
+.rr-value{font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:700;margin-bottom:4px;}
+.rr-value.beating{color:var(--accent-light);}
+.rr-value.losing{color:var(--loss);}
+.rr-sub{font-size:0.8rem;color:var(--text-dim);}
+
+/* Table */
+.tbl-wrap{overflow-x:auto;border-radius:9px;border:1px solid var(--border);margin-bottom:14px;}
+table{width:100%;border-collapse:collapse;font-size:0.78rem;}
+thead th{text-align:right;padding:9px 11px;font-size:0.61rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;background:var(--surface2);}
+thead th:first-child{text-align:left;}
+tbody td{padding:8px 11px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:0.76rem;text-align:right;}
+tbody td:first-child{text-align:left;font-family:'DM Sans',sans-serif;font-size:0.78rem;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--surface2);}
+tbody tr.milestone td{background:var(--surface3);font-weight:600;}
+.text-rose{color:var(--rose);}
+.text-profit{color:var(--profit);}
+.text-harvest{color:var(--harvest);}
+.text-warn{color:var(--warn);}
+.text-dim{color:var(--text-dim);}
+.text-loss{color:var(--loss);}
+.text-purple{color:var(--purple);}
+
+/* Result sections per tab */
+.result-section{display:none;}
+.result-section.active{display:block;}
+
+footer{text-align:center;padding:20px 0;border-top:1px solid var(--border);font-size:0.72rem;color:var(--text-muted);margin-top:32px;}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="topnav">
+    <a href="index.html" class="back-link">← Home</a>
+    <span class="page-badge">Inflation Calculator</span>
+  </nav>
+
+  <header>
+    <h1>Inflation &amp; Future Value Calculator</h1>
+    <p class="tagline">Future cost · Present value · Real return · Purchasing power erosion</p>
+  </header>
+
+  <div class="layout">
+    <!-- LEFT PANEL -->
+    <div class="panel">
+      <div class="panel-title">Mode</div>
+
+      <div class="main-tabs">
+        <button class="main-tab active" onclick="switchMode('future')">Future Cost</button>
+        <button class="main-tab" onclick="switchMode('pv')">Present Value</button>
+        <button class="main-tab" onclick="switchMode('real')">Real Return</button>
+      </div>
+
+      <!-- TAB 1: Future Cost -->
+      <div class="main-tab-panel active" id="mode-future">
+        <div class="field">
+          <label>Current Cost of Item / Expense</label>
+          <div class="input-wrap">
+            <span class="input-prefix">₹</span>
+            <input type="number" id="fc-cost" class="has-prefix" min="1" value="100000" step="1000">
+          </div>
+        </div>
+        <div class="field">
+          <label>Inflation Rate</label>
+          <div class="input-wrap">
+            <input type="number" id="fc-inflation" class="has-suffix" min="0.1" max="30" value="6" step="0.1">
+            <span class="input-suffix">%</span>
+          </div>
+          <div style="font-size:0.66rem;color:var(--text-muted);margin-top:4px;">India avg CPI: ~5–6% | Healthcare: ~10–12%</div>
+        </div>
+        <div class="field">
+          <label>Years Ahead</label>
+          <div class="range-wrap">
+            <input type="range" id="fc-years-slider" min="1" max="40" value="10" oninput="syncSlider('fc-years',this.value)">
+            <span class="range-val" id="fc-years-display">10 yrs</span>
+          </div>
+          <input type="number" id="fc-years" min="1" max="40" value="10" style="margin-top:6px;" oninput="syncInput('fc-years',this.value)">
+        </div>
+      </div>
+
+      <!-- TAB 2: Present Value -->
+      <div class="main-tab-panel" id="mode-pv">
+        <div class="field">
+          <label>Future Amount Needed</label>
+          <div class="input-wrap">
+            <span class="input-prefix">₹</span>
+            <input type="number" id="pv-future" class="has-prefix" min="1" value="1000000" step="10000">
+          </div>
+        </div>
+        <div class="field">
+          <label>Inflation / Discount Rate</label>
+          <div class="input-wrap">
+            <input type="number" id="pv-rate" class="has-suffix" min="0.1" max="30" value="6" step="0.1">
+            <span class="input-suffix">%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Years in Future</label>
+          <div class="range-wrap">
+            <input type="range" id="pv-years-slider" min="1" max="40" value="10" oninput="syncSlider('pv-years',this.value)">
+            <span class="range-val" id="pv-years-display">10 yrs</span>
+          </div>
+          <input type="number" id="pv-years" min="1" max="40" value="10" style="margin-top:6px;" oninput="syncInput('pv-years',this.value)">
+        </div>
+        <div class="field">
+          <label>Expected Investment Return (to reach goal)</label>
+          <div class="input-wrap">
+            <input type="number" id="pv-invest-return" class="has-suffix" min="0" max="30" value="12" step="0.5">
+            <span class="input-suffix">%</span>
+          </div>
+          <div style="font-size:0.66rem;color:var(--text-muted);margin-top:4px;">Used to calculate lump sum needed today</div>
+        </div>
+      </div>
+
+      <!-- TAB 3: Real Return -->
+      <div class="main-tab-panel" id="mode-real">
+        <div class="field">
+          <label>Nominal Investment Return</label>
+          <div class="input-wrap">
+            <input type="number" id="rr-nominal" class="has-suffix" min="0" max="50" value="12" step="0.5">
+            <span class="input-suffix">%</span>
+          </div>
+          <div style="font-size:0.66rem;color:var(--text-muted);margin-top:4px;">FD: ~7% | Equity MF: ~12–14% | PPF: 7.1%</div>
+        </div>
+        <div class="field">
+          <label>Inflation Rate</label>
+          <div class="input-wrap">
+            <input type="number" id="rr-inflation" class="has-suffix" min="0" max="30" value="6" step="0.1">
+            <span class="input-suffix">%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Investment Horizon</label>
+          <div class="range-wrap">
+            <input type="range" id="rr-years-slider" min="1" max="30" value="10" oninput="syncSlider('rr-years',this.value)">
+            <span class="range-val" id="rr-years-display">10 yrs</span>
+          </div>
+          <input type="number" id="rr-years" min="1" max="30" value="10" style="margin-top:6px;" oninput="syncInput('rr-years',this.value)">
+        </div>
+        <div class="field">
+          <label>Starting Investment Amount</label>
+          <div class="input-wrap">
+            <span class="input-prefix">₹</span>
+            <input type="number" id="rr-amount" class="has-prefix" min="1000" value="100000" step="10000">
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /left panel -->
+
+    <!-- RIGHT PANEL -->
+    <div>
+
+      <!-- ─── FUTURE COST RESULTS ─── -->
+      <div class="result-section active" id="res-future">
+
+        <div class="summary-grid">
+          <div class="stat-card c-rose">
+            <div class="stat-label">Future Cost</div>
+            <div class="stat-value rose" id="fc-result">—</div>
+            <div class="stat-sub" id="fc-result-sub">—</div>
+          </div>
+          <div class="stat-card c-warn">
+            <div class="stat-label">Cost Increase</div>
+            <div class="stat-value warn" id="fc-increase">—</div>
+            <div class="stat-sub" id="fc-increase-pct">—</div>
+          </div>
+          <div class="stat-card c-harvest full">
+            <div class="stat-label">Purchasing Power Erosion</div>
+            <div class="stat-value harvest" id="fc-pwr">—</div>
+            <div class="stat-sub" id="fc-pwr-sub">—</div>
+          </div>
+        </div>
+
+        <!-- ₹100 visual -->
+        <div class="pwr-section">
+          <h4 id="fc-visual-title">₹1,00,000 today = ₹X in Y years at Z% inflation</h4>
+          <div id="fc-milestone-bars"></div>
+          <div style="font-size:0.72rem;color:var(--text-muted);margin-top:10px;">Each bar shows how much of today's purchasing power remains at that year</div>
+        </div>
+
+        <!-- Year-by-year table -->
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Future Cost</th>
+                <th>Increase vs Today</th>
+                <th>Purchasing Power Left</th>
+                <th>₹100 today worth</th>
+              </tr>
+            </thead>
+            <tbody id="fc-tbody"></tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- ─── PRESENT VALUE RESULTS ─── -->
+      <div class="result-section" id="res-pv">
+
+        <div class="summary-grid">
+          <div class="stat-card c-rose">
+            <div class="stat-label">Present Value (Today's Worth)</div>
+            <div class="stat-value rose" id="pv-result">—</div>
+            <div class="stat-sub" id="pv-result-sub">—</div>
+          </div>
+          <div class="stat-card c-profit">
+            <div class="stat-label">Lump Sum to Invest Today</div>
+            <div class="stat-value profit" id="pv-lumpsum">—</div>
+            <div class="stat-sub" id="pv-lumpsum-sub">—</div>
+          </div>
+          <div class="stat-card c-harvest full">
+            <div class="stat-label">Inflation Shortfall</div>
+            <div class="stat-value harvest" id="pv-shortfall">—</div>
+            <div class="stat-sub" id="pv-shortfall-sub">—</div>
+          </div>
+        </div>
+
+        <div class="info-box harvest" id="pv-infobox"></div>
+
+        <!-- PV decay table -->
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Amount in Future ₹</th>
+                <th>Present Value</th>
+                <th>Real Worth Today</th>
+                <th>Invest Today at Return</th>
+              </tr>
+            </thead>
+            <tbody id="pv-tbody"></tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- ─── REAL RETURN RESULTS ─── -->
+      <div class="result-section" id="res-real">
+
+        <div class="real-return-card" id="rr-card">
+          <div class="rr-status" id="rr-status">—</div>
+          <div class="rr-value" id="rr-value">—</div>
+          <div class="rr-sub" id="rr-sub">Real Rate of Return (after inflation)</div>
+        </div>
+
+        <div class="summary-grid">
+          <div class="stat-card c-harvest">
+            <div class="stat-label">Nominal Growth</div>
+            <div class="stat-value harvest" id="rr-nominal-end">—</div>
+            <div class="stat-sub" id="rr-nominal-end-sub">value at nominal rate</div>
+          </div>
+          <div class="stat-card c-rose">
+            <div class="stat-label">Real Growth</div>
+            <div class="stat-value rose" id="rr-real-end">—</div>
+            <div class="stat-sub" id="rr-real-end-sub">purchasing power today</div>
+          </div>
+          <div class="stat-card c-purple full">
+            <div class="stat-label">Inflation Ate This Much</div>
+            <div class="stat-value purple" id="rr-eaten">—</div>
+            <div class="stat-sub" id="rr-eaten-sub">difference in real terms</div>
+          </div>
+        </div>
+
+        <div class="info-box" id="rr-infobox"></div>
+
+        <!-- Nominal vs Real table -->
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Nominal Value</th>
+                <th>Inflation Factor</th>
+                <th>Real Value (Today's ₹)</th>
+                <th>Real Gain vs Start</th>
+              </tr>
+            </thead>
+            <tbody id="rr-tbody"></tbody>
+          </table>
+        </div>
+
+      </div>
+
+    </div><!-- /right panel -->
+  </div><!-- /layout -->
+
+</div><!-- /container -->
+<footer>Personal Finance Tools · Inflation is estimated · Actual CPI varies year to year · All calculations are indicative</footer>
+
+<script>
+let currentMode = 'future';
+
+function switchMode(mode) {
+  currentMode = mode;
+  const modes = ['future','pv','real'];
+  modes.forEach(m => {
+    document.getElementById('mode-' + m).classList.toggle('active', m === mode);
+    document.getElementById('res-' + m).classList.toggle('active', m === mode);
+  });
+  document.querySelectorAll('.main-tab').forEach((btn, i) => {
+    btn.classList.toggle('active', modes[i] === mode);
+  });
+  calc();
+}
+
+function syncSlider(id, val) {
+  document.getElementById(id).value = val;
+  document.getElementById(id + '-display').textContent = val + ' yrs';
+  calc();
+}
+
+function syncInput(id, val) {
+  const max = parseInt(document.getElementById(id).max) || 40;
+  const min = parseInt(document.getElementById(id).min) || 1;
+  let v = Math.min(max, Math.max(min, parseInt(val)||min));
+  document.getElementById(id + '-slider').value = v;
+  document.getElementById(id + '-display').textContent = v + ' yrs';
+  calc();
+}
+
+const fmt = v => '₹' + Math.round(v).toLocaleString('en-IN');
+const fmtD = v => parseFloat(v).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtShort = v => {
+  const av = Math.abs(v);
+  if (av >= 1e7) return '₹' + (v/1e7).toLocaleString('en-IN',{maximumFractionDigits:2}) + ' Cr';
+  if (av >= 1e5) return '₹' + (v/1e5).toLocaleString('en-IN',{maximumFractionDigits:2}) + ' L';
+  return fmt(v);
+};
+
+function calcFutureCost() {
+  const cost = parseFloat(document.getElementById('fc-cost').value) || 0;
+  const inflation = (parseFloat(document.getElementById('fc-inflation').value) || 6) / 100;
+  const years = parseInt(document.getElementById('fc-years').value) || 10;
+
+  const futureCost = cost * Math.pow(1 + inflation, years);
+  const increase = futureCost - cost;
+  const increasePct = (increase / cost * 100);
+  const pwrLeft = 100 / Math.pow(1 + inflation, years);
+  const pwrEroded = 100 - pwrLeft;
+
+  document.getElementById('fc-result').textContent = fmtShort(futureCost);
+  document.getElementById('fc-result-sub').textContent = `in ${years} year${years!==1?'s':''} at ${(inflation*100).toFixed(1)}% inflation`;
+  document.getElementById('fc-increase').textContent = fmtShort(increase);
+  document.getElementById('fc-increase-pct').textContent = `+${fmtD(increasePct)}% more expensive`;
+  document.getElementById('fc-pwr').textContent = fmtD(pwrLeft) + '% remaining';
+  document.getElementById('fc-pwr-sub').textContent = `${fmtD(pwrEroded)}% of purchasing power eroded over ${years} years`;
+  document.getElementById('fc-visual-title').textContent = `${fmt(cost)} today → ${fmtShort(futureCost)} in ${years} year${years!==1?'s':''} at ${(inflation*100).toFixed(1)}% p.a.`;
+
+  // Milestone bars
+  const barContainer = document.getElementById('fc-milestone-bars');
+  barContainer.innerHTML = '';
+  const milestones = [];
+  for (let y = 1; y <= years; y++) {
+    if (y === 1 || y === 5 || y === 10 || y === 15 || y === 20 || y === 25 || y === 30 || y === 40 || y === years) {
+      if (!milestones.includes(y)) milestones.push(y);
+    }
+  }
+  // Always include year 1 and current
+  if (!milestones.includes(1)) milestones.unshift(1);
+  if (!milestones.includes(years)) milestones.push(years);
+  const uniq = [...new Set(milestones)].sort((a,b) => a-b).filter(y => y <= years);
+
+  uniq.forEach(y => {
+    const pwr = 100 / Math.pow(1 + inflation, y);
+    const div = document.createElement('div');
+    div.className = 'pwr-bar-row';
+    div.innerHTML = `
+      <div class="pwr-bar-label">
+        <span>Year ${y}</span>
+        <span>${fmtD(pwr)}% purchasing power</span>
+      </div>
+      <div class="pwr-bar-track">
+        <div class="pwr-bar-fill" style="width:${pwr}%"></div>
+      </div>
+    `;
+    barContainer.appendChild(div);
+  });
+
+  // Year-by-year table (show every year up to max 40, milestones highlighted)
+  const tbody = document.getElementById('fc-tbody');
+  tbody.innerHTML = '';
+  const showYrs = years <= 20 ? years : (years <= 30 ? years : 40);
+  for (let y = 1; y <= showYrs; y++) {
+    const fc = cost * Math.pow(1 + inflation, y);
+    const inc = fc - cost;
+    const incPct = inc / cost * 100;
+    const pwrY = 100 / Math.pow(1 + inflation, y);
+    const val100 = 100 / Math.pow(1 + inflation, y);
+    const isMilestone = [5,10,15,20,25,30,40,years].includes(y);
+    const tr = document.createElement('tr');
+    if (isMilestone) tr.className = 'milestone';
+    tr.innerHTML = `
+      <td>Year ${y}</td>
+      <td class="text-rose">${fmtShort(fc)}</td>
+      <td class="text-warn">+${fmtD(incPct)}%</td>
+      <td class="${pwrY < 50 ? 'text-loss' : pwrY < 70 ? 'text-warn' : 'text-profit'}">${fmtD(pwrY)}%</td>
+      <td class="text-dim">₹${fmtD(val100)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function calcPV() {
+  const futureAmt = parseFloat(document.getElementById('pv-future').value) || 0;
+  const rate = (parseFloat(document.getElementById('pv-rate').value) || 6) / 100;
+  const years = parseInt(document.getElementById('pv-years').value) || 10;
+  const investReturn = (parseFloat(document.getElementById('pv-invest-return').value) || 12) / 100;
+
+  const pv = futureAmt / Math.pow(1 + rate, years);
+  const lumpsum = futureAmt / Math.pow(1 + investReturn, years);
+  const shortfall = pv - lumpsum; // how much more you need vs investing
+
+  document.getElementById('pv-result').textContent = fmtShort(pv);
+  document.getElementById('pv-result-sub').textContent = `today's purchasing power of ${fmtShort(futureAmt)} in ${years} yrs`;
+  document.getElementById('pv-lumpsum').textContent = fmtShort(lumpsum);
+  document.getElementById('pv-lumpsum-sub').textContent = `invest today at ${(investReturn*100).toFixed(1)}% to reach ${fmtShort(futureAmt)}`;
+  document.getElementById('pv-shortfall').textContent = fmtShort(Math.abs(shortfall));
+  document.getElementById('pv-shortfall-sub').textContent = shortfall >= 0 ? 'PV exceeds required lump sum — investment return beats inflation' : 'Investment return is below inflation — need more capital';
+
+  document.getElementById('pv-infobox').className = 'info-box ' + (investReturn >= rate ? 'profit' : 'loss');
+  document.getElementById('pv-infobox').innerHTML = investReturn >= rate
+    ? `<b>Good news:</b> Your expected return of ${(investReturn*100).toFixed(1)}% is higher than the ${(rate*100).toFixed(1)}% discount rate. Investing ${fmtShort(lumpsum)} today at ${(investReturn*100).toFixed(1)}% will grow to ${fmtShort(futureAmt)} in ${years} years.`
+    : `<b>Caution:</b> Your expected return of ${(investReturn*100).toFixed(1)}% is below the ${(rate*100).toFixed(1)}% inflation rate. Your money is losing real purchasing power even after investment growth.`;
+
+  // PV table
+  const tbody = document.getElementById('pv-tbody');
+  tbody.innerHTML = '';
+  for (let y = 1; y <= years; y++) {
+    const fa = futureAmt; // same target
+    const pvY = fa / Math.pow(1 + rate, y);
+    const realWorth = fa / Math.pow(1 + rate, y);
+    const investToday = fa / Math.pow(1 + investReturn, y);
+    const isMilestone = [5,10,15,20,25,30,years].includes(y);
+    const tr = document.createElement('tr');
+    if (isMilestone) tr.className = 'milestone';
+    tr.innerHTML = `
+      <td>Year ${y}</td>
+      <td class="text-rose">${fmtShort(fa)}</td>
+      <td class="text-dim">${fmtD(Math.pow(1+rate,y))}x</td>
+      <td class="text-warn">${fmtShort(pvY)}</td>
+      <td class="text-profit">${fmtShort(investToday)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function calcRealReturn() {
+  const nominal = (parseFloat(document.getElementById('rr-nominal').value) || 12) / 100;
+  const inflation = (parseFloat(document.getElementById('rr-inflation').value) || 6) / 100;
+  const years = parseInt(document.getElementById('rr-years').value) || 10;
+  const amount = parseFloat(document.getElementById('rr-amount').value) || 100000;
+
+  // Fisher equation: real return = (1+nominal)/(1+inflation) - 1
+  const realReturn = ((1 + nominal) / (1 + inflation) - 1);
+  const isBeating = realReturn > 0;
+
+  const nominalEnd = amount * Math.pow(1 + nominal, years);
+  const inflationFactor = Math.pow(1 + inflation, years);
+  const realEnd = nominalEnd / inflationFactor; // in today's purchasing power
+  const inflationAte = nominalEnd - realEnd;
+
+  // Card
+  const card = document.getElementById('rr-card');
+  card.className = 'real-return-card ' + (isBeating ? 'beating' : 'losing');
+  document.getElementById('rr-status').className = 'rr-status ' + (isBeating ? 'beating' : 'losing');
+  document.getElementById('rr-status').textContent = isBeating ? 'BEATING INFLATION' : 'LOSING TO INFLATION';
+  document.getElementById('rr-value').className = 'rr-value ' + (isBeating ? 'beating' : 'losing');
+  document.getElementById('rr-value').textContent = fmtD(realReturn * 100) + '% real return';
+  document.getElementById('rr-sub').textContent = `Nominal ${(nominal*100).toFixed(1)}% − Inflation ${(inflation*100).toFixed(1)}% (Fisher equation)`;
+
+  document.getElementById('rr-nominal-end').textContent = fmtShort(nominalEnd);
+  document.getElementById('rr-nominal-end-sub').textContent = `${fmt(amount)} grows to this in ${years} yrs`;
+  document.getElementById('rr-real-end').textContent = fmtShort(realEnd);
+  document.getElementById('rr-real-end-sub').textContent = `real purchasing power in today's ₹`;
+  document.getElementById('rr-eaten').textContent = fmtShort(inflationAte);
+  document.getElementById('rr-eaten-sub').textContent = `${fmtD((inflationAte/nominalEnd)*100)}% of nominal gains wiped out by inflation`;
+
+  document.getElementById('rr-infobox').className = 'info-box ' + (isBeating ? 'profit' : 'loss');
+  document.getElementById('rr-infobox').innerHTML = isBeating
+    ? `<b>Your investment is beating inflation.</b> For every ₹100 invested, your real purchasing power grows to ₹${fmtD((Math.pow(1+realReturn,years))*100)} in ${years} years. Real wealth creation: +${fmtShort(realEnd - amount)}.`
+    : `<b>Your investment is losing to inflation.</b> Even though your money grows nominally, its real purchasing power shrinks. After ${years} years, ${fmt(amount)} will be worth only ${fmtShort(realEnd)} in today's prices — a real loss of ${fmtShort(amount - realEnd)}.`;
+
+  // Table
+  const tbody = document.getElementById('rr-tbody');
+  tbody.innerHTML = '';
+  for (let y = 1; y <= years; y++) {
+    const nomVal = amount * Math.pow(1 + nominal, y);
+    const infFactor = Math.pow(1 + inflation, y);
+    const realVal = nomVal / infFactor;
+    const realGain = realVal - amount;
+    const isMilestone = [5,10,15,20,25,30,years].includes(y);
+    const tr = document.createElement('tr');
+    if (isMilestone) tr.className = 'milestone';
+    tr.innerHTML = `
+      <td>Year ${y}</td>
+      <td class="text-harvest">${fmtShort(nomVal)}</td>
+      <td class="text-dim">${fmtD(infFactor)}x</td>
+      <td class="text-rose">${fmtShort(realVal)}</td>
+      <td class="${realGain >= 0 ? 'text-profit' : 'text-loss'}">${realGain >= 0 ? '+' : ''}${fmtShort(realGain)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function calc() {
+  if (currentMode === 'future') calcFutureCost();
+  else if (currentMode === 'pv') calcPV();
+  else calcRealReturn();
+}
+
+// Listeners - Future Cost
+['fc-cost','fc-inflation','fc-years'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    if (id === 'fc-years') syncInput('fc-years', document.getElementById('fc-years').value);
+    else calc();
+  });
+});
+document.getElementById('fc-years-slider').addEventListener('input', e => syncSlider('fc-years', e.target.value));
+
+// Listeners - PV
+['pv-future','pv-rate','pv-years','pv-invest-return'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    if (id === 'pv-years') syncInput('pv-years', document.getElementById('pv-years').value);
+    else calc();
+  });
+});
+document.getElementById('pv-years-slider').addEventListener('input', e => syncSlider('pv-years', e.target.value));
+
+// Listeners - Real Return
+['rr-nominal','rr-inflation','rr-years','rr-amount'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    if (id === 'rr-years') syncInput('rr-years', document.getElementById('rr-years').value);
+    else calc();
+  });
+});
+document.getElementById('rr-years-slider').addEventListener('input', e => syncSlider('rr-years', e.target.value));
+
+calc();
+</script>
+</body>
+</html>

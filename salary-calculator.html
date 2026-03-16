@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Take Home Salary Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080b10; --surface:#0f1419; --surface2:#161d26; --surface3:#1c2530;
+    --border:#1e2a38; --text:#dfe6ee; --text-dim:#7b8da0; --text-muted:#4a5c6e;
+    --accent:#2d6a4f; --accent-bright:#40916c; --accent-light:#52b788; --accent-glow:#40916c22;
+    --harvest:#4e8fd4; --harvest-bg:#4e8fd412; --harvest-border:#4e8fd433;
+    --loss:#d94f4f; --loss-bg:#d94f4f12;
+    --warn:#d4a04e; --warn-bg:#d4a04e12;
+    --profit:#40916c; --profit-bg:#40916c12;
+    --purple:#9d7fe8; --purple-bg:#9d7fe812;
+    --rose:#d4607a; --rose-bg:#d4607a12;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.55;}
+  .container{max-width:1160px;margin:0 auto;padding:20px 16px 48px;}
+  .topnav{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+  .back-link{font-size:.78rem;color:var(--text-dim);text-decoration:none;display:flex;align-items:center;gap:5px;padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:7px;transition:border-color .2s;}
+  .back-link:hover{color:var(--text);border-color:var(--harvest);}
+  .page-title{font-size:.9rem;font-weight:700;color:var(--harvest);}
+  header{margin-bottom:22px;padding:18px 0 16px;border-bottom:1px solid var(--border);}
+  h1{font-size:1.5rem;font-weight:700;letter-spacing:-.025em;background:linear-gradient(135deg,#e0e8f0 30%,var(--harvest) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;}
+  .tagline{font-size:.82rem;color:var(--text-dim);}
+
+  /* Layout */
+  .layout{display:grid;grid-template-columns:380px 1fr;gap:18px;align-items:start;}
+  @media(max-width:880px){.layout{grid-template-columns:1fr;}}
+
+  /* Panel */
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;}
+  .panel-title{font-size:.82rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+
+  /* Fields */
+  .field{margin-bottom:13px;}
+  .field label{display:block;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:5px;}
+  .input-wrap{position:relative;}
+  .input-prefix{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-family:'JetBrains Mono',monospace;font-size:.85rem;color:var(--text-dim);pointer-events:none;}
+  .input-suffix{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.78rem;color:var(--text-dim);pointer-events:none;font-family:'JetBrains Mono',monospace;}
+  input[type="number"],select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.88rem;padding:8px 11px;border-radius:7px;outline:none;transition:border-color .2s;}
+  input.has-prefix{padding-left:24px;}
+  input.has-suffix{padding-right:28px;}
+  input:focus,select:focus{border-color:var(--harvest);box-shadow:0 0 0 3px var(--harvest-bg);}
+  select{font-family:'DM Sans',sans-serif;font-size:.84rem;cursor:pointer;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+  /* Range slider */
+  .range-row{display:flex;align-items:center;gap:8px;margin-top:5px;}
+  input[type="range"]{flex:1;-webkit-appearance:none;height:4px;background:var(--surface3);border-radius:2px;border:none;padding:0;cursor:pointer;}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--harvest);cursor:pointer;border:2px solid var(--surface);}
+  .range-val{font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--harvest);min-width:36px;text-align:right;}
+
+  /* Seg toggle */
+  .seg{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px;}
+  .seg-btn{flex:1;padding:7px 4px;font-size:.72rem;font-weight:600;border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+  .seg-btn.active{background:var(--harvest-bg);color:var(--harvest);}
+  .seg-btn.active.green{background:var(--accent-glow);color:var(--accent-light);}
+
+  /* Divider */
+  .divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
+
+  /* Presets */
+  .preset-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;}
+  .preset-btn{font-size:.66rem;font-weight:700;padding:3px 10px;border-radius:20px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-family:'DM Sans',sans-serif;transition:all .15s;}
+  .preset-btn:hover{border-color:var(--harvest);color:var(--harvest);}
+
+  /* Summary strip */
+  .summary-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+  @media(max-width:600px){.summary-strip{grid-template-columns:1fr 1fr;}}
+  .sum-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+  .sum-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:3px;}
+  .sum-val{font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:700;}
+  .sum-sub{font-size:.68rem;color:var(--text-muted);margin-top:2px;}
+  .c-harvest{border-top:2px solid var(--harvest);}
+  .c-green{border-top:2px solid var(--accent-light);}
+  .c-rose{border-top:2px solid var(--rose);}
+  .c-purple{border-top:2px solid var(--purple);}
+
+  /* Breakdown table */
+  .bk-table{width:100%;border-collapse:collapse;font-size:.78rem;}
+  .bk-table th{padding:8px 10px;text-align:left;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;}
+  .bk-table th:not(:first-child){text-align:right;}
+  .bk-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  .bk-table td:not(:first-child){text-align:right;font-family:'JetBrains Mono',monospace;font-size:.76rem;}
+  .bk-table tr:last-child td{border-bottom:none;}
+  .bk-table .bk-total td{background:var(--surface2);font-weight:700;border-top:2px solid var(--border);border-bottom:none;}
+  .bk-table .bk-deduct td{color:var(--loss);}
+  .bk-table .bk-net td{background:var(--harvest-bg);font-weight:700;border-top:2px solid var(--harvest-border);}
+  .bk-table .bk-net td:first-child{color:var(--harvest);}
+
+  /* Component dot */
+  .comp-dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:7px;flex-shrink:0;vertical-align:middle;}
+
+  /* Bar chart */
+  .bar-row{display:flex;height:6px;border-radius:3px;overflow:hidden;margin:10px 0 4px;}
+  .bar-seg{height:100%;transition:width .4s;}
+  .bar-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;}
+  .bar-leg-item{display:flex;align-items:center;gap:5px;font-size:.68rem;color:var(--text-dim);}
+
+  /* Regime compare */
+  .regime-compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;}
+  .regime-card{border:1px solid var(--border);border-radius:10px;padding:14px;position:relative;}
+  .regime-card.active-regime{border-color:var(--harvest);background:var(--harvest-bg);}
+  .regime-badge{font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:4px;position:absolute;top:10px;right:10px;}
+  .badge-selected{background:var(--harvest-bg);color:var(--harvest);border:1px solid var(--harvest-border);}
+  .badge-other{background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);}
+  .regime-name{font-size:.78rem;font-weight:700;margin-bottom:8px;}
+  .regime-takehome{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--harvest);}
+  .regime-tax{font-size:.72rem;color:var(--text-muted);margin-top:3px;}
+  .regime-save{font-size:.7rem;font-weight:700;margin-top:6px;}
+
+  /* Hidden section */
+  .old-regime-fields{display:none;}
+  .old-regime-fields.visible{display:block;}
+
+  /* Results panel */
+  .results{display:none;}
+  .results.visible{display:block;}
+  .result-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;}
+  .result-section-hdr{padding:12px 16px;border-bottom:1px solid var(--border);font-size:.82rem;font-weight:700;display:flex;align-items:center;gap:7px;}
+
+  /* Tax detail */
+  .tax-rows td:first-child{color:var(--text-dim);}
+  .tax-rows .tax-total td{font-weight:700;color:var(--loss);background:var(--loss-bg);border-top:2px solid var(--border);}
+
+  /* Light theme */
+  :root[data-theme="light"]{
+    --bg:#f4f6f9;--surface:#ffffff;--surface2:#eef1f6;--surface3:#e4e8f0;
+    --border:#cdd5e0;--text:#1c2b3a;--text-dim:#526070;--text-muted:#8a9baa;
+    --accent:#1e5c3a;--accent-bright:#2d8a5e;--accent-light:#239659;--accent-glow:#2d8a5e18;
+    --harvest:#1a5faa;--harvest-bg:#1a5faa0f;--harvest-border:#1a5faa30;
+    --loss:#c03030;--loss-bg:#c030300f;
+    --warn:#9a6010;--warn-bg:#9a60100f;
+    --profit:#1e7a4a;--profit-bg:#1e7a4a0f;
+    --purple:#6d4ec4;--purple-bg:#6d4ec410;
+    --rose:#b0304a;--rose-bg:#b0304a10;
+  }
+  :root[data-theme="light"] .panel,.result-section{box-shadow:0 1px 4px rgba(0,0,0,.07);}
+  :root[data-theme="light"] h1{background:linear-gradient(135deg,#1c2b3a 30%,var(--harvest) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+</style>
+<script src="theme.js"></script>
+</head>
+<body>
+<div class="container">
+
+  <div class="topnav">
+    <a href="index.html" class="back-link">← Home</a>
+    <span class="page-title">Take Home Salary Calculator</span>
+  </div>
+
+  <header>
+    <h1>Take Home Salary Calculator</h1>
+    <p class="tagline">Enter your CTC — get full salary breakup, tax under New &amp; Old regime, and monthly in-hand</p>
+  </header>
+
+  <div class="layout">
+
+    <!-- ── Left: Inputs ─────────────────────────────────────────── -->
+    <div>
+      <div class="panel">
+        <div class="panel-title">💼 CTC &amp; Salary Details</div>
+
+        <div class="field">
+          <label>Annual CTC (₹)</label>
+          <div class="input-wrap">
+            <span class="input-prefix">₹</span>
+            <input type="number" id="ctc" class="has-prefix" placeholder="e.g. 1200000" oninput="calculate()">
+          </div>
+        </div>
+        <div class="preset-row">
+          <button class="preset-btn" onclick="setCtc(500000)">5L</button>
+          <button class="preset-btn" onclick="setCtc(800000)">8L</button>
+          <button class="preset-btn" onclick="setCtc(1000000)">10L</button>
+          <button class="preset-btn" onclick="setCtc(1500000)">15L</button>
+          <button class="preset-btn" onclick="setCtc(2000000)">20L</button>
+          <button class="preset-btn" onclick="setCtc(3000000)">30L</button>
+          <button class="preset-btn" onclick="setCtc(5000000)">50L</button>
+        </div>
+
+        <div class="field">
+          <label>Basic Salary — % of CTC</label>
+          <div class="range-row">
+            <input type="range" id="basicPct" min="30" max="60" value="40" oninput="syncRange('basicPct','basicPctVal');calculate()">
+            <span class="range-val" id="basicPctVal">40%</span>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field" style="margin-bottom:0">
+            <label>City Type</label>
+            <select id="cityType" onchange="calculate()">
+              <option value="metro">Metro (HRA 50%)</option>
+              <option value="non-metro">Non-Metro (HRA 40%)</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Variable Pay %</label>
+            <div class="input-wrap">
+              <input type="number" id="variablePct" value="0" min="0" max="50" class="has-suffix" oninput="calculate()">
+              <span class="input-suffix">%</span>
+            </div>
+          </div>
+        </div>
+
+        <hr class="divider">
+        <div class="panel-title" style="margin-bottom:10px;">🧾 Tax Regime</div>
+        <div class="seg" id="regimeSeg">
+          <button class="seg-btn active" data-val="new" onclick="setRegime(this)">New Regime (FY26)</button>
+          <button class="seg-btn" data-val="old" onclick="setRegime(this)">Old Regime</button>
+        </div>
+
+        <div class="field">
+          <label>Monthly Rent Paid (₹) <span style="color:var(--text-muted);font-weight:400;text-transform:none">— for HRA exemption (old regime)</span></label>
+          <div class="input-wrap">
+            <span class="input-prefix">₹</span>
+            <input type="number" id="rent" class="has-prefix" placeholder="0" oninput="calculate()">
+          </div>
+        </div>
+
+        <div class="old-regime-fields" id="oldRegimeFields">
+          <div class="field">
+            <label>80C Investments (₹) <span style="color:var(--text-muted);font-weight:400;text-transform:none">max ₹1.5L</span></label>
+            <div class="input-wrap">
+              <span class="input-prefix">₹</span>
+              <input type="number" id="c80c" class="has-prefix" placeholder="Employee PF auto-included" oninput="calculate()">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field" style="margin-bottom:0">
+              <label>80D Medical (₹)</label>
+              <div class="input-wrap">
+                <span class="input-prefix">₹</span>
+                <input type="number" id="c80d" value="25000" class="has-prefix" oninput="calculate()">
+              </div>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>NPS 80CCD(1B) (₹)</label>
+              <div class="input-wrap">
+                <span class="input-prefix">₹</span>
+                <input type="number" id="cnps" value="0" class="has-prefix" oninput="calculate()">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <hr class="divider">
+        <div class="field-row">
+          <div class="field" style="margin-bottom:0">
+            <label>Professional Tax</label>
+            <select id="profTax" onchange="calculate()">
+              <option value="2400">₹200/month (default)</option>
+              <option value="0">Nil (exempt state)</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Age Group</label>
+            <select id="ageGroup" onchange="calculate()">
+              <option value="below60">Below 60</option>
+              <option value="60to80">60–80 (Senior)</option>
+              <option value="above80">80+ (Super Senior)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Right: Results ────────────────────────────────────────── -->
+    <div>
+      <div id="placeholder" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:40px;text-align:center;color:var(--text-muted);">
+        <div style="font-size:2rem;margin-bottom:12px;">💼</div>
+        <div style="font-size:.9rem;font-weight:600;margin-bottom:6px;">Enter your CTC to see the full breakdown</div>
+        <div style="font-size:.78rem;">Salary structure, tax computation, and in-hand salary</div>
+      </div>
+
+      <div class="results" id="results">
+
+        <!-- Summary strip -->
+        <div class="summary-strip">
+          <div class="sum-card c-harvest">
+            <div class="sum-label">Annual CTC</div>
+            <div class="sum-val" id="s_ctc" style="color:var(--harvest)"></div>
+            <div class="sum-sub" id="s_ctcm"></div>
+          </div>
+          <div class="sum-card c-green">
+            <div class="sum-label">Gross Salary</div>
+            <div class="sum-val" id="s_gross" style="color:var(--accent-light)"></div>
+            <div class="sum-sub" id="s_grossm"></div>
+          </div>
+          <div class="sum-card c-rose">
+            <div class="sum-label">Total Tax &amp; Deductions</div>
+            <div class="sum-val" id="s_ded" style="color:var(--rose)"></div>
+            <div class="sum-sub" id="s_dedm"></div>
+          </div>
+          <div class="sum-card c-purple">
+            <div class="sum-label">Monthly Take Home</div>
+            <div class="sum-val" id="s_takehome" style="color:var(--purple)"></div>
+            <div class="sum-sub" id="s_takehomet"></div>
+          </div>
+        </div>
+
+        <!-- CTC Composition bar -->
+        <div class="result-section">
+          <div class="result-section-hdr">📊 CTC Breakdown — Annual &amp; Monthly</div>
+          <div style="padding:14px 16px 6px">
+            <div class="bar-row" id="ctcBar"></div>
+            <div class="bar-legend" id="ctcLegend"></div>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="bk-table" id="ctcTable">
+              <thead><tr>
+                <th>Component</th><th>Monthly</th><th>Annual</th><th>% of CTC</th>
+              </tr></thead>
+              <tbody id="ctcBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Take Home Computation -->
+        <div class="result-section">
+          <div class="result-section-hdr">🧾 Take Home Computation</div>
+          <div style="overflow-x:auto">
+            <table class="bk-table" id="thTable">
+              <thead><tr>
+                <th>Item</th><th>Monthly</th><th>Annual</th>
+              </tr></thead>
+              <tbody id="thBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tax Computation -->
+        <div class="result-section">
+          <div class="result-section-hdr">🔢 Income Tax Computation</div>
+          <div style="overflow-x:auto">
+            <table class="bk-table tax-rows" id="taxTable">
+              <thead><tr>
+                <th>Description</th><th>Amount (₹)</th>
+              </tr></thead>
+              <tbody id="taxBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- New vs Old Regime Comparison -->
+        <div class="result-section">
+          <div class="result-section-hdr">⚖️ New Regime vs Old Regime Comparison</div>
+          <div class="regime-compare" id="regimeCompare" style="padding:14px 16px;"></div>
+        </div>
+
+      </div><!-- /results -->
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const fmtI = n => Math.round(n).toLocaleString('en-IN');
+const fmtC = n => '₹' + fmtI(n);
+const fmtL = n => {
+  if (Math.abs(n) >= 1e7) return '₹' + (n/1e7).toFixed(2) + 'Cr';
+  if (Math.abs(n) >= 1e5) return '₹' + (n/1e5).toFixed(2) + 'L';
+  return fmtC(n);
+};
+
+function syncRange(id, valId) {
+  document.getElementById(valId).textContent = document.getElementById(id).value + '%';
+}
+
+function setCtc(val) {
+  document.getElementById('ctc').value = val;
+  calculate();
+}
+
+let currentRegime = 'new';
+function setRegime(btn) {
+  document.getElementById('regimeSeg').querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentRegime = btn.dataset.val;
+  document.getElementById('oldRegimeFields').classList.toggle('visible', currentRegime === 'old');
+  calculate();
+}
+
+// ── Tax Calculation ───────────────────────────────────────────────────────────
+function applySlabs(income, slabs) {
+  let tax = 0, prev = 0;
+  for (const [limit, rate] of slabs) {
+    if (income <= prev) break;
+    tax += (Math.min(income, limit) - prev) * rate;
+    prev = limit;
+  }
+  return tax;
+}
+
+function calcNewRegimeTax(gross, age) {
+  const stdDed = 75000;
+  const taxable = Math.max(0, gross - stdDed);
+
+  // Rebate 87A: zero tax if taxable ≤ 12L (effective CTC ≤ 12.75L)
+  if (taxable <= 1200000) return { tax: 0, taxable, stdDed, rebate: true };
+
+  const slabs = [[400000,0],[800000,.05],[1200000,.10],[1600000,.15],[2000000,.20],[2400000,.25],[Infinity,.30]];
+  let tax = applySlabs(taxable, slabs);
+
+  // Surcharge (new regime caps at 25%)
+  let surcharge = 0;
+  if (gross > 50000000) surcharge = tax * 0.25;
+  else if (gross > 20000000) surcharge = tax * 0.25;
+  else if (gross > 10000000) surcharge = tax * 0.15;
+  else if (gross > 5000000) surcharge = tax * 0.10;
+
+  const cess = (tax + surcharge) * 0.04;
+  return { tax: tax + surcharge + cess, taxable, stdDed, surcharge, cess, rebate: false };
+}
+
+function calcOldRegimeTax(gross, basic, hraReceived, isMetro, rentMonthly, empPF, c80cExtra, c80d, cnps, age) {
+  const stdDed = 50000;
+  const rentAnnual = rentMonthly * 12;
+  const hraExemption = rentAnnual > 0
+    ? Math.min(hraReceived, isMetro ? basic * 0.5 : basic * 0.4, Math.max(0, rentAnnual - basic * 0.1))
+    : 0;
+
+  const c80cTotal = Math.min(empPF + (c80cExtra || 0), 150000);
+  const c80dAmt   = Math.min(c80d || 0, 50000);
+  const npsAmt    = Math.min(cnps || 0, 50000);
+
+  let basicExemption = 250000;
+  if (age === '60to80') basicExemption = 300000;
+  if (age === 'above80') basicExemption = 500000;
+
+  const taxable = Math.max(0, gross - stdDed - hraExemption - c80cTotal - c80dAmt - npsAmt);
+
+  // 87A rebate
+  if (taxable <= 500000) return { tax: 0, taxable, stdDed, hraExemption, c80cTotal, c80dAmt, npsAmt, rebate: true };
+
+  const slabs = [[basicExemption,0],[500000,.05],[1000000,.20],[Infinity,.30]];
+  let tax = applySlabs(taxable, slabs);
+  const cess = tax * 0.04;
+  return { tax: tax + cess, taxable, stdDed, hraExemption, c80cTotal, c80dAmt, npsAmt, cess, rebate: false };
+}
+
+// ── Main Calculate ────────────────────────────────────────────────────────────
+const COLORS = {
+  basic: '#4e8fd4', hra: '#52b788', special: '#9d7fe8',
+  epf: '#d4607a', gratuity: '#d4a04e', variable: '#4ecac4',
+  tax: '#d94f4f', profTax: '#d47a4e', empPF: '#d4607a'
+};
+
+function calculate() {
+  const ctc = parseFloat(document.getElementById('ctc').value) || 0;
+  if (ctc < 10000) {
+    document.getElementById('placeholder').style.display = '';
+    document.getElementById('results').classList.remove('visible');
+    return;
+  }
+
+  const basicPct   = parseInt(document.getElementById('basicPct').value) / 100;
+  const isMetro    = document.getElementById('cityType').value === 'metro';
+  const varPct     = parseFloat(document.getElementById('variablePct').value) / 100 || 0;
+  const profTaxAnn = parseInt(document.getElementById('profTax').value);
+  const rentM      = parseFloat(document.getElementById('rent').value) || 0;
+  const age        = document.getElementById('ageGroup').value;
+  const c80cExtra  = parseFloat(document.getElementById('c80c')?.value) || 0;
+  const c80d       = parseFloat(document.getElementById('c80d')?.value) || 25000;
+  const cnps       = parseFloat(document.getElementById('cnps')?.value) || 0;
+
+  // ── Salary Structure ────────────────────────────────────────────
+  const fixedCTC   = ctc * (1 - varPct);
+  const basic      = fixedCTC * basicPct;
+  const hraPct     = isMetro ? 0.5 : 0.4;
+  const hraA       = basic * hraPct;
+
+  // Employer PF: 12% of basic, max ₹21600/yr
+  const empPFann   = Math.min(basic * 0.12, 21600);
+  // Employee PF same
+  const emplPFann  = empPFann;
+  // Gratuity: 4.81% of basic
+  const gratuityA  = basic * 0.0481;
+  // Variable pay (annual)
+  const variableA  = ctc * varPct;
+  // Special allowance fills remainder of fixed CTC
+  const specialA   = Math.max(0, fixedCTC - basic - hraA - empPFann - gratuityA);
+  // Gross = take-home eligible components (excl. employer PF & gratuity)
+  const grossA     = basic + hraA + specialA + variableA;
+
+  // ── Tax ─────────────────────────────────────────────────────────
+  const newTax = calcNewRegimeTax(grossA, age);
+  const oldTax = calcOldRegimeTax(grossA, basic, hraA, isMetro, rentM, emplPFann, c80cExtra, c80d, cnps, age);
+
+  const chosenTax = currentRegime === 'new' ? newTax : oldTax;
+  const incomeTaxA = chosenTax.tax;
+
+  // ── Take Home ───────────────────────────────────────────────────
+  const totalDedA = emplPFann + profTaxAnn + incomeTaxA;
+  const takeHomeA = grossA - totalDedA;
+
+  // ── Summary ─────────────────────────────────────────────────────
+  document.getElementById('placeholder').style.display = 'none';
+  document.getElementById('results').classList.add('visible');
+
+  document.getElementById('s_ctc').textContent     = fmtL(ctc);
+  document.getElementById('s_ctcm').textContent    = fmtC(ctc/12) + ' /mo';
+  document.getElementById('s_gross').textContent   = fmtL(grossA);
+  document.getElementById('s_grossm').textContent  = fmtC(grossA/12) + ' /mo';
+  document.getElementById('s_ded').textContent     = fmtL(totalDedA);
+  document.getElementById('s_dedm').textContent    = fmtC(totalDedA/12) + ' /mo';
+  document.getElementById('s_takehome').textContent = fmtL(takeHomeA/12);
+  document.getElementById('s_takehomet').textContent = fmtL(takeHomeA) + ' /yr';
+
+  // ── CTC Breakdown bar ───────────────────────────────────────────
+  const barSegments = [
+    { label: 'Basic',         val: basic,     color: COLORS.basic },
+    { label: 'HRA',           val: hraA,      color: COLORS.hra },
+    { label: 'Special Allw.', val: specialA,  color: COLORS.special },
+    ...(variableA > 0 ? [{ label: 'Variable', val: variableA, color: COLORS.variable }] : []),
+    { label: "Employer's PF", val: empPFann,  color: COLORS.epf },
+    { label: 'Gratuity',      val: gratuityA, color: COLORS.gratuity },
+  ].filter(s => s.val > 0);
+
+  document.getElementById('ctcBar').innerHTML = barSegments.map(s =>
+    `<div class="bar-seg" style="width:${(s.val/ctc*100).toFixed(1)}%;background:${s.color}"></div>`
+  ).join('');
+  document.getElementById('ctcLegend').innerHTML = barSegments.map(s =>
+    `<div class="bar-leg-item"><span style="width:8px;height:8px;border-radius:2px;background:${s.color};display:inline-block"></span>${s.label}</div>`
+  ).join('');
+
+  // ── CTC Table ───────────────────────────────────────────────────
+  const ctcRows = [
+    ...barSegments.map(s => ({ label: s.label, val: s.val, color: s.color, type: 'income' })),
+    { label: 'Total CTC', val: ctc, type: 'total' },
+  ];
+  document.getElementById('ctcBody').innerHTML = ctcRows.map(r => {
+    if (r.type === 'total') return `<tr class="bk-total"><td>Total CTC</td><td>${fmtC(ctc/12)}</td><td>${fmtC(ctc)}</td><td>100%</td></tr>`;
+    const dot = r.color ? `<span class="comp-dot" style="background:${r.color}"></span>` : '';
+    return `<tr><td>${dot}${r.label}</td><td>${fmtC(r.val/12)}</td><td>${fmtC(r.val)}</td><td>${(r.val/ctc*100).toFixed(1)}%</td></tr>`;
+  }).join('');
+
+  // ── Take Home Computation ────────────────────────────────────────
+  const thRows = [
+    { label: '(+) Basic Salary',             val: basic,       cls: '' },
+    { label: '(+) HRA',                      val: hraA,        cls: '' },
+    { label: '(+) Special Allowance',        val: specialA,    cls: '' },
+    ...(variableA>0 ? [{ label: '(+) Variable / Bonus', val: variableA, cls: '' }] : []),
+    { label: 'Gross Salary',                 val: grossA,      cls: 'bk-total' },
+    { label: '(−) Employee PF (12% basic)',  val: -emplPFann,  cls: 'bk-deduct' },
+    { label: '(−) Professional Tax',         val: -profTaxAnn, cls: 'bk-deduct' },
+    { label: '(−) Income Tax',               val: -incomeTaxA, cls: 'bk-deduct' },
+    { label: '✅ Net Take Home',             val: takeHomeA,   cls: 'bk-net' },
+  ];
+  document.getElementById('thBody').innerHTML = thRows.map(r =>
+    `<tr class="${r.cls}"><td>${r.label}</td><td>${fmtC(Math.abs(r.val)/12)}${r.val < 0 ? ' <span style="color:var(--loss)">↓</span>' : ''}</td><td>${fmtC(Math.abs(r.val))}${r.val < 0 ? ' <span style="color:var(--loss)">↓</span>' : ''}</td></tr>`
+  ).join('');
+
+  // ── Tax Computation ──────────────────────────────────────────────
+  renderTaxDetail(grossA, chosenTax, currentRegime);
+
+  // ── Regime Comparison ────────────────────────────────────────────
+  renderRegimeCompare(grossA, emplPFann, profTaxAnn, newTax, oldTax, takeHomeA);
+}
+
+function renderTaxDetail(gross, t, regime) {
+  const rows = [];
+  if (regime === 'new') {
+    rows.push(['Gross Salary (Taxable Income)', fmtC(gross)]);
+    rows.push(['Less: Standard Deduction', `(${fmtC(t.stdDed)})`]);
+    rows.push(['Net Taxable Income', fmtC(t.taxable)]);
+    rows.push(['', '']);
+    if (t.rebate) {
+      rows.push(['Tax on above slabs', fmtC(0)]);
+      rows.push(['Rebate u/s 87A (income ≤ ₹12L)', '— Full Rebate']);
+    } else {
+      const netTax = t.tax / 1.04 - (t.surcharge||0);
+      rows.push(['Tax on slabs (New Regime)', fmtC(netTax)]);
+      if (t.surcharge) rows.push(['Surcharge', fmtC(t.surcharge)]);
+      rows.push(['Health & Education Cess (4%)', fmtC(t.cess||0)]);
+    }
+  } else {
+    rows.push(['Gross Salary', fmtC(gross)]);
+    rows.push(['Less: Standard Deduction', `(${fmtC(t.stdDed)})`]);
+    if (t.hraExemption > 0) rows.push(['Less: HRA Exemption', `(${fmtC(t.hraExemption)})`]);
+    if (t.c80cTotal > 0) rows.push(['Less: 80C Deduction', `(${fmtC(t.c80cTotal)})`]);
+    if (t.c80dAmt > 0) rows.push(['Less: 80D Medical Insurance', `(${fmtC(t.c80dAmt)})`]);
+    if (t.npsAmt > 0) rows.push(['Less: NPS 80CCD(1B)', `(${fmtC(t.npsAmt)})`]);
+    rows.push(['Net Taxable Income', fmtC(t.taxable)]);
+    rows.push(['', '']);
+    if (t.rebate) {
+      rows.push(['Tax on above slabs', fmtC(0)]);
+      rows.push(['Rebate u/s 87A (income ≤ ₹5L)', '— Full Rebate']);
+    } else {
+      const netTax = t.tax / 1.04;
+      rows.push(['Tax on slabs (Old Regime)', fmtC(netTax)]);
+      rows.push(['Health & Education Cess (4%)', fmtC(t.cess||0)]);
+    }
+  }
+  rows.push(['total', fmtC(t.tax)]);
+
+  document.getElementById('taxBody').innerHTML = rows.map(([k, v]) => {
+    if (!k && !v) return `<tr><td colspan="2" style="padding:2px 0;border:none"></td></tr>`;
+    if (k === 'total') return `<tr class="tax-total"><td>Total Income Tax (Annual)</td><td>${v}</td></tr>`;
+    const isDed = v.startsWith('(');
+    return `<tr><td>${k}</td><td style="color:${isDed?'var(--accent-light)':k.includes('Net')?'var(--text)':''};font-family:'JetBrains Mono',monospace">${v}</td></tr>`;
+  }).join('');
+}
+
+function renderRegimeCompare(grossA, emplPFann, profTaxAnn, newTax, oldTax, currentTakeHome) {
+  const newTakeHome = grossA - emplPFann - profTaxAnn - newTax.tax;
+  const oldTakeHome = grossA - emplPFann - profTaxAnn - oldTax.tax;
+  const diff = newTakeHome - oldTakeHome;
+  const betterNew = diff >= 0;
+
+  const card = (label, tax, takeHome, isActive, isBetter) => {
+    const saveNote = Math.abs(diff) > 100
+      ? `<div class="regime-save" style="color:${isBetter ? 'var(--accent-light)' : 'var(--text-muted)'}">
+          ${isBetter ? `✅ Save ${fmtC(Math.abs(diff)/12)}/mo (${fmtC(Math.abs(diff))}/yr)` : `▼ ${fmtC(Math.abs(diff)/12)}/mo less`}
+         </div>` : '';
+    return `<div class="regime-card ${isActive ? 'active-regime' : ''}">
+      <span class="regime-badge ${isActive ? 'badge-selected' : 'badge-other'}">${isActive ? 'Selected' : 'Other'}</span>
+      <div class="regime-name">${label}</div>
+      <div class="regime-takehome">${fmtC(takeHome/12)}<span style="font-size:.72rem;color:var(--text-muted);font-weight:400"> /month</span></div>
+      <div class="regime-tax">Tax: ${fmtC(tax.tax)}/yr · Taxable: ${fmtC(tax.taxable)}${tax.rebate ? ' (rebate applied)' : ''}</div>
+      ${saveNote}
+    </div>`;
+  };
+
+  document.getElementById('regimeCompare').innerHTML =
+    card('New Regime (FY 2025-26)', newTax, newTakeHome, currentRegime === 'new', betterNew) +
+    card('Old Regime', oldTax, oldTakeHome, currentRegime === 'old', !betterNew);
+}
+
+// init
+syncRange('basicPct', 'basicPctVal');
+</script>
+</body>
+</html>

@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prepay Loan vs Invest Calculator – Personal Finance Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="theme.js"></script>
+<style>
+:root {
+  --bg:#080b10; --surface:#0f1419; --surface2:#161d26; --surface3:#1c2530;
+  --border:#1e2a38; --text:#dfe6ee; --text-dim:#7b8da0; --text-muted:#4a5c6e;
+  --accent:#2d6a4f; --accent-bright:#40916c; --accent-light:#52b788; --accent-glow:#40916c22;
+  --harvest:#4e8fd4; --harvest-bg:#4e8fd412; --harvest-border:#4e8fd433;
+  --loss:#d94f4f; --loss-bg:#d94f4f12;
+  --warn:#d4a04e; --warn-bg:#d4a04e12;
+  --profit:#40916c; --profit-bg:#40916c12;
+  --purple:#9d7fe8; --purple-bg:#9d7fe812;
+  --rose:#d4607a; --rose-bg:#d4607a12;
+}
+:root[data-theme="light"] {
+  --bg:#f4f6f9; --surface:#ffffff; --surface2:#eef1f6; --surface3:#e4e8f0;
+  --border:#cdd5e0; --text:#1c2b3a; --text-dim:#526070; --text-muted:#8a9baa;
+  --accent:#1e5c3a; --accent-bright:#2d8a5e; --accent-light:#239659; --accent-glow:#2d8a5e18;
+  --harvest:#1a5faa; --harvest-bg:#1a5faa0f; --harvest-border:#1a5faa30;
+  --loss:#c03030; --loss-bg:#c030300f; --warn:#9a6010; --warn-bg:#9a60100f;
+  --profit:#1e7a4a; --profit-bg:#1e7a4a0f; --purple:#6d4ec4; --purple-bg:#6d4ec410;
+  --rose:#b0304a; --rose-bg:#b0304a10;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+a{color:var(--text-dim);text-decoration:none;}
+a:hover{color:var(--text);}
+
+.topnav{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--surface);}
+.topnav a{font-size:0.82rem;font-weight:500;color:var(--text-dim);display:flex;align-items:center;gap:6px;transition:color .2s;}
+.topnav a:hover{color:var(--purple);}
+.topnav-title{font-size:0.88rem;font-weight:600;color:var(--text);margin-left:4px;}
+.topnav-badge{font-size:0.62rem;font-weight:700;padding:2px 8px;border-radius:4px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple);margin-left:auto;font-family:'JetBrains Mono',monospace;}
+
+.layout{display:grid;grid-template-columns:360px 1fr;gap:0;min-height:calc(100vh - 49px);}
+
+/* ── Left Panel ──────────────────────────────────────── */
+.left-panel{background:var(--surface);border-right:1px solid var(--border);padding:24px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;}
+.panel-title{font-size:1rem;font-weight:700;color:var(--text);margin-bottom:2px;}
+.panel-sub{font-size:0.76rem;color:var(--text-dim);}
+
+.field-group{display:flex;flex-direction:column;gap:12px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);}
+.field input,.field select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:0.88rem;font-family:'DM Sans',sans-serif;transition:border-color .2s;width:100%;}
+.field input:focus,.field select:focus{outline:none;border-color:var(--purple);}
+.field .input-wrap{position:relative;}
+.field .input-wrap input{padding-right:40px;}
+.field .input-suffix{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.78rem;color:var(--text-muted);pointer-events:none;font-family:'JetBrains Mono',monospace;}
+
+.seg-control{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.seg-btn{flex:1;padding:8px 4px;font-size:0.72rem;font-weight:600;border:none;background:transparent;color:var(--text-dim);cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;text-align:center;}
+.seg-btn.active{background:var(--purple-bg);color:var(--purple);}
+.seg-btn:hover:not(.active){color:var(--text);}
+
+.divider{height:1px;background:var(--border);margin:4px 0;}
+.section-label{font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);}
+.section-header{display:flex;align-items:center;gap:8px;}
+.section-header .icon{font-size:1rem;}
+.section-header .label{font-size:0.8rem;font-weight:700;color:var(--text);}
+
+/* ── Right Panel ──────────────────────────────────────── */
+.right-panel{padding:24px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;}
+
+.results-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:12px;color:var(--text-muted);}
+.results-empty .icon{font-size:2.5rem;opacity:.4;}
+.results-empty p{font-size:0.82rem;}
+
+/* ── Recommendation Card ──────────────────────────────── */
+.rec-card{border-radius:14px;padding:24px;display:flex;align-items:flex-start;gap:16px;}
+.rec-card.prepay{background:var(--profit-bg);border:1px solid #40916c44;}
+.rec-card.invest{background:var(--purple-bg);border:1px solid #9d7fe844;}
+.rec-icon{font-size:2rem;flex-shrink:0;}
+.rec-content{}
+.rec-title{font-size:1.1rem;font-weight:800;margin-bottom:6px;}
+.rec-title.prepay{color:var(--profit);}
+.rec-title.invest{color:var(--purple);}
+.rec-sub{font-size:0.82rem;color:var(--text-dim);line-height:1.6;}
+.rec-margin{display:inline-block;margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:0.82rem;font-weight:700;padding:4px 12px;border-radius:6px;}
+.rec-margin.prepay{background:var(--profit-bg);color:var(--profit);border:1px solid #40916c44;}
+.rec-margin.invest{background:var(--purple-bg);color:var(--purple);border:1px solid #9d7fe844;}
+
+/* ── Side by side ─────────────────────────────────────── */
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.compare-col{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;}
+.compare-col.winner{border-color:var(--purple);background:var(--purple-bg);}
+.compare-col-title{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:12px;}
+.compare-col.winner .compare-col-title{color:var(--purple);}
+.compare-stat{display:flex;flex-direction:column;gap:3px;margin-bottom:12px;}
+.compare-stat-label{font-size:0.7rem;color:var(--text-dim);}
+.compare-stat-value{font-family:'JetBrains Mono',monospace;font-size:0.95rem;font-weight:700;color:var(--text);}
+.compare-stat-value.positive{color:var(--profit);}
+.compare-stat-value.purple{color:var(--purple);}
+.compare-stat-value.warn{color:var(--warn);}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.card-title{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:14px;}
+
+table{width:100%;border-collapse:collapse;}
+th{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);}
+th:first-child{text-align:left;}
+td{padding:8px 10px;font-size:0.8rem;color:var(--text-dim);border-bottom:1px solid var(--border);text-align:right;}
+td:first-child{text-align:left;color:var(--text);}
+tr:last-child td{border-bottom:none;}
+td.mono{font-family:'JetBrains Mono',monospace;font-size:0.78rem;}
+td.positive{color:var(--profit);}
+td.negative{color:var(--loss);}
+td.purple{color:var(--purple);}
+td.warn{color:var(--warn);}
+td.winner-cell{font-weight:700;color:var(--purple);}
+td.highlight{color:var(--text);font-weight:600;}
+tr.totals-row td{font-weight:700;color:var(--text);background:var(--surface2);font-family:'JetBrains Mono',monospace;font-size:0.78rem;}
+tr.totals-row td:first-child{color:var(--text);}
+
+.breakeven-box{display:flex;gap:14px;padding:16px 18px;border-radius:10px;background:var(--warn-bg);border:1px solid #d4a04e33;align-items:center;}
+.breakeven-rate{font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:800;color:var(--warn);min-width:80px;}
+.breakeven-text{font-size:0.82rem;color:var(--text-dim);line-height:1.6;}
+.breakeven-text strong{color:var(--warn);}
+
+.year-table-wrap{max-height:400px;overflow-y:auto;border-radius:8px;border:1px solid var(--border);}
+.year-table-wrap table{border:none;}
+.year-table-wrap th,.year-table-wrap td{border-bottom:1px solid var(--border);}
+.year-table-wrap tr:last-child td{border-bottom:none;}
+
+@media(max-width:820px){
+  .layout{grid-template-columns:1fr;}
+  .left-panel{border-right:none;border-bottom:1px solid var(--border);}
+  .compare-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <a href="index.html">← Home</a>
+  <span style="color:var(--border)">|</span>
+  <span class="topnav-title">Prepay Loan vs Invest Calculator</span>
+  <span class="topnav-badge">COMPARISON</span>
+</nav>
+
+<div class="layout">
+  <!-- ══ LEFT PANEL ══════════════════════════════════════════════════════ -->
+  <div class="left-panel">
+    <div>
+      <div class="panel-title">Loan vs Invest</div>
+      <div class="panel-sub">Should you prepay your loan or invest your surplus?</div>
+    </div>
+
+    <div class="field-group">
+      <div class="section-header">
+        <span class="icon">🏦</span>
+        <span class="label">Loan Details</span>
+      </div>
+      <div class="field">
+        <label>Outstanding Loan Amount (₹)</label>
+        <input type="number" id="loanAmount" placeholder="50,00,000" min="0" step="any" value="5000000">
+      </div>
+      <div class="field">
+        <label>Current EMI (₹)</label>
+        <input type="number" id="emi" placeholder="45,000" min="0" step="any" value="45000">
+      </div>
+      <div class="field">
+        <label>Annual Interest Rate</label>
+        <div class="input-wrap">
+          <input type="number" id="loanRate" placeholder="8.5" min="0" max="50" step="0.1" value="8.5">
+          <span class="input-suffix">%</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Remaining Tenure (months)</label>
+        <input type="number" id="tenure" placeholder="240" min="1" max="600" step="1" value="240">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field-group">
+      <div class="section-header">
+        <span class="icon">💰</span>
+        <span class="label">Surplus &amp; Investment</span>
+      </div>
+      <div class="field">
+        <label>Monthly Surplus Available (₹)</label>
+        <input type="number" id="surplus" placeholder="20,000" min="0" step="any" value="20000">
+      </div>
+      <div class="field">
+        <label>Expected Investment Return</label>
+        <div class="input-wrap">
+          <input type="number" id="investRate" placeholder="12" min="0" max="50" step="0.1" value="12">
+          <span class="input-suffix">%</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Investment Type</label>
+        <div class="seg-control" id="investTypeSeg">
+          <button class="seg-btn active" data-val="equity">Equity MF</button>
+          <button class="seg-btn" data-val="fd">FD</button>
+          <button class="seg-btn" data-val="ppf">PPF</button>
+          <button class="seg-btn" data-val="nps">NPS</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Income Tax Slab</label>
+        <div class="seg-control" id="slabSeg">
+          <button class="seg-btn" data-val="5">5%</button>
+          <button class="seg-btn active" data-val="20">20%</button>
+          <button class="seg-btn" data-val="30">30%</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ RIGHT PANEL ══════════════════════════════════════════════════════ -->
+  <div class="right-panel" id="rightPanel">
+    <div class="results-empty" id="emptyState" style="display:none;">
+      <div class="icon">⚖️</div>
+      <p>Enter your loan and surplus details to compare scenarios.</p>
+    </div>
+    <div id="resultsArea"></div>
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let investType = 'equity';
+let taxSlab = 20;
+
+// ── Formatters ─────────────────────────────────────────────────────────────────
+function fmtINR(n) {
+  if (!isFinite(n)) return '—';
+  const abs = Math.abs(n);
+  let s;
+  if (abs >= 1e7) s = '₹' + (abs/1e7).toFixed(2) + ' Cr';
+  else if (abs >= 1e5) s = '₹' + (abs/1e5).toFixed(2) + ' L';
+  else s = '₹' + abs.toLocaleString('en-IN', {minimumFractionDigits:0, maximumFractionDigits:0});
+  return n < 0 ? '-' + s : s;
+}
+function fmtINRFull(n) {
+  if (!isFinite(n)) return '—';
+  const abs = Math.abs(n);
+  const s = '₹' + abs.toLocaleString('en-IN', {minimumFractionDigits:0, maximumFractionDigits:0});
+  return n < 0 ? '-' + s : s;
+}
+function fmtPct(n) { return n.toFixed(2) + '%'; }
+function fmtMonths(m) {
+  if (!isFinite(m) || m <= 0) return '0 months';
+  const yrs = Math.floor(m / 12);
+  const mo = Math.round(m % 12);
+  if (yrs === 0) return `${mo} month${mo !== 1 ? 's' : ''}`;
+  if (mo === 0) return `${yrs} yr${yrs !== 1 ? 's' : ''}`;
+  return `${yrs} yr${yrs !== 1 ? 's' : ''} ${mo} mo`;
+}
+function addMonthsToToday(months) {
+  const d = new Date();
+  d.setMonth(d.getMonth() + Math.round(months));
+  return d.toLocaleDateString('en-IN', {month:'short', year:'numeric'});
+}
+
+// ── Segment Controls ──────────────────────────────────────────────────────────
+document.getElementById('investTypeSeg').addEventListener('click', e => {
+  if (!e.target.classList.contains('seg-btn')) return;
+  document.querySelectorAll('#investTypeSeg .seg-btn').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  investType = e.target.dataset.val;
+  compute();
+});
+document.getElementById('slabSeg').addEventListener('click', e => {
+  if (!e.target.classList.contains('seg-btn')) return;
+  document.querySelectorAll('#slabSeg .seg-btn').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  taxSlab = Number(e.target.dataset.val);
+  compute();
+});
+['loanAmount','emi','loanRate','tenure','surplus','investRate'].forEach(id => {
+  document.getElementById(id).addEventListener('input', compute);
+});
+
+// ── Tax on investment gains ───────────────────────────────────────────────────
+// Returns post-tax rate of return
+function postTaxInvestRate(annualRate, type, slab, tenureMonths) {
+  // PPF: tax-free
+  if (type === 'ppf') return annualRate;
+  // NPS: 60% lump sum tax-free, 40% annuity (treated as taxable at slab effectively reduce by ~0.4*slab)
+  if (type === 'nps') return annualRate * (1 - 0.4 * slab / 100);
+  // FD: interest taxed at slab rate every year
+  if (type === 'fd') return annualRate * (1 - slab / 100);
+  // Equity MF: LTCG 12.5% if held > 12 months (apply to gains at maturity)
+  // We model as: gains taxed at 12.5% for LTCG equity (> 12 months), else 20%
+  if (type === 'equity') {
+    const ltcgRate = tenureMonths >= 12 ? 0.125 : 0.20;
+    // Effective post-tax rate: (1 + r)^n grossed up by (1 - ltcgRate) at end
+    // We return annualRate and apply tax at corpus computation stage
+    return annualRate; // handle separately in corpus calc
+  }
+  return annualRate;
+}
+
+// ── Core: compute loan amortization with extra payments ──────────────────────
+function amortizeWithPrepay(principal, annualRate, emi, tenureMonths, extraMonthly) {
+  const monthRate = annualRate / 100 / 12;
+  let balance = principal;
+  let totalInterest = 0;
+  let month = 0;
+  const maxMonths = tenureMonths + 600; // safety cap
+  while (balance > 0 && month < maxMonths) {
+    const interest = balance * monthRate;
+    const principalPaid = Math.min(emi - interest + extraMonthly, balance);
+    if (principalPaid <= 0) {
+      // EMI doesn't even cover interest — can't close
+      return { totalInterest: Infinity, tenure: Infinity, months: [] };
+    }
+    totalInterest += interest;
+    balance -= principalPaid;
+    if (balance < 1) balance = 0;
+    month++;
+  }
+  return { totalInterest, tenure: month };
+}
+
+// ── Compute standard amortization ─────────────────────────────────────────────
+function amortizeStandard(principal, annualRate, emi, tenureMonths) {
+  return amortizeWithPrepay(principal, annualRate, emi, tenureMonths, 0);
+}
+
+// ── SIP future value ──────────────────────────────────────────────────────────
+function sipFV(monthly, annualRate, months) {
+  const r = annualRate / 100 / 12;
+  if (r === 0) return monthly * months;
+  return monthly * ((Math.pow(1 + r, months) - 1) / r) * (1 + r);
+}
+
+// ── Post-tax corpus ───────────────────────────────────────────────────────────
+function postTaxCorpus(corpus, invested, type, slab, tenureMonths) {
+  const gain = corpus - invested;
+  if (gain <= 0) return corpus;
+  if (type === 'ppf') return corpus; // tax-free
+  if (type === 'nps') {
+    // 60% corpus tax-free, 40% as annuity (we tax gains on 40% at slab)
+    const taxablePortion = gain * 0.4;
+    return corpus - taxablePortion * (slab / 100);
+  }
+  if (type === 'fd') {
+    // Already modelled as taxed annually via reduced rate — so corpus is post-tax
+    return corpus;
+  }
+  if (type === 'equity') {
+    // LTCG: 12.5% on gains above ₹1.25L (for simplicity, apply 12.5% on all gains for long horizon)
+    // STCG: 20%
+    const ltcgRate = tenureMonths >= 12 ? 0.125 : 0.20;
+    const exemption = tenureMonths >= 12 ? 125000 : 0;
+    const taxableGain = Math.max(0, gain - exemption);
+    const tax = taxableGain * ltcgRate;
+    return corpus - tax;
+  }
+  return corpus;
+}
+
+// ── Find break-even investment rate ───────────────────────────────────────────
+function findBreakEven(principal, annualLoanRate, emi, tenureMonths, surplus, type, slab) {
+  // Binary search for rate where post-tax invest return equals interest saved
+  const stdResult = amortizeStandard(principal, annualLoanRate, emi, tenureMonths);
+  const stdInterest = stdResult.totalInterest;
+
+  let lo = 0, hi = 50, mid;
+  for (let i = 0; i < 60; i++) {
+    mid = (lo + hi) / 2;
+    let effectiveRate = mid;
+    if (type === 'fd') effectiveRate = mid * (1 - slab / 100);
+    else if (type === 'nps') effectiveRate = mid * (1 - 0.4 * slab / 100);
+    else if (type === 'ppf') effectiveRate = mid;
+    const corpus = sipFV(surplus, effectiveRate, tenureMonths);
+    const invested = surplus * tenureMonths;
+    const ptCorpus = postTaxCorpus(corpus, invested, type, slab, tenureMonths);
+    const gain = ptCorpus - invested;
+    if (gain < stdInterest - amortizeWithPrepay(principal, annualLoanRate, emi, tenureMonths, surplus).totalInterest) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+    if (hi - lo < 0.001) break;
+  }
+  return mid;
+}
+
+// ── Year-wise data ─────────────────────────────────────────────────────────────
+function buildYearwise(
+  principal, annualLoanRate, emi, tenureMonths, surplus, investRate, type, slab, prepayNewTenure
+) {
+  const monthRate = annualLoanRate / 100 / 12;
+  const investMonthRate = (() => {
+    if (type === 'fd') return (investRate * (1 - slab / 100)) / 100 / 12;
+    if (type === 'ppf') return investRate / 100 / 12;
+    if (type === 'nps') return (investRate * (1 - 0.4 * slab / 100)) / 100 / 12;
+    return investRate / 100 / 12; // equity — gross, tax at end
+  })();
+
+  const maxMonths = Math.max(tenureMonths, prepayNewTenure || tenureMonths) + 1;
+  const years = Math.ceil(maxMonths / 12);
+
+  // Prepay: loan balance with extra payment
+  let prepayBalance = principal;
+  let prepayInterestPaid = 0;
+  let prepayDone = false;
+  let prepayMonthDone = 0;
+
+  // Invest: loan balance (standard), and corpus
+  let investLoanBalance = principal;
+  let investInterestPaid = 0;
+  let investLoanDone = false;
+  let investLoanMonthDone = 0;
+  let investCorpus = 0;
+  let totalInvested = 0;
+
+  const rows = [];
+
+  for (let yr = 1; yr <= years; yr++) {
+    let prepayIntYear = 0;
+    let investIntYear = 0;
+    let investCorpusStart = investCorpus;
+
+    for (let m = 0; m < 12; m++) {
+      const monthIndex = (yr - 1) * 12 + m + 1;
+
+      // Prepay scenario
+      if (!prepayDone && prepayBalance > 0) {
+        const interest = prepayBalance * monthRate;
+        const principalPaid = Math.min(emi - interest + surplus, prepayBalance);
+        if (principalPaid > 0) {
+          prepayIntYear += interest;
+          prepayInterestPaid += interest;
+          prepayBalance -= principalPaid;
+          if (prepayBalance < 1) {
+            prepayBalance = 0;
+            prepayDone = true;
+            prepayMonthDone = monthIndex;
+          }
+        }
+      }
+
+      // Invest scenario — loan
+      if (!investLoanDone && investLoanBalance > 0) {
+        const interest = investLoanBalance * monthRate;
+        const principalPaid = Math.min(emi - interest, investLoanBalance);
+        if (principalPaid > 0) {
+          investIntYear += interest;
+          investInterestPaid += interest;
+          investLoanBalance -= principalPaid;
+          if (investLoanBalance < 1) {
+            investLoanBalance = 0;
+            investLoanDone = true;
+            investLoanMonthDone = monthIndex;
+          }
+        }
+      }
+
+      // Invest scenario — SIP
+      if (monthIndex <= tenureMonths) {
+        investCorpus = (investCorpus + surplus) * (1 + investMonthRate);
+        totalInvested += surplus;
+      } else {
+        // Keep compounding even after loan closes
+        investCorpus = investCorpus * (1 + investMonthRate);
+      }
+    }
+
+    rows.push({
+      year: yr,
+      prepayBalance: Math.max(0, prepayBalance),
+      prepayInterestPaid,
+      prepayDone: prepayBalance <= 0,
+      investLoanBalance: Math.max(0, investLoanBalance),
+      investInterestPaid,
+      investCorpus,
+      totalInvested,
+    });
+
+    if (yr * 12 >= maxMonths + 12) break;
+  }
+
+  // Post-tax corpus
+  const finalCorpus = rows[rows.length - 1].investCorpus;
+  const ptFinalCorpus = postTaxCorpus(finalCorpus, totalInvested, type, slab, tenureMonths);
+
+  return { rows, ptFinalCorpus, totalInvested };
+}
+
+// ── Main compute ───────────────────────────────────────────────────────────────
+function compute() {
+  const loanAmount = parseFloat(document.getElementById('loanAmount').value) || 0;
+  const emi = parseFloat(document.getElementById('emi').value) || 0;
+  const loanRate = parseFloat(document.getElementById('loanRate').value) || 0;
+  const tenure = parseInt(document.getElementById('tenure').value) || 0;
+  const surplus = parseFloat(document.getElementById('surplus').value) || 0;
+  const investRate = parseFloat(document.getElementById('investRate').value) || 0;
+
+  if (loanAmount <= 0 || emi <= 0 || tenure <= 0 || surplus <= 0) {
+    document.getElementById('resultsArea').innerHTML = `
+      <div class="results-empty">
+        <div class="icon">⚖️</div>
+        <p>Enter your loan details and monthly surplus to compare scenarios.</p>
+      </div>`;
+    return;
+  }
+
+  // Verify EMI is sufficient to cover first month's interest
+  const firstInterest = loanAmount * (loanRate / 100 / 12);
+  if (emi <= firstInterest) {
+    document.getElementById('resultsArea').innerHTML = `
+      <div class="results-empty">
+        <div class="icon">⚠️</div>
+        <p>EMI (${fmtINRFull(emi)}) is too low to cover the first month's interest (${fmtINRFull(firstInterest)}). Please increase the EMI.</p>
+      </div>`;
+    return;
+  }
+
+  // ── Prepay Scenario ───────────────────────────────────────────────────────
+  const prepayResult = amortizeWithPrepay(loanAmount, loanRate, emi, tenure, surplus);
+  const prepayTenure = prepayResult.tenure;
+  const prepayInterest = prepayResult.totalInterest;
+
+  // ── Standard Scenario (no prepay) ─────────────────────────────────────────
+  const stdResult = amortizeStandard(loanAmount, loanRate, emi, tenure);
+  const stdInterest = stdResult.totalInterest;
+  const interestSaved = stdInterest - prepayInterest;
+
+  // ── Invest Scenario ───────────────────────────────────────────────────────
+  const investRateEff = (() => {
+    if (investType === 'fd') return investRate * (1 - taxSlab / 100);
+    if (investType === 'ppf') return investRate;
+    if (investType === 'nps') return investRate * (1 - 0.4 * taxSlab / 100);
+    return investRate; // equity: compute tax at maturity
+  })();
+  const investCorpusGross = sipFV(surplus, investRateEff, tenure);
+  const investCorpusGrossEquity = sipFV(surplus, investRate, tenure); // for equity pre-tax
+  const totalInvestedAmt = surplus * tenure;
+
+  let investCorpusPostTax;
+  if (investType === 'equity') {
+    investCorpusPostTax = postTaxCorpus(investCorpusGrossEquity, totalInvestedAmt, 'equity', taxSlab, tenure);
+  } else {
+    investCorpusPostTax = investCorpusGross; // already post-tax via effective rate
+    if (investType === 'nps' || investType === 'ppf') {
+      investCorpusPostTax = postTaxCorpus(sipFV(surplus, investRate, tenure), totalInvestedAmt, investType, taxSlab, tenure);
+    }
+  }
+
+  const investNetGain = investCorpusPostTax - totalInvestedAmt;
+  const prepayNetGain = interestSaved;
+
+  // ── Break-even ────────────────────────────────────────────────────────────
+  // Break-even = loan interest rate (post-tax equivalent)
+  // Simple: if post-tax invest return > loan rate → invest wins
+  const effectiveInvestReturn = (() => {
+    if (investType === 'fd') return investRate * (1 - taxSlab / 100);
+    if (investType === 'ppf') return investRate;
+    if (investType === 'nps') return investRate * (1 - 0.4 * taxSlab / 100);
+    if (investType === 'equity') {
+      // effective post-tax CAGR from SIP
+      if (investCorpusPostTax <= totalInvestedAmt) return 0;
+      return (Math.pow(investCorpusPostTax / totalInvestedAmt, 12 / tenure) - 1) * 100;
+    }
+    return investRate;
+  })();
+
+  const breakEvenRate = loanRate; // simple: if your post-tax return > loan rate, invest wins
+  const prepayWins = loanRate >= effectiveInvestReturn;
+  const margin = Math.abs(effectiveInvestReturn - loanRate);
+
+  // ── Year-wise table ────────────────────────────────────────────────────────
+  const ywData = buildYearwise(loanAmount, loanRate, emi, tenure, surplus, investRate, investType, taxSlab, prepayTenure);
+  const ywRows = ywData.rows;
+
+  // ── Build HTML ─────────────────────────────────────────────────────────────
+  const investTypeName = {equity:'Equity MF',fd:'Fixed Deposit',ppf:'PPF',nps:'NPS'}[investType];
+
+  const recClass = prepayWins ? 'prepay' : 'invest';
+  const recTitle = prepayWins ? '✅ Prepay Your Loan' : '📈 Invest Your Surplus';
+  const recSub = prepayWins
+    ? `Your loan interest rate (${fmtPct(loanRate)}) exceeds the post-tax investment return (${fmtPct(effectiveInvestReturn)}). Every rupee used to prepay saves more than what it would earn invested in ${investTypeName}.`
+    : `Your post-tax investment return (${fmtPct(effectiveInvestReturn)}) exceeds the loan interest rate (${fmtPct(loanRate)}). Investing your surplus in ${investTypeName} builds more wealth than the interest you'd save by prepaying.`;
+  const recMarginText = prepayWins
+    ? `Prepay advantage: ${fmtPct(margin)} higher effective return`
+    : `Invest advantage: ${fmtPct(margin)} higher post-tax return`;
+
+  const prepayWinnerClass = prepayWins ? 'winner' : '';
+  const investWinnerClass = !prepayWins ? 'winner' : '';
+
+  const yearwiseHTML = ywRows.slice(0, 30).map((r, i) => {
+    const prepayLoanFree = r.prepayDone ? `<span style="color:var(--profit);font-size:0.7rem;">✓ Loan closed</span>` : fmtINRFull(r.prepayBalance);
+    const investLoanFree = r.investLoanBalance <= 0 ? `<span style="color:var(--profit);font-size:0.7rem;">✓ Loan closed</span>` : fmtINRFull(r.investLoanBalance);
+    const ptCorpusYear = postTaxCorpus(r.investCorpus, r.totalInvested, investType, taxSlab, tenure);
+    return `<tr>
+      <td class="highlight">Yr ${r.year}</td>
+      <td class="mono">${prepayLoanFree}</td>
+      <td class="mono positive">${fmtINRFull(r.prepayInterestPaid * -1 + stdInterest)}</td>
+      <td class="mono">${investLoanFree}</td>
+      <td class="mono purple">${fmtINRFull(r.investCorpus)}</td>
+      <td class="mono ${ptCorpusYear > r.totalInvested ? 'positive' : 'negative'}">${fmtINRFull(ptCorpusYear - r.totalInvested)}</td>
+    </tr>`;
+  }).join('');
+
+  const html = `
+    <div class="rec-card ${recClass}">
+      <div class="rec-icon">${prepayWins ? '🏦' : '📈'}</div>
+      <div class="rec-content">
+        <div class="rec-title ${recClass}">${recTitle}</div>
+        <div class="rec-sub">${recSub}</div>
+        <span class="rec-margin ${recClass}">${recMarginText}</span>
+      </div>
+    </div>
+
+    <div class="compare-grid">
+      <div class="compare-col ${prepayWinnerClass}">
+        <div class="compare-col-title">${prepayWins ? '🏆 ' : ''}Prepay Scenario</div>
+        <div class="compare-stat">
+          <div class="compare-stat-label">New Loan Tenure</div>
+          <div class="compare-stat-value positive">${fmtMonths(prepayTenure)}</div>
+        </div>
+        <div class="compare-stat">
+          <div class="compare-stat-label">Loan-Free Date</div>
+          <div class="compare-stat-value">${addMonthsToToday(prepayTenure)}</div>
+        </div>
+        <div class="compare-stat">
+          <div class="compare-stat-label">Total Interest Paid</div>
+          <div class="compare-stat-value warn">${fmtINR(prepayInterest)}</div>
+        </div>
+        <div class="compare-stat">
+          <div class="compare-stat-label">Interest Saved (vs no prepay)</div>
+          <div class="compare-stat-value positive">${fmtINR(interestSaved)}</div>
+        </div>
+        <div class="compare-stat">
+          <div class="compare-stat-label">Months Saved</div>
+          <div class="compare-stat-value positive">${tenure - prepayTenure} months</div>
+        </div>
+        <div class="compare-stat">
+          <div class="compare-stat-label">Net Financial Gain</div>
+          <div class="compare-stat-value positive">${fmtINR(prepayNetGain)} saved</div>
+        </div>
+      </div>
+
+      <div class="compare-col ${investWinnerClass}">
+        <div class="compare-col-title">${!prepayWins ? '🏆 ' : ''}Invest Scenario (${investTypeName})</div>
+        <div class="compare-stat">
+          <div class="compare-stat-label">Loan Closed In</div>
+          <div class="compare-stat-value">${fmtMonths(tenure)} (original)</div>
+        </div>
+        <div class="compare-stat">
+          <div class="compare-stat-label">Loan-Free Date</div>
+          <div class="compare-stat-value">${addMonthsToToday(tenure)}</div>
+        </div>
+        <div class="compare-stat">
+          <div class="compare-stat-label">Total Interest Paid</div>
+          <div class="compare-stat-value warn">${fmtINR(stdInterest)}</div>
+        </div>
+        <div class="compare-stat">
+          <div class="compare-stat-label">Maturity Corpus (pre-tax)</div>
+          <div class="compare-stat-value purple">${fmtINR(investType === 'equity' ? investCorpusGrossEquity : investCorpusGross)}</div>
+        </div>
+        <div class="compare-stat">
+          <div class="compare-stat-label">Post-Tax Corpus</div>
+          <div class="compare-stat-value purple">${fmtINR(investCorpusPostTax)}</div>
+        </div>
+        <div class="compare-stat">
+          <div class="compare-stat-label">Net Financial Gain</div>
+          <div class="compare-stat-value ${investNetGain >= prepayNetGain ? 'positive' : 'warn'}">${fmtINR(investNetGain)} gain</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Head-to-Head Comparison</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Prepay</th>
+            <th>Invest (${investTypeName})</th>
+            <th>Winner</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Loan closed in</td>
+            <td class="mono positive">${fmtMonths(prepayTenure)}</td>
+            <td class="mono">${fmtMonths(tenure)} (original)</td>
+            <td class="winner-cell">Prepay ✓</td>
+          </tr>
+          <tr>
+            <td>Total interest paid</td>
+            <td class="mono positive">${fmtINR(prepayInterest)}</td>
+            <td class="mono warn">${fmtINR(stdInterest)}</td>
+            <td class="winner-cell">Prepay ✓</td>
+          </tr>
+          <tr>
+            <td>Corpus built</td>
+            <td class="mono">₹0</td>
+            <td class="mono purple">${fmtINR(investCorpusPostTax)}</td>
+            <td class="winner-cell ${!prepayWins ? '' : ''}">${!prepayWins ? 'Invest ✓' : 'Invest'}</td>
+          </tr>
+          <tr>
+            <td>Net financial gain</td>
+            <td class="mono ${prepayWins ? 'positive' : ''}">${fmtINR(prepayNetGain)} saved</td>
+            <td class="mono ${!prepayWins ? 'positive' : ''}">${fmtINR(investNetGain)} gain</td>
+            <td class="winner-cell">${prepayWins ? 'Prepay ✓' : 'Invest ✓'}</td>
+          </tr>
+          <tr>
+            <td>Monthly surplus deployed</td>
+            <td class="mono">${fmtINR(surplus)} extra EMI</td>
+            <td class="mono">${fmtINR(surplus)} SIP</td>
+            <td class="mono" style="color:var(--text-dim);">Same</td>
+          </tr>
+          <tr>
+            <td>Post-tax return</td>
+            <td class="mono">${fmtPct(loanRate)} (savings)</td>
+            <td class="mono purple">${fmtPct(effectiveInvestReturn)}</td>
+            <td class="winner-cell">${prepayWins ? 'Prepay ✓' : 'Invest ✓'}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="breakeven-box">
+      <div class="breakeven-rate">${fmtPct(breakEvenRate)}</div>
+      <div class="breakeven-text">
+        <strong>Break-even investment return rate.</strong><br>
+        If your ${investTypeName} returns more than <strong>${fmtPct(breakEvenRate)}</strong> post-tax, investing beats prepayment.
+        Your current post-tax return assumption is <strong>${fmtPct(effectiveInvestReturn)}</strong> — so
+        <strong>${prepayWins ? 'prepayment wins' : 'investing wins'}</strong>.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Year-wise Running Comparison</div>
+      <div class="year-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Year</th>
+              <th>Prepay: Loan Balance</th>
+              <th>Prepay: Int. Saved (₹)</th>
+              <th>Invest: Loan Balance</th>
+              <th>Invest: Corpus</th>
+              <th>Invest: Net Gain</th>
+            </tr>
+          </thead>
+          <tbody>${yearwiseHTML}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('resultsArea').innerHTML = html;
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+compute();
+</script>
+</body>
+</html>

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personal Finance Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080b10;
+    --surface: #0f1419;
+    --surface2: #161d26;
+    --border: #1e2a38;
+    --text: #dfe6ee;
+    --text-dim: #7b8da0;
+    --text-muted: #4a5c6e;
+    --accent: #2d6a4f;
+    --accent-bright: #40916c;
+    --accent-light: #52b788;
+    --accent-glow: #40916c22;
+    --harvest: #4e8fd4;
+    --harvest-bg: #4e8fd412;
+    --warn: #d4a04e;
+    --warn-bg: #d4a04e12;
+    --purple: #9d7fe8;
+    --purple-bg: #9d7fe812;
+    --rose: #d4607a;
+    --rose-bg: #d4607a12;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .container { max-width: 1060px; margin: 0 auto; padding: 40px 20px; }
+
+  header { text-align: center; margin-bottom: 52px; }
+  .logo { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .logo-icon { width: 44px; height: 44px; background: linear-gradient(135deg, var(--accent), var(--accent-bright)); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+  h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; background: linear-gradient(135deg, #e0e8f0 30%, var(--accent-light) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .tagline { color: var(--text-dim); font-size: 0.9rem; margin-top: 8px; }
+
+  .section-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 16px; }
+
+  .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-bottom: 48px; }
+
+  .tool-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 12px; transition: all 0.25s; position: relative; overflow: hidden; }
+  .tool-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 14px 14px 0 0; }
+  .tool-card:hover { transform: translateY(-3px); border-color: #2d4a60; box-shadow: 0 12px 32px #00000040; }
+  .tool-card.green::before { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+  .tool-card.blue::before { background: linear-gradient(90deg, #3a7bd5, var(--harvest)); }
+  .tool-card.warn::before { background: linear-gradient(90deg, var(--warn), #e8b84e); }
+  .tool-card.purple::before { background: linear-gradient(90deg, #6b5ce7, var(--purple)); }
+  .tool-card.rose::before { background: linear-gradient(90deg, var(--rose), #e07a94); }
+
+  .tool-icon { width: 44px; height: 44px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; }
+  .tool-icon.green { background: var(--accent-glow); }
+  .tool-icon.blue { background: var(--harvest-bg); }
+  .tool-icon.warn { background: var(--warn-bg); }
+  .tool-icon.purple { background: var(--purple-bg); }
+  .tool-icon.rose { background: var(--rose-bg); }
+
+  .tool-header { display: flex; align-items: flex-start; gap: 14px; }
+  .tool-meta { flex: 1; }
+  .tool-name { font-size: 1rem; font-weight: 700; margin-bottom: 3px; }
+  .tool-sub { font-size: 0.76rem; color: var(--text-dim); }
+  .tool-desc { font-size: 0.8rem; color: var(--text-dim); line-height: 1.6; }
+
+  .tool-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 0.64rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; font-family: 'JetBrains Mono', monospace; }
+  .tag-green { background: var(--accent-glow); color: var(--accent-light); border: 1px solid #40916c33; }
+  .tag-blue { background: var(--harvest-bg); color: var(--harvest); border: 1px solid #4e8fd433; }
+  .tag-warn { background: var(--warn-bg); color: var(--warn); border: 1px solid #d4a04e33; }
+  .tag-purple { background: var(--purple-bg); color: var(--purple); border: 1px solid #9d7fe833; }
+  .tag-rose   { background: var(--rose-bg);   color: var(--rose);   border: 1px solid #d4607a33; }
+
+  .tool-footer { margin-top: auto; display: flex; align-items: center; justify-content: space-between; padding-top: 14px; border-top: 1px solid var(--border); }
+  .tool-open { font-size: 0.78rem; font-weight: 600; color: var(--accent-light); display: flex; align-items: center; gap: 5px; }
+  .tool-card.blue .tool-open { color: var(--harvest); }
+  .tool-card.warn .tool-open { color: var(--warn); }
+  .tool-card.purple .tool-open { color: var(--purple); }
+  .tool-card.rose .tool-open { color: var(--rose); }
+  .tool-status { font-size: 0.64rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+  .status-live { background: var(--accent-glow); color: var(--accent-light); border: 1px solid #40916c33; }
+  .status-new { background: var(--harvest-bg); color: var(--harvest); border: 1px solid #4e8fd433; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 40px; }
+  .stat-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .sp-label { font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 4px; }
+  .sp-val { font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; font-weight: 700; color: var(--accent-light); }
+  .sp-sub { font-size: 0.7rem; color: var(--text-dim); margin-top: 2px; }
+
+  footer { text-align: center; padding: 24px 0; border-top: 1px solid var(--border); font-size: 0.75rem; color: var(--text-muted); }
+
+  /* ── Light theme overrides ─────────────────────────────────────────────── */
+  :root[data-theme="light"] {
+    --bg: #f4f6f9; --surface: #ffffff; --surface2: #eef1f6; --surface3: #e4e8f0;
+    --border: #cdd5e0; --text: #1c2b3a; --text-dim: #526070; --text-muted: #8a9baa;
+    --accent: #1e5c3a; --accent-bright: #2d8a5e; --accent-light: #239659; --accent-glow: #2d8a5e18;
+    --harvest: #1a5faa; --harvest-bg: #1a5faa0f; --harvest-border: #1a5faa30;
+    --warn: #9a6010; --warn-bg: #9a60100f;
+    --purple: #6d4ec4; --purple-bg: #6d4ec410;
+    --rose: #b0304a; --rose-bg: #b0304a10;
+  }
+  :root[data-theme="light"] .tool-card { box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  :root[data-theme="light"] .tool-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.12); border-color: #b0bdd0; }
+  :root[data-theme="light"] h1 { background: linear-gradient(135deg, #1c2b3a 30%, var(--accent-light) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+</style>
+<script src="theme.js"></script>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">₹</div>
+    </div>
+    <h1>Personal Finance Tools</h1>
+    <p class="tagline">15 calculators · Tax · Investments · Salary · Loans · All in one place</p>
+  </header>
+
+  <div class="stats-row">
+    <div class="stat-pill">
+      <div class="sp-label">LTCG Exemption FY26</div>
+      <div class="sp-val">₹1.25L</div>
+      <div class="sp-sub">Tax rate 12.5% above limit</div>
+    </div>
+    <div class="stat-pill">
+      <div class="sp-label">STCG Tax Rate</div>
+      <div class="sp-val">20%</div>
+      <div class="sp-sub">Equity held &lt; 12 months</div>
+    </div>
+    <div class="stat-pill">
+      <div class="sp-label">FD TDS Threshold</div>
+      <div class="sp-val">₹40K</div>
+      <div class="sp-sub">Senior citizens: ₹50K</div>
+    </div>
+    <div class="stat-pill">
+      <div class="sp-label">Repo Rate</div>
+      <div class="sp-val">6.25%</div>
+      <div class="sp-sub">RBI · Feb 2025</div>
+    </div>
+  </div>
+
+  <div class="section-label">Calculators</div>
+  <div class="tools-grid">
+
+    <a href="sip-ltcg-tax-harvesting-calculator.html" class="tool-card green">
+      <div class="tool-header">
+        <div class="tool-icon green">📈</div>
+        <div class="tool-meta">
+          <div class="tool-name">LTCG Tax Harvesting</div>
+          <div class="tool-sub">Equity · NSE · Zerodha Tradebook</div>
+        </div>
+      </div>
+      <p class="tool-desc">Upload your Zerodha tradebook (XLSX/CSV) to get an exact lot-wise sell plan that uses your full ₹1.25L LTCG exemption — across multiple financial years.</p>
+      <div class="tool-tags">
+        <span class="tag tag-green">FIFO</span>
+        <span class="tag tag-green">Multi-FY</span>
+        <span class="tag tag-green">Live Prices</span>
+        <span class="tag tag-green">XLSX + CSV</span>
+      </div>
+      <div class="tool-footer">
+        <span class="tool-open">Open Calculator →</span>
+        <span class="tool-status status-live">Live</span>
+      </div>
+    </a>
+
+    <a href="emi-calculator.html" class="tool-card blue">
+      <div class="tool-header">
+        <div class="tool-icon blue">🏦</div>
+        <div class="tool-meta">
+          <div class="tool-name">EMI Calculator</div>
+          <div class="tool-sub">Home · Car · Personal Loan</div>
+        </div>
+      </div>
+      <p class="tool-desc">Calculate EMI with full month-by-month amortization schedule. See principal vs interest split, yearly summary, prepayment savings, and total cost of loan.</p>
+      <div class="tool-tags">
+        <span class="tag tag-blue">Monthly Schedule</span>
+        <span class="tag tag-blue">Year-wise Summary</span>
+        <span class="tag tag-blue">Prepayment</span>
+      </div>
+      <div class="tool-footer">
+        <span class="tool-open">Open Calculator →</span>
+        <span class="tool-status status-new">New</span>
+      </div>
+    </a>
+
+    <a href="fd-calculator.html" class="tool-card warn">
+      <div class="tool-header">
+        <div class="tool-icon warn">🏧</div>
+        <div class="tool-meta">
+          <div class="tool-name">FD Calculator</div>
+          <div class="tool-sub">Fixed Deposit · TDS · Post-tax</div>
+        </div>
+      </div>
+      <p class="tool-desc">Plan fixed deposits with monthly, quarterly, half-yearly and cumulative interest breakdowns. Includes TDS impact, post-tax returns at different slab rates, and effective yield.</p>
+      <div class="tool-tags">
+        <span class="tag tag-warn">Monthly / Quarterly</span>
+        <span class="tag tag-warn">TDS Impact</span>
+        <span class="tag tag-warn">Post-tax Return</span>
+        <span class="tag tag-warn">Cumulative</span>
+      </div>
+      <div class="tool-footer">
+        <span class="tool-open">Open Calculator →</span>
+        <span class="tool-status status-new">New</span>
+      </div>
+    </a>
+
+    <a href="salary-calculator.html" class="tool-card blue">
+      <div class="tool-header">
+        <div class="tool-icon blue">💼</div>
+        <div class="tool-meta">
+          <div class="tool-name">Take Home Salary</div>
+          <div class="tool-sub">CTC Breakup · New vs Old Regime · In-hand</div>
+        </div>
+      </div>
+      <p class="tool-desc">Enter your CTC to see full salary structure — Basic, HRA, Special Allowance, PF, Gratuity. Computes income tax under both New &amp; Old regime and shows monthly take-home salary.</p>
+      <div class="tool-tags">
+        <span class="tag tag-blue">CTC Breakup</span>
+        <span class="tag tag-blue">New vs Old Regime</span>
+        <span class="tag tag-blue">HRA Exemption</span>
+        <span class="tag tag-blue">80C / 80D / NPS</span>
+      </div>
+      <div class="tool-footer">
+        <span class="tool-open">Open Calculator →</span>
+        <span class="tool-status status-new">New</span>
+      </div>
+    </a>
+
+    <a href="retirement-planner.html" class="tool-card warn">
+      <div class="tool-header">
+        <div class="tool-icon warn">🏖️</div>
+        <div class="tool-meta">
+          <div class="tool-name">Retirement Planner</div>
+          <div class="tool-sub">Corpus · SIP · Inflation · Timeline</div>
+        </div>
+      </div>
+      <p class="tool-desc">Calculate the corpus you need to retire comfortably. Inflation-adjusted expenses, SIP needed, post-retirement withdrawal simulation, and a year-by-year retirement timeline.</p>
+      <div class="tool-tags">
+        <span class="tag tag-warn">Corpus Planner</span>
+        <span class="tag tag-warn">SIP Calculator</span>
+        <span class="tag tag-warn">Timeline</span>
+        <span class="tag tag-warn">Inflation</span>
+      </div>
+      <div class="tool-footer">
+        <span class="tool-open">Open Calculator →</span>
+        <span class="tool-status status-new">New</span>
+      </div>
+    </a>
+
+    <a href="nps-calculator.html" class="tool-card blue">
+      <div class="tool-header">
+        <div class="tool-icon blue">🏛️</div>
+        <div class="tool-meta">
+          <div class="tool-name">NPS Calculator</div>
+          <div class="tool-sub">National Pension System · Tax · Annuity</div>
+        </div>
+      </div>
+      <p class="tool-desc">Project your NPS corpus, lump sum and monthly pension at retirement. Includes 80CCD(1) &amp; 80CCD(1B) tax savings under both new and old regime with effective contribution cost.</p>
+      <div class="tool-tags">
+        <span class="tag tag-blue">80CCD(1B)</span>
+        <span class="tag tag-blue">Annuity</span>
+        <span class="tag tag-blue">Tax Savings</span>
+        <span class="tag tag-blue">New vs Old</span>
+      </div>
+      <div class="tool-footer">
+        <span class="tool-open">Open Calculator →</span>
+        <span class="tool-status status-new">New</span>
+      </div>
+    </a>
+
+    <a href="percentage-calculator.html" class="tool-card purple">
+      <div class="tool-header">
+        <div class="tool-icon purple">%</div>
+        <div class="tool-meta">
+          <div class="tool-name">Percentage Calculator</div>
+          <div class="tool-sub">% of · Change · Markup · CAGR · Tip</div>
+        </div>
+      </div>
+      <p class="tool-desc">Nine quick-access percentage tools — find X% of Y, percentage change, add/remove %, markup vs margin, tip split, CAGR, and more. Instant results as you type.</p>
+      <div class="tool-tags">
+        <span class="tag tag-purple">% Change</span>
+        <span class="tag tag-purple">Markup / Margin</span>
+        <span class="tag tag-purple">CAGR</span>
+        <span class="tag tag-purple">Tip Split</span>
+      </div>
+      <div class="tool-footer">
+        <span class="tool-open">Open Calculator →</span>
+        <span class="tool-status status-new">New</span>
+      </div>
+    </a>
+
+    <a href="capital-gains-calculator.html" class="tool-card rose">
+      <div class="tool-header">
+        <div class="tool-icon rose">📋</div>
+        <div class="tool-meta">
+          <div class="tool-name">Capital Gains Tax</div>
+          <div class="tool-sub">Equity · Debt MF · Real Estate · Gold</div>
+        </div>
+      </div>
+      <p class="tool-desc">Compute LTCG / STCG tax for any asset — equity, debt MF, real estate, gold. Applies FY 2025-26 rules including ₹1.25L LTCG exemption, indexation for property, and slab-rate debt MF.</p>
+      <div class="tool-tags">
+        <span class="tag tag-rose">LTCG / STCG</span>
+        <span class="tag tag-rose">Indexation</span>
+        <span class="tag tag-rose">FY 2025-26</span>
+      </div>
+      <div class="tool-footer">
+        <span class="tool-open">Open Calculator →</span>
+        <span class="tool-status status-new">New</span>
+      </div>
+    </a>
+
+    <a href="ppf-calculator.html" class="tool-card green">
+      <div class="tool-header">
+        <div class="tool-icon green">🏦</div>
+        <div class="tool-meta">
+          <div class="tool-name">PPF Calculator</div>
+          <div class="tool-sub">Public Provident Fund · 15-year · EEE</div>
+        </div>
+      </div>
+      <p class="tool-desc">Plan your PPF investment with year-by-year interest table, loan eligibility (years 3–6), partial withdrawal schedule (year 7+), and 5-year extension projections with or without contributions.</p>
+      <div class="tool-tags">
+        <span class="tag tag-green">15-Year Schedule</span>
+        <span class="tag tag-green">Loan Eligibility</span>
+        <span class="tag tag-green">Extension</span>
+        <span class="tag tag-green">EEE Tax</span>
+      </div>
+      <div class="tool-footer">
+        <span class="tool-open">Open Calculator →</span>
+        <span class="tool-status status-new">New</span>
+      </div>
+    </a>
+
+    <a href="rd-calculator.html" class="tool-card blue">
+      <div class="tool-header">
+        <div class="tool-icon blue">📅</div>
+        <div class="tool-meta">
+          <div class="tool-name">RD Calculator</div>
+          <div class="tool-sub">Recurring Deposit · Bank Presets · vs FD</div>
+        </div>
+      </div>
+      <p class="tool-desc">Calculate recurring deposit maturity with quarterly, monthly, or annual compounding. Includes bank presets (SBI, HDFC, Post Office), quarter-wise/month-wise breakdown, and RD vs lump-sum FD comparison.</p>
+      <div class="tool-tags">
+        <span class="tag tag-blue">Quarterly Compounding</span>
+        <span class="tag tag-blue">Bank Presets</span>
+        <span class="tag tag-blue">RD vs FD</span>
+      </div>
+      <div class="tool-footer">
+        <span class="tool-open">Open Calculator →</span>
+        <span class="tool-status status-new">New</span>
+      </div>
+    </a>
+
+    <a href="inflation-calculator.html" class="tool-card rose">
+      <div class="tool-header">
+        <div class="tool-icon rose">📉</div>
+        <div class="tool-meta">
+          <div class="tool-name">Inflation Calculator</div>
+          <div class="tool-sub">Future Cost · Present Value · Real Return</div>
+        </div>
+      </div>
+      <p class="tool-desc">Three tools in one: see how much anything costs in the future, find the present value of a future amount, and check if your investment is truly beating inflation using the Fisher equation.</p>
+      <div class="tool-tags">
+        <span class="tag tag-rose">Future Cost</span>
+        <span class="tag tag-rose">Purchasing Power</span>
+        <span class="tag tag-rose">Real Return</span>
+      </div>
+      <div class="tool-footer">
+        <span class="tool-open">Open Calculator →</span>
+        <span class="tool-status status-new">New</span>
+      </div>
+    </a>
+
+    <a href="loan-vs-invest.html" class="tool-card purple">
+      <div class="tool-header">
+        <div class="tool-icon purple">⚖️</div>
+        <div class="tool-meta">
+          <div class="tool-name">Prepay Loan vs Invest</div>
+          <div class="tool-sub">Surplus · EMI · SIP · Break-even</div>
+        </div>
+      </div>
+      <p class="tool-desc">Decide whether to prepay your home/car loan or invest your monthly surplus. Computes interest saved vs post-tax investment corpus and shows a year-by-year comparison for both strategies.</p>
+      <div class="tool-tags">
+        <span class="tag tag-purple">Amortization</span>
+        <span class="tag tag-purple">SIP vs Prepay</span>
+        <span class="tag tag-purple">Break-even Rate</span>
+        <span class="tag tag-purple">Year-wise</span>
+      </div>
+      <div class="tool-footer">
+        <span class="tool-open">Open Calculator →</span>
+        <span class="tool-status status-new">New</span>
+      </div>
+    </a>
+
+    <a href="sip-calculator.html" class="tool-card green">
+      <div class="tool-header">
+        <div class="tool-icon green">📊</div>
+        <div class="tool-meta">
+          <div class="tool-name">SIP Calculator</div>
+          <div class="tool-sub">SIP · Lump Sum · Compare · CAGR</div>
+        </div>
+      </div>
+      <p class="tool-desc">Project mutual fund returns for SIP or lump sum investments. Compare both strategies side-by-side, view year-wise growth table and stacked bar chart with wealth gain breakdown.</p>
+      <div class="tool-tags">
+        <span class="tag tag-green">Monthly SIP</span>
+        <span class="tag tag-green">Lump Sum</span>
+        <span class="tag tag-green">Year-wise Table</span>
+        <span class="tag tag-green">Compare</span>
+      </div>
+      <div class="tool-footer">
+        <span class="tool-open">Open Calculator →</span>
+        <span class="tool-status status-new">New</span>
+      </div>
+    </a>
+
+    <a href="gst-calculator.html" class="tool-card warn">
+      <div class="tool-header">
+        <div class="tool-icon warn">🧾</div>
+        <div class="tool-meta">
+          <div class="tool-name">GST Calculator</div>
+          <div class="tool-sub">Add / Remove GST · CGST · SGST · IGST</div>
+        </div>
+      </div>
+      <p class="tool-desc">Add or remove GST from any amount at 5%, 12%, 18%, or 28%. Splits into CGST + SGST for intra-state or IGST for inter-state. Quick reference table at all standard rates.</p>
+      <div class="tool-tags">
+        <span class="tag tag-warn">Add / Remove GST</span>
+        <span class="tag tag-warn">CGST + SGST</span>
+        <span class="tag tag-warn">IGST</span>
+        <span class="tag tag-warn">All Slabs</span>
+      </div>
+      <div class="tool-footer">
+        <span class="tool-open">Open Calculator →</span>
+        <span class="tool-status status-new">New</span>
+      </div>
+    </a>
+
+    <a href="gratuity-calculator.html" class="tool-card purple">
+      <div class="tool-header">
+        <div class="tool-icon purple">🎓</div>
+        <div class="tool-meta">
+          <div class="tool-name">Gratuity Calculator</div>
+          <div class="tool-sub">Gratuity Act · Non-covered · Tax Exemption</div>
+        </div>
+      </div>
+      <p class="tool-desc">Calculate gratuity for Act-covered, non-covered, and government employees. Shows eligibility (5-year rule), tax-exempt amount (₹20L limit), and taxable gratuity at your slab rate.</p>
+      <div class="tool-tags">
+        <span class="tag tag-purple">Gratuity Act</span>
+        <span class="tag tag-purple">Tax Exemption</span>
+        <span class="tag tag-purple">₹20L Cap</span>
+        <span class="tag tag-purple">All Formulas</span>
+      </div>
+      <div class="tool-footer">
+        <span class="tool-open">Open Calculator →</span>
+        <span class="tool-status status-new">New</span>
+      </div>
+    </a>
+
+  </div>
+</div>
+<footer>Personal Finance Tools · All calculations are indicative · Consult your CA for tax advice</footer>
+</body>
+</html>

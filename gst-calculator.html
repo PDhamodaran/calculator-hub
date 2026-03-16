@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GST Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080b10; --surface:#0f1419; --surface2:#161d26; --surface3:#1c2530;
+  --border:#1e2a38; --text:#dfe6ee; --text-dim:#7b8da0; --text-muted:#4a5c6e;
+  --accent:#2d6a4f; --accent-bright:#40916c; --accent-light:#52b788; --accent-glow:#40916c22;
+  --harvest:#4e8fd4; --harvest-bg:#4e8fd412; --harvest-border:#4e8fd433;
+  --loss:#d94f4f; --loss-bg:#d94f4f12;
+  --warn:#d4a04e; --warn-bg:#d4a04e12;
+  --profit:#40916c; --profit-bg:#40916c12;
+  --purple:#9d7fe8; --purple-bg:#9d7fe812;
+  --rose:#d4607a; --rose-bg:#d4607a12;
+}
+:root[data-theme="light"] {
+  --bg:#f4f6f9; --surface:#ffffff; --surface2:#eef1f6; --surface3:#e4e8f0;
+  --border:#cdd5e0; --text:#1c2b3a; --text-dim:#526070; --text-muted:#8a9baa;
+  --accent:#1e5c3a; --accent-bright:#2d8a5e; --accent-light:#239659; --accent-glow:#2d8a5e18;
+  --harvest:#1a5faa; --harvest-bg:#1a5faa0f; --harvest-border:#1a5faa30;
+  --loss:#c03030; --loss-bg:#c030300f; --warn:#9a6010; --warn-bg:#9a60100f;
+  --profit:#1e7a4a; --profit-bg:#1e7a4a0f; --purple:#6d4ec4; --purple-bg:#6d4ec410;
+  --rose:#b0304a; --rose-bg:#b0304a10;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; line-height:1.55; }
+.container { max-width:1100px; margin:0 auto; padding:20px 16px; }
+
+.topnav { display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+.back-link { font-size:0.78rem; color:var(--text-dim); text-decoration:none; display:flex; align-items:center; gap:5px; padding:6px 12px; background:var(--surface); border:1px solid var(--border); border-radius:7px; transition:all .2s; }
+.back-link:hover { color:var(--text); border-color:var(--warn); }
+.page-title { font-size:0.9rem; font-weight:700; color:var(--warn); }
+
+header { margin-bottom:24px; padding:20px 0 18px; border-bottom:1px solid var(--border); }
+h1 { font-size:1.5rem; font-weight:700; letter-spacing:-0.025em; background:linear-gradient(135deg,#e0e8f0 30%,var(--warn) 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:4px; }
+.tagline { font-size:0.82rem; color:var(--text-dim); }
+
+.layout { display:grid; grid-template-columns:360px 1fr; gap:18px; align-items:start; }
+@media(max-width:860px){ .layout { grid-template-columns:1fr; } }
+
+.panel { background:var(--surface); border:1px solid var(--border); border-radius:11px; padding:20px; }
+:root[data-theme="light"] .panel { box-shadow:0 1px 4px rgba(0,0,0,.07); }
+
+/* Segment buttons */
+.seg { display:flex; gap:2px; background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:3px; margin-bottom:18px; }
+.seg-btn { flex:1; padding:8px 6px; text-align:center; font-size:0.78rem; font-weight:600; color:var(--text-dim); cursor:pointer; border-radius:7px; border:none; background:none; font-family:inherit; transition:all .2s; }
+.seg-btn.active { background:var(--surface3); color:var(--warn); }
+.seg-btn:hover:not(.active) { color:var(--text); }
+
+.field { margin-bottom:14px; }
+.field label { display:block; font-size:0.68rem; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-muted); margin-bottom:6px; }
+.input-wrap { position:relative; }
+.input-prefix { position:absolute; left:11px; top:50%; transform:translateY(-50%); font-family:'JetBrains Mono',monospace; font-size:0.85rem; color:var(--text-dim); pointer-events:none; }
+.input-suffix { position:absolute; right:11px; top:50%; transform:translateY(-50%); font-family:'JetBrains Mono',monospace; font-size:0.8rem; color:var(--text-dim); pointer-events:none; }
+input[type="number"] { width:100%; background:var(--surface2); border:1px solid var(--border); color:var(--text); font-family:'JetBrains Mono',monospace; font-size:0.88rem; padding:9px 12px; border-radius:7px; outline:none; transition:border-color .2s; }
+input.has-prefix { padding-left:26px; }
+input.has-suffix { padding-right:30px; }
+input[type="number"]:focus { border-color:var(--warn); box-shadow:0 0 0 3px var(--warn-bg); }
+
+/* Rate selector buttons */
+.rate-btns { display:flex; gap:6px; flex-wrap:wrap; }
+.rate-btn { padding:7px 14px; font-size:0.8rem; font-weight:600; border-radius:7px; border:1px solid var(--border); background:var(--surface2); color:var(--text-dim); cursor:pointer; font-family:inherit; transition:all .2s; }
+.rate-btn:hover { border-color:var(--warn); color:var(--warn); }
+.rate-btn.active { background:var(--warn-bg); border-color:var(--warn); color:var(--warn); }
+
+/* State toggle */
+.state-seg { display:flex; gap:2px; background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:3px; }
+.state-btn { flex:1; padding:8px; text-align:center; font-size:0.77rem; font-weight:600; color:var(--text-dim); cursor:pointer; border-radius:7px; border:none; background:none; font-family:inherit; transition:all .2s; }
+.state-btn.active { background:var(--surface3); color:var(--text); }
+
+/* Big result card */
+.result-hero { background:var(--surface2); border:1px solid var(--border); border-radius:11px; padding:24px; margin-bottom:16px; text-align:center; }
+.result-hero .mode-badge { display:inline-block; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; padding:3px 10px; border-radius:20px; background:var(--warn-bg); border:1px solid var(--warn); color:var(--warn); margin-bottom:14px; }
+.result-hero .big-amount { font-family:'JetBrains Mono',monospace; font-size:2.4rem; font-weight:700; color:var(--warn); line-height:1.1; margin-bottom:4px; }
+.result-hero .big-label { font-size:0.78rem; color:var(--text-dim); margin-bottom:18px; }
+.result-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
+.result-row:last-child { border-bottom:none; }
+.result-row .rl { font-size:0.82rem; color:var(--text-dim); }
+.result-row .rv { font-family:'JetBrains Mono',monospace; font-size:0.95rem; font-weight:700; }
+.rv.original { color:var(--text); }
+.rv.gst-amt { color:var(--loss); }
+.rv.final-amt { color:var(--warn); }
+
+/* Split table */
+.section-title { font-size:0.75rem; font-weight:700; color:var(--text-dim); margin-bottom:10px; text-transform:uppercase; letter-spacing:.05em; }
+.tbl-wrap { overflow-x:auto; border-radius:9px; border:1px solid var(--border); margin-bottom:16px; }
+table { width:100%; border-collapse:collapse; font-size:0.79rem; }
+thead th { text-align:right; padding:10px 12px; font-size:0.63rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); border-bottom:1px solid var(--border); white-space:nowrap; background:var(--surface2); }
+thead th:first-child { text-align:left; }
+tbody td { padding:9px 12px; border-bottom:1px solid var(--border); font-family:'JetBrains Mono',monospace; font-size:0.78rem; text-align:right; }
+tbody td:first-child { text-align:left; font-family:'DM Sans',sans-serif; font-weight:600; font-size:0.8rem; }
+tbody tr:last-child td { border-bottom:none; }
+tbody tr:hover { background:var(--surface2); }
+.text-warn { color:var(--warn); }
+.text-loss { color:var(--loss); }
+.text-harvest { color:var(--harvest); }
+.text-dim { color:var(--text-dim); }
+.text-muted { color:var(--text-muted); }
+
+/* Quick ref table highlight row */
+tbody tr.active-rate td { background:var(--warn-bg); }
+tbody tr.active-rate td:first-child { color:var(--warn); }
+
+/* Custom rate input */
+#customRateWrap { margin-top:10px; display:none; }
+#customRateWrap.visible { display:block; }
+</style>
+<script src="theme.js"></script>
+</head>
+<body>
+<div class="container">
+  <div class="topnav">
+    <a href="index.html" class="back-link">← Home</a>
+    <span class="page-title">GST Calculator</span>
+  </div>
+  <header>
+    <h1>GST Calculator</h1>
+    <p class="tagline">Add or Remove GST · CGST + SGST / IGST split · Quick reference table</p>
+  </header>
+
+  <div class="layout">
+    <!-- Left Panel -->
+    <div class="panel">
+      <div class="seg">
+        <button class="seg-btn active" id="modeAddBtn" onclick="setGstMode('add')">Add GST</button>
+        <button class="seg-btn" id="modeRemBtn" onclick="setGstMode('remove')">Remove GST</button>
+      </div>
+
+      <div class="field">
+        <label id="amountLabel">Base Amount (excl. GST)</label>
+        <div class="input-wrap">
+          <span class="input-prefix">₹</span>
+          <input type="number" id="amount" class="has-prefix" value="10000" min="0" oninput="calc()">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>GST Rate</label>
+        <div class="rate-btns" id="rateBtns">
+          <button class="rate-btn active" data-rate="5" onclick="selectRate(this,5)">5%</button>
+          <button class="rate-btn" data-rate="12" onclick="selectRate(this,12)">12%</button>
+          <button class="rate-btn" data-rate="18" onclick="selectRate(this,18)">18%</button>
+          <button class="rate-btn" data-rate="28" onclick="selectRate(this,28)">28%</button>
+          <button class="rate-btn" data-rate="custom" onclick="selectRate(this,'custom')">Custom</button>
+        </div>
+        <div id="customRateWrap">
+          <div class="input-wrap" style="margin-top:6px">
+            <input type="number" id="customRate" class="has-suffix" value="3" min="0" max="100" step="0.5" oninput="calc()" placeholder="Enter rate">
+            <span class="input-suffix">%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>State Type</label>
+        <div class="state-seg">
+          <button class="state-btn active" id="stateIntra" onclick="setStateType('intra')">Intra-state (CGST+SGST)</button>
+          <button class="state-btn" id="stateInter" onclick="setStateType('inter')">Inter-state (IGST)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Results -->
+    <div>
+      <!-- Hero card -->
+      <div class="result-hero">
+        <div class="mode-badge" id="heroBadge">ADD GST · INTRA-STATE</div>
+        <div class="big-amount" id="heroBigAmt">₹10,500</div>
+        <div class="big-label" id="heroBigLabel">Final Amount (incl. GST)</div>
+        <div class="result-row">
+          <span class="rl" id="heroOrigLabel">Original Amount</span>
+          <span class="rv original" id="heroOrig">₹10,000</span>
+        </div>
+        <div class="result-row">
+          <span class="rl" id="heroGstLabel">GST Amount (5%)</span>
+          <span class="rv gst-amt" id="heroGst">₹500</span>
+        </div>
+        <div class="result-row">
+          <span class="rl" id="heroFinalLabel">Final Amount</span>
+          <span class="rv final-amt" id="heroFinal">₹10,500</span>
+        </div>
+      </div>
+
+      <!-- Tax Split -->
+      <div class="section-title">Tax Split</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Rate</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody id="splitBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Quick Reference -->
+      <div class="section-title">Quick Reference — Same Amount at All Rates</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>GST Rate</th>
+              <th>GST Amount</th>
+              <th>Final Amount</th>
+              <th>CGST</th>
+              <th>SGST</th>
+              <th>IGST</th>
+            </tr>
+          </thead>
+          <tbody id="quickRefBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let gstMode = 'add';      // 'add' | 'remove'
+let stateType = 'intra';  // 'intra' | 'inter'
+let selectedRate = 5;
+
+function setGstMode(mode) {
+  gstMode = mode;
+  document.getElementById('modeAddBtn').classList.toggle('active', mode === 'add');
+  document.getElementById('modeRemBtn').classList.toggle('active', mode === 'remove');
+  document.getElementById('amountLabel').textContent = mode === 'add' ? 'Base Amount (excl. GST)' : 'Total Amount (incl. GST)';
+  calc();
+}
+
+function setStateType(type) {
+  stateType = type;
+  document.getElementById('stateIntra').classList.toggle('active', type === 'intra');
+  document.getElementById('stateInter').classList.toggle('active', type === 'inter');
+  calc();
+}
+
+function selectRate(btn, rate) {
+  document.querySelectorAll('.rate-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (rate === 'custom') {
+    selectedRate = parseFloat(document.getElementById('customRate').value) || 0;
+    document.getElementById('customRateWrap').classList.add('visible');
+  } else {
+    selectedRate = rate;
+    document.getElementById('customRateWrap').classList.remove('visible');
+  }
+  calc();
+}
+
+function fmtINR(n) {
+  return '₹' + Math.round(n).toLocaleString('en-IN');
+}
+function fmtINRd(n) {
+  return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function computeGst(amount, rate, mode) {
+  let base, gstAmt, total;
+  if (mode === 'add') {
+    base   = amount;
+    gstAmt = amount * rate / 100;
+    total  = amount + gstAmt;
+  } else {
+    // Remove: amount is total (inclusive)
+    total  = amount;
+    base   = amount / (1 + rate / 100);
+    gstAmt = total - base;
+  }
+  return { base, gstAmt, total };
+}
+
+function calc() {
+  const amount = parseFloat(document.getElementById('amount').value) || 0;
+  // Update custom rate if custom is selected
+  const activeBtn = document.querySelector('.rate-btn.active');
+  if (activeBtn && activeBtn.dataset.rate === 'custom') {
+    selectedRate = parseFloat(document.getElementById('customRate').value) || 0;
+  }
+  const rate = selectedRate;
+
+  const { base, gstAmt, total } = computeGst(amount, rate, gstMode);
+
+  const isAdd = gstMode === 'add';
+  const badgeText = (isAdd ? 'ADD GST' : 'REMOVE GST') + ' · ' + (stateType === 'intra' ? 'INTRA-STATE' : 'INTER-STATE');
+  document.getElementById('heroBadge').textContent = badgeText;
+
+  if (isAdd) {
+    document.getElementById('heroBigAmt').textContent = fmtINRd(total);
+    document.getElementById('heroBigLabel').textContent = 'Final Amount (incl. GST)';
+    document.getElementById('heroOrigLabel').textContent = 'Original Amount';
+    document.getElementById('heroGstLabel').textContent = `GST Amount (${rate}%)`;
+    document.getElementById('heroFinalLabel').textContent = 'Final Amount';
+    document.getElementById('heroOrig').textContent = fmtINRd(base);
+    document.getElementById('heroGst').textContent = fmtINRd(gstAmt);
+    document.getElementById('heroFinal').textContent = fmtINRd(total);
+  } else {
+    document.getElementById('heroBigAmt').textContent = fmtINRd(base);
+    document.getElementById('heroBigLabel').textContent = 'Base Amount (excl. GST)';
+    document.getElementById('heroOrigLabel').textContent = 'Total Amount (incl. GST)';
+    document.getElementById('heroGstLabel').textContent = `GST Removed (${rate}%)`;
+    document.getElementById('heroFinalLabel').textContent = 'Base Amount';
+    document.getElementById('heroOrig').textContent = fmtINRd(total);
+    document.getElementById('heroGst').textContent = fmtINRd(gstAmt);
+    document.getElementById('heroFinal').textContent = fmtINRd(base);
+  }
+
+  // Split table
+  let splitRows = '';
+  if (stateType === 'intra') {
+    const half = gstAmt / 2;
+    const halfRate = rate / 2;
+    splitRows = `
+      <tr>
+        <td>CGST</td>
+        <td class="text-warn">${halfRate.toFixed(1)}%</td>
+        <td class="text-warn">${fmtINRd(half)}</td>
+      </tr>
+      <tr>
+        <td>SGST</td>
+        <td class="text-warn">${halfRate.toFixed(1)}%</td>
+        <td class="text-warn">${fmtINRd(half)}</td>
+      </tr>
+      <tr>
+        <td><strong>Total GST</strong></td>
+        <td class="text-loss"><strong>${rate}%</strong></td>
+        <td class="text-loss"><strong>${fmtINRd(gstAmt)}</strong></td>
+      </tr>`;
+  } else {
+    splitRows = `
+      <tr>
+        <td>CGST</td>
+        <td class="text-muted">—</td>
+        <td class="text-muted">—</td>
+      </tr>
+      <tr>
+        <td>SGST</td>
+        <td class="text-muted">—</td>
+        <td class="text-muted">—</td>
+      </tr>
+      <tr>
+        <td>IGST</td>
+        <td class="text-warn">${rate}%</td>
+        <td class="text-warn">${fmtINRd(gstAmt)}</td>
+      </tr>
+      <tr>
+        <td><strong>Total GST</strong></td>
+        <td class="text-loss"><strong>${rate}%</strong></td>
+        <td class="text-loss"><strong>${fmtINRd(gstAmt)}</strong></td>
+      </tr>`;
+  }
+  document.getElementById('splitBody').innerHTML = splitRows;
+
+  // Quick reference table — always use base amount for add mode, total for remove mode
+  const refBase = isAdd ? amount : (amount / (1 + rate / 100));
+  const stdRates = [5, 12, 18, 28];
+  let qrHtml = '';
+  stdRates.forEach(r => {
+    const gst = refBase * r / 100;
+    const fin = refBase + gst;
+    const cgst = gst / 2, sgst = gst / 2;
+    const isActive = r === rate && activeBtn && activeBtn.dataset.rate !== 'custom';
+    qrHtml += `<tr class="${isActive ? 'active-rate' : ''}">
+      <td>${r}%</td>
+      <td class="text-loss">${fmtINRd(gst)}</td>
+      <td class="text-warn">${fmtINRd(fin)}</td>
+      <td class="text-dim">${fmtINRd(cgst)}</td>
+      <td class="text-dim">${fmtINRd(sgst)}</td>
+      <td class="text-harvest">${fmtINRd(gst)}</td>
+    </tr>`;
+  });
+  document.getElementById('quickRefBody').innerHTML = qrHtml;
+}
+
+calc();
+</script>
+</body>
+</html>

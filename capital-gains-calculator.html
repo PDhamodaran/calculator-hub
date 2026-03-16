@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capital Gains Tax Calculator – Personal Finance Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="theme.js"></script>
+<style>
+:root {
+  --bg:#080b10; --surface:#0f1419; --surface2:#161d26; --surface3:#1c2530;
+  --border:#1e2a38; --text:#dfe6ee; --text-dim:#7b8da0; --text-muted:#4a5c6e;
+  --accent:#2d6a4f; --accent-bright:#40916c; --accent-light:#52b788; --accent-glow:#40916c22;
+  --harvest:#4e8fd4; --harvest-bg:#4e8fd412; --harvest-border:#4e8fd433;
+  --loss:#d94f4f; --loss-bg:#d94f4f12;
+  --warn:#d4a04e; --warn-bg:#d4a04e12;
+  --profit:#40916c; --profit-bg:#40916c12;
+  --purple:#9d7fe8; --purple-bg:#9d7fe812;
+  --rose:#d4607a; --rose-bg:#d4607a12;
+}
+:root[data-theme="light"] {
+  --bg:#f4f6f9; --surface:#ffffff; --surface2:#eef1f6; --surface3:#e4e8f0;
+  --border:#cdd5e0; --text:#1c2b3a; --text-dim:#526070; --text-muted:#8a9baa;
+  --accent:#1e5c3a; --accent-bright:#2d8a5e; --accent-light:#239659; --accent-glow:#2d8a5e18;
+  --harvest:#1a5faa; --harvest-bg:#1a5faa0f; --harvest-border:#1a5faa30;
+  --loss:#c03030; --loss-bg:#c030300f; --warn:#9a6010; --warn-bg:#9a60100f;
+  --profit:#1e7a4a; --profit-bg:#1e7a4a0f; --purple:#6d4ec4; --purple-bg:#6d4ec410;
+  --rose:#b0304a; --rose-bg:#b0304a10;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+a{color:var(--text-dim);text-decoration:none;}
+a:hover{color:var(--text);}
+
+.topnav{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--surface);}
+.topnav a{font-size:0.82rem;font-weight:500;color:var(--text-dim);display:flex;align-items:center;gap:6px;transition:color .2s;}
+.topnav a:hover{color:var(--rose);}
+.topnav-title{font-size:0.88rem;font-weight:600;color:var(--text);margin-left:4px;}
+.topnav-badge{font-size:0.62rem;font-weight:700;padding:2px 8px;border-radius:4px;background:var(--rose-bg);color:var(--rose);border:1px solid var(--rose);margin-left:auto;font-family:'JetBrains Mono',monospace;}
+
+.layout{display:grid;grid-template-columns:360px 1fr;gap:0;min-height:calc(100vh - 49px);}
+
+/* ── Left Panel ──────────────────────────────────────── */
+.left-panel{background:var(--surface);border-right:1px solid var(--border);padding:24px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;}
+.panel-title{font-size:1rem;font-weight:700;color:var(--text);margin-bottom:2px;}
+.panel-sub{font-size:0.76rem;color:var(--text-dim);}
+
+.field-group{display:flex;flex-direction:column;gap:12px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);}
+.field input,.field select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:0.88rem;font-family:'DM Sans',sans-serif;transition:border-color .2s;width:100%;}
+.field input:focus,.field select:focus{outline:none;border-color:var(--rose);}
+.field input[type="date"]{color-scheme:dark;}
+:root[data-theme="light"] .field input[type="date"]{color-scheme:light;}
+
+.seg-control{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.seg-btn{flex:1;padding:8px 6px;font-size:0.76rem;font-weight:600;border:none;background:transparent;color:var(--text-dim);cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;text-align:center;}
+.seg-btn.active{background:var(--rose-bg);color:var(--rose);}
+.seg-btn:hover:not(.active){color:var(--text);}
+
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;}
+.toggle-label{font-size:0.82rem;color:var(--text-dim);}
+.toggle{position:relative;display:inline-flex;width:40px;height:22px;}
+.toggle input{opacity:0;width:0;height:0;}
+.slider{position:absolute;inset:0;background:var(--surface3);border-radius:11px;cursor:pointer;transition:.2s;}
+.slider::before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:var(--text-muted);border-radius:50%;transition:.2s;}
+.toggle input:checked+.slider{background:var(--rose-bg);border:1px solid var(--rose);}
+.toggle input:checked+.slider::before{transform:translateX(18px);background:var(--rose);}
+
+.divider{height:1px;background:var(--border);margin:4px 0;}
+.section-label{font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);}
+
+.holding-badge{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;font-size:0.82rem;font-weight:600;border:1px solid transparent;}
+.holding-ltcg{background:var(--profit-bg);color:var(--profit);border-color:#40916c33;}
+.holding-stcg{background:var(--rose-bg);color:var(--rose);border-color:var(--rose);}
+.holding-neutral{background:var(--surface2);color:var(--text-dim);border-color:var(--border);}
+
+/* ── Right Panel ──────────────────────────────────────── */
+.right-panel{padding:24px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;}
+
+.results-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:12px;color:var(--text-muted);}
+.results-empty .icon{font-size:2.5rem;opacity:.4;}
+.results-empty p{font-size:0.82rem;}
+
+.result-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.result-title{font-size:1.1rem;font-weight:700;color:var(--text);}
+.classification-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:0.8rem;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.badge-ltcg{background:var(--profit-bg);color:var(--profit);border:1px solid #40916c44;}
+.badge-stcg{background:var(--rose-bg);color:var(--rose);border:1px solid var(--rose);}
+.badge-debt{background:var(--warn-bg);color:var(--warn);border:1px solid #d4a04e44;}
+
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.metric-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:6px;}
+.metric-value{font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:700;color:var(--text);}
+.metric-value.positive{color:var(--profit);}
+.metric-value.negative{color:var(--loss);}
+.metric-value.rose{color:var(--rose);}
+.metric-value.warn{color:var(--warn);}
+.metric-sub{font-size:0.68rem;color:var(--text-dim);margin-top:3px;}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.card-title{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:14px;}
+
+table{width:100%;border-collapse:collapse;}
+th{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);}
+td{padding:9px 10px;font-size:0.82rem;color:var(--text-dim);border-bottom:1px solid var(--border);}
+tr:last-child td{border-bottom:none;}
+td.mono{font-family:'JetBrains Mono',monospace;font-size:0.8rem;}
+td.positive{color:var(--profit);}
+td.negative{color:var(--loss);}
+td.highlight{color:var(--text);font-weight:600;}
+td.rose{color:var(--rose);}
+
+.advice-box{display:flex;gap:12px;padding:14px 16px;border-radius:10px;background:var(--warn-bg);border:1px solid #d4a04e33;}
+.advice-icon{font-size:1.1rem;flex-shrink:0;margin-top:1px;}
+.advice-text{font-size:0.8rem;color:var(--text-dim);line-height:1.6;}
+.advice-text strong{color:var(--warn);}
+
+.advice-good{background:var(--profit-bg);border-color:#40916c33;}
+.advice-good .advice-text strong{color:var(--profit);}
+
+.holding-display{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;}
+.holding-display .mono{font-family:'JetBrains Mono',monospace;font-size:0.9rem;font-weight:600;color:var(--text);}
+.holding-display .dim{font-size:0.78rem;color:var(--text-dim);}
+
+.step-table td:first-child{color:var(--text-dim);font-size:0.79rem;width:55%;}
+.step-table td:last-child{font-family:'JetBrains Mono',monospace;font-size:0.8rem;text-align:right;}
+
+@media(max-width:820px){
+  .layout{grid-template-columns:1fr;}
+  .left-panel{border-right:none;border-bottom:1px solid var(--border);}
+}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <a href="index.html">← Home</a>
+  <span style="color:var(--border)">|</span>
+  <span class="topnav-title">Capital Gains Tax Calculator</span>
+  <span class="topnav-badge">FY 2025-26</span>
+</nav>
+
+<div class="layout">
+  <!-- ══ LEFT PANEL ══════════════════════════════════════════════════════ -->
+  <div class="left-panel">
+    <div>
+      <div class="panel-title">Capital Gains Calculator</div>
+      <div class="panel-sub">FY 2025-26 · Indian tax rules</div>
+    </div>
+
+    <div class="field-group">
+      <div class="section-label">Asset Type</div>
+      <div class="seg-control" id="assetSeg">
+        <button class="seg-btn active" data-val="equity">Equity / MF</button>
+        <button class="seg-btn" data-val="debt">Debt MF</button>
+        <button class="seg-btn" data-val="realestate">Real Estate</button>
+        <button class="seg-btn" data-val="gold">Gold</button>
+        <button class="seg-btn" data-val="other">Other</button>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div class="section-label">Transaction Details</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="field">
+          <label>Buy Date</label>
+          <input type="date" id="buyDate">
+        </div>
+        <div class="field">
+          <label>Sell Date</label>
+          <input type="date" id="sellDate">
+        </div>
+      </div>
+      <div id="holdingBadge" class="holding-badge holding-neutral" style="display:none;"></div>
+    </div>
+
+    <div class="field-group">
+      <div class="section-label">Prices &amp; Quantity</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="field">
+          <label>Buy Price (₹)</label>
+          <input type="number" id="buyPrice" placeholder="0.00" min="0" step="any">
+        </div>
+        <div class="field">
+          <label>Sell Price (₹)</label>
+          <input type="number" id="sellPrice" placeholder="0.00" min="0" step="any">
+        </div>
+      </div>
+      <div class="field">
+        <label>Quantity / Units</label>
+        <input type="number" id="qty" placeholder="1" min="0" step="any" value="1">
+      </div>
+    </div>
+
+    <!-- Real Estate extras -->
+    <div id="reSection" class="field-group" style="display:none;">
+      <div class="section-label">Real Estate Options</div>
+      <div class="field">
+        <label>Cost of Improvement (₹)</label>
+        <input type="number" id="costImprovement" placeholder="0" min="0" step="any">
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label">Use Indexation (20% with CII)</span>
+        <label class="toggle">
+          <input type="checkbox" id="useIndexation" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="field">
+        <label>Purchase Year (CII base)</label>
+        <select id="ciiYear"></select>
+      </div>
+      <div class="field" id="sellCiiYearField">
+        <label>Sell Year (CII)</label>
+        <select id="ciiSellYear"></select>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field-group">
+      <div class="section-label">Tax Settings</div>
+      <div class="field">
+        <label>Income Tax Slab (for STCG at slab rate)</label>
+        <div class="seg-control" id="slabSeg">
+          <button class="seg-btn" data-val="5">5%</button>
+          <button class="seg-btn active" data-val="20">20%</button>
+          <button class="seg-btn" data-val="30">30%</button>
+        </div>
+      </div>
+      <div id="ltcgExemptField" class="field">
+        <label>LTCG Exemption already used this FY (₹)</label>
+        <input type="number" id="ltcgUsed" placeholder="0" min="0" step="any" value="0">
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ RIGHT PANEL ══════════════════════════════════════════════════════ -->
+  <div class="right-panel" id="rightPanel">
+    <div class="results-empty" id="emptyState">
+      <div class="icon">📊</div>
+      <p>Enter buy date, sell date, buy &amp; sell price to compute capital gains tax.</p>
+    </div>
+
+    <!-- Results (hidden until computed) -->
+    <div id="resultsArea" style="display:none;"></div>
+  </div>
+</div>
+
+<script>
+// ── CII Data ────────────────────────────────────────────────────────────────
+const CII = {
+  2001:100,2002:105,2003:109,2004:113,2005:117,2006:122,2007:129,2008:137,
+  2009:148,2010:167,2011:184,2012:200,2013:220,2014:240,2015:254,2016:264,
+  2017:272,2018:280,2019:289,2020:301,2021:317,2022:331,2023:348,2024:363,2025:382
+};
+
+const CII_YEARS = Object.keys(CII).map(Number).sort((a,b)=>a-b);
+
+// Populate CII selects
+function populateCII() {
+  const selBuy = document.getElementById('ciiYear');
+  const selSell = document.getElementById('ciiSellYear');
+  selBuy.innerHTML = '';
+  selSell.innerHTML = '';
+  CII_YEARS.forEach(y => {
+    selBuy.innerHTML += `<option value="${y}">${y} (CII: ${CII[y]})</option>`;
+    selSell.innerHTML += `<option value="${y}">${y} (CII: ${CII[y]})</option>`;
+  });
+  selBuy.value = 2015;
+  selSell.value = 2025;
+}
+populateCII();
+
+// ── State ────────────────────────────────────────────────────────────────────
+let assetType = 'equity';
+let slab = 20;
+
+// ── Segment Controls ──────────────────────────────────────────────────────────
+document.getElementById('assetSeg').addEventListener('click', e => {
+  if (!e.target.classList.contains('seg-btn')) return;
+  document.querySelectorAll('#assetSeg .seg-btn').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  assetType = e.target.dataset.val;
+  document.getElementById('reSection').style.display = assetType === 'realestate' ? 'flex' : 'none';
+  document.getElementById('ltcgExemptField').style.display = assetType === 'equity' ? 'flex' : 'none';
+  compute();
+});
+
+document.getElementById('slabSeg').addEventListener('click', e => {
+  if (!e.target.classList.contains('seg-btn')) return;
+  document.querySelectorAll('#slabSeg .seg-btn').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  slab = Number(e.target.dataset.val);
+  compute();
+});
+
+// ── Input listeners ────────────────────────────────────────────────────────────
+['buyDate','sellDate','buyPrice','sellPrice','qty','ltcgUsed','costImprovement','useIndexation','ciiYear','ciiSellYear'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', compute);
+  if (el && el.tagName === 'SELECT') el.addEventListener('change', compute);
+});
+
+// ── Formatters ─────────────────────────────────────────────────────────────────
+function fmtINR(n) {
+  if (!isFinite(n)) return '—';
+  const abs = Math.abs(n);
+  let s;
+  if (abs >= 1e7) s = '₹' + (abs/1e7).toFixed(2) + ' Cr';
+  else if (abs >= 1e5) s = '₹' + (abs/1e5).toFixed(2) + ' L';
+  else s = '₹' + abs.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+  return n < 0 ? '-' + s : s;
+}
+function fmtINRFull(n) {
+  if (!isFinite(n)) return '—';
+  const abs = Math.abs(n);
+  const s = '₹' + abs.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+  return n < 0 ? '-' + s : s;
+}
+function fmtPct(n) { return n.toFixed(2) + '%'; }
+
+// ── Holding period ──────────────────────────────────────────────────────────────
+function holdingInfo(buyDate, sellDate) {
+  const ms = sellDate - buyDate;
+  const days = Math.floor(ms / 86400000);
+  const months = Math.floor(days / 30.4375);
+  const years = Math.floor(days / 365.25);
+  const remMonths = months - years * 12;
+  let label = '';
+  if (years > 0) label = `${years} yr${years>1?'s':''} ${remMonths > 0 ? remMonths + ' mo' : ''}`.trim();
+  else if (months > 0) label = `${months} month${months>1?'s':''}`;
+  else label = `${days} day${days>1?'s':''}`;
+  return { days, months, years, label };
+}
+
+// ── Core compute ──────────────────────────────────────────────────────────────
+function compute() {
+  const buyDateVal = document.getElementById('buyDate').value;
+  const sellDateVal = document.getElementById('sellDate').value;
+  const buyPrice = parseFloat(document.getElementById('buyPrice').value) || 0;
+  const sellPrice = parseFloat(document.getElementById('sellPrice').value) || 0;
+  const qty = parseFloat(document.getElementById('qty').value) || 1;
+  const ltcgUsed = parseFloat(document.getElementById('ltcgUsed').value) || 0;
+  const costImprovement = parseFloat(document.getElementById('costImprovement').value) || 0;
+  const useIndexation = document.getElementById('useIndexation').checked;
+  const ciiYearBuy = parseInt(document.getElementById('ciiYear').value) || 2015;
+  const ciiYearSell = parseInt(document.getElementById('ciiSellYear').value) || 2025;
+
+  if (!buyDateVal || !sellDateVal || buyPrice <= 0 || sellPrice <= 0) {
+    document.getElementById('emptyState').style.display = 'flex';
+    document.getElementById('resultsArea').style.display = 'none';
+    document.getElementById('holdingBadge').style.display = 'none';
+    return;
+  }
+
+  const buyDate = new Date(buyDateVal);
+  const sellDate = new Date(sellDateVal);
+  if (sellDate <= buyDate) {
+    document.getElementById('emptyState').style.display = 'flex';
+    document.getElementById('resultsArea').style.display = 'none';
+    return;
+  }
+
+  const hp = holdingInfo(buyDate, sellDate);
+
+  // Determine LTCG threshold (months)
+  let ltcgThresholdMonths;
+  switch (assetType) {
+    case 'equity': ltcgThresholdMonths = 12; break;
+    case 'debt': ltcgThresholdMonths = Infinity; break; // always STCG post Apr 2023
+    case 'realestate': ltcgThresholdMonths = 24; break;
+    case 'gold': ltcgThresholdMonths = 24; break;
+    case 'other': ltcgThresholdMonths = 24; break;
+  }
+
+  const isLTCG = hp.months >= ltcgThresholdMonths;
+
+  // Update holding badge
+  const badge = document.getElementById('holdingBadge');
+  badge.style.display = 'flex';
+  if (assetType === 'debt') {
+    badge.className = 'holding-badge badge-debt';
+    badge.textContent = `⚡ STCG — Debt MF (post Apr 2023, always slab rate) · ${hp.label}`;
+  } else if (isLTCG) {
+    badge.className = 'holding-badge holding-ltcg';
+    badge.textContent = `✓ LTCG — Held ${hp.label}`;
+  } else {
+    badge.className = 'holding-badge holding-stcg';
+    badge.textContent = `⚠ STCG — Held ${hp.label}`;
+  }
+
+  const buyValue = buyPrice * qty;
+  const sellValue = sellPrice * qty;
+  let costBasis = buyValue;
+
+  // Real estate indexation
+  let indexedCost = null;
+  let withIndexTax = null;
+  let withoutIndexTax = null;
+  if (assetType === 'realestate' && isLTCG) {
+    const ciiBuy = CII[ciiYearBuy] || 100;
+    const ciiSell = CII[ciiYearSell] || 382;
+    indexedCost = (buyValue + costImprovement) * (ciiSell / ciiBuy);
+    const gainWithIndex = Math.max(0, sellValue - indexedCost);
+    const gainWithout = Math.max(0, sellValue - (buyValue + costImprovement));
+    withIndexTax = gainWithIndex * 0.20;
+    withoutIndexTax = gainWithout * 0.125;
+    if (useIndexation) {
+      costBasis = indexedCost;
+    } else {
+      costBasis = buyValue + costImprovement;
+    }
+  } else if (assetType === 'realestate') {
+    costBasis = buyValue + costImprovement;
+  }
+
+  const rawGain = sellValue - costBasis;
+
+  // ── Tax computation ────────────────────────────────────────────────────────
+  let taxRate = 0;
+  let taxableGain = rawGain;
+  let exemptionApplied = 0;
+  let taxNote = '';
+  let steps = [];
+  let finalTax = 0;
+
+  if (assetType === 'equity') {
+    if (!isLTCG) {
+      taxRate = 0.20;
+      taxableGain = Math.max(0, rawGain);
+      finalTax = taxableGain * taxRate;
+      steps = [
+        ['Asset Type', 'Equity / Equity MF'],
+        ['Holding Period', hp.label],
+        ['Classification', 'STCG (< 12 months)'],
+        ['Buy Value', fmtINRFull(buyValue)],
+        ['Sell Value', fmtINRFull(sellValue)],
+        ['Total Gain', fmtINRFull(rawGain)],
+        ['STCG Tax Rate', '20% (flat)'],
+        ['Tax on Gain', fmtINRFull(finalTax)],
+      ];
+      taxNote = 'stcg';
+    } else {
+      // LTCG equity: 12.5% on gains above ₹1,25,000 exemption (total across FY)
+      const exemptionLimit = 125000;
+      const remaining = Math.max(0, exemptionLimit - ltcgUsed);
+      exemptionApplied = Math.min(remaining, Math.max(0, rawGain));
+      taxableGain = Math.max(0, rawGain - exemptionApplied);
+      finalTax = taxableGain * 0.125;
+      steps = [
+        ['Asset Type', 'Equity / Equity MF'],
+        ['Holding Period', hp.label],
+        ['Classification', 'LTCG (≥ 12 months)'],
+        ['Buy Value', fmtINRFull(buyValue)],
+        ['Sell Value', fmtINRFull(sellValue)],
+        ['Total Gain', fmtINRFull(rawGain)],
+        ['LTCG Exemption Limit', fmtINRFull(exemptionLimit)],
+        ['Already Used This FY', fmtINRFull(ltcgUsed)],
+        ['Remaining Exemption', fmtINRFull(remaining)],
+        ['Exemption Applied', fmtINRFull(exemptionApplied)],
+        ['Taxable Gain', fmtINRFull(taxableGain)],
+        ['LTCG Tax Rate', '12.5%'],
+        ['Tax Liability', fmtINRFull(finalTax)],
+      ];
+      taxNote = rawGain > 0 ? 'ltcg-equity' : 'loss';
+    }
+  } else if (assetType === 'debt') {
+    taxableGain = Math.max(0, rawGain);
+    finalTax = taxableGain * (slab / 100);
+    steps = [
+      ['Asset Type', 'Debt MF (post Apr 2023)'],
+      ['Holding Period', hp.label],
+      ['Classification', 'Always STCG (slab rate) — no LTCG benefit'],
+      ['Buy Value', fmtINRFull(buyValue)],
+      ['Sell Value', fmtINRFull(sellValue)],
+      ['Total Gain', fmtINRFull(rawGain)],
+      ['Income Tax Slab', slab + '%'],
+      ['Tax on Gain', fmtINRFull(finalTax)],
+    ];
+    taxNote = 'debt';
+  } else if (assetType === 'realestate') {
+    if (!isLTCG) {
+      taxableGain = Math.max(0, rawGain);
+      finalTax = taxableGain * (slab / 100);
+      steps = [
+        ['Asset Type', 'Real Estate'],
+        ['Holding Period', hp.label],
+        ['Classification', 'STCG (< 24 months)'],
+        ['Buy Value', fmtINRFull(buyValue)],
+        ['Cost of Improvement', fmtINRFull(costImprovement)],
+        ['Total Cost Basis', fmtINRFull(costBasis)],
+        ['Sell Value', fmtINRFull(sellValue)],
+        ['Total Gain', fmtINRFull(rawGain)],
+        ['Income Tax Slab', slab + '%'],
+        ['Tax on Gain', fmtINRFull(finalTax)],
+      ];
+      taxNote = 'stcg';
+    } else {
+      // LTCG real estate: lower of 12.5% without indexation or 20% with indexation
+      const ciiBuy = CII[ciiYearBuy] || 100;
+      const ciiSell = CII[ciiYearSell] || 382;
+      const indexedCostCalc = (buyValue + costImprovement) * (ciiSell / ciiBuy);
+      const gainWithIndex = Math.max(0, sellValue - indexedCostCalc);
+      const gainWithout = Math.max(0, sellValue - (buyValue + costImprovement));
+      withIndexTax = gainWithIndex * 0.20;
+      withoutIndexTax = gainWithout * 0.125;
+
+      if (useIndexation) {
+        finalTax = withIndexTax;
+        taxableGain = gainWithIndex;
+        costBasis = indexedCostCalc;
+      } else {
+        finalTax = withoutIndexTax;
+        taxableGain = gainWithout;
+        costBasis = buyValue + costImprovement;
+      }
+
+      steps = [
+        ['Asset Type', 'Real Estate'],
+        ['Holding Period', hp.label],
+        ['Classification', 'LTCG (≥ 24 months)'],
+        ['Buy Value', fmtINRFull(buyValue)],
+        ['Cost of Improvement', fmtINRFull(costImprovement)],
+        ['CII (Buy Year ' + ciiYearBuy + ')', CII[ciiYearBuy] || '—'],
+        ['CII (Sell Year ' + ciiYearSell + ')', CII[ciiYearSell] || '—'],
+        ['Indexed Cost', fmtINRFull(indexedCostCalc)],
+        ['Sell Value', fmtINRFull(sellValue)],
+        ['─── Option A: With Indexation ───', ''],
+        ['Gain (with indexation)', fmtINRFull(gainWithIndex)],
+        ['Tax @ 20%', fmtINRFull(withIndexTax)],
+        ['─── Option B: Without Indexation ───', ''],
+        ['Gain (without indexation)', fmtINRFull(gainWithout)],
+        ['Tax @ 12.5%', fmtINRFull(withoutIndexTax)],
+        ['Selected Option', useIndexation ? 'With Indexation (20%)' : 'Without Indexation (12.5%)'],
+        ['Tax Liability', fmtINRFull(finalTax)],
+      ];
+      taxNote = 'ltcg-re';
+    }
+  } else if (assetType === 'gold') {
+    if (!isLTCG) {
+      taxableGain = Math.max(0, rawGain);
+      finalTax = taxableGain * (slab / 100);
+      steps = [
+        ['Asset Type', 'Gold'],
+        ['Holding Period', hp.label],
+        ['Classification', 'STCG (< 24 months)'],
+        ['Buy Value', fmtINRFull(buyValue)],
+        ['Sell Value', fmtINRFull(sellValue)],
+        ['Total Gain', fmtINRFull(rawGain)],
+        ['Income Tax Slab', slab + '%'],
+        ['Tax on Gain', fmtINRFull(finalTax)],
+      ];
+      taxNote = 'stcg';
+    } else {
+      taxableGain = Math.max(0, rawGain);
+      finalTax = taxableGain * 0.125;
+      steps = [
+        ['Asset Type', 'Gold'],
+        ['Holding Period', hp.label],
+        ['Classification', 'LTCG (≥ 24 months)'],
+        ['Buy Value', fmtINRFull(buyValue)],
+        ['Sell Value', fmtINRFull(sellValue)],
+        ['Total Gain', fmtINRFull(rawGain)],
+        ['LTCG Tax Rate', '12.5% (without indexation)'],
+        ['Tax Liability', fmtINRFull(finalTax)],
+      ];
+      taxNote = 'ltcg';
+    }
+  } else { // other
+    if (!isLTCG) {
+      taxableGain = Math.max(0, rawGain);
+      finalTax = taxableGain * (slab / 100);
+      steps = [
+        ['Asset Type', 'Other Asset'],
+        ['Holding Period', hp.label],
+        ['Classification', 'STCG (< 24 months)'],
+        ['Buy Value', fmtINRFull(buyValue)],
+        ['Sell Value', fmtINRFull(sellValue)],
+        ['Total Gain', fmtINRFull(rawGain)],
+        ['Income Tax Slab', slab + '%'],
+        ['Tax on Gain', fmtINRFull(finalTax)],
+      ];
+      taxNote = 'stcg';
+    } else {
+      taxableGain = Math.max(0, rawGain);
+      finalTax = taxableGain * 0.125;
+      steps = [
+        ['Asset Type', 'Other Asset'],
+        ['Holding Period', hp.label],
+        ['Classification', 'LTCG (≥ 24 months)'],
+        ['Buy Value', fmtINRFull(buyValue)],
+        ['Sell Value', fmtINRFull(sellValue)],
+        ['Total Gain', fmtINRFull(rawGain)],
+        ['LTCG Tax Rate', '12.5%'],
+        ['Tax Liability', fmtINRFull(finalTax)],
+      ];
+      taxNote = 'ltcg';
+    }
+  }
+
+  if (rawGain < 0) {
+    finalTax = 0;
+    taxNote = 'loss';
+  }
+
+  const netProfit = rawGain - finalTax;
+
+  // ── STCG advice: when to sell for LTCG ──
+  let ltcgDate = null;
+  if (!isLTCG && assetType !== 'debt') {
+    const ltcgMs = ltcgThresholdMonths * 30.4375 * 86400000;
+    ltcgDate = new Date(buyDate.getTime() + ltcgMs);
+  }
+
+  // ── Build HTML ─────────────────────────────────────────────────────────────
+  const badgeClass = assetType === 'debt' ? 'badge-debt' : (isLTCG ? 'badge-ltcg' : 'badge-stcg');
+  const badgeText = assetType === 'debt' ? '⚡ STCG · Slab Rate' : (isLTCG ? '✓ LTCG' : '⚠ STCG');
+
+  const gainClass = rawGain >= 0 ? 'positive' : 'negative';
+
+  let stepsHTML = steps.map(([k,v]) => {
+    if (k.startsWith('───')) return `<tr><td colspan="2" style="color:var(--text-muted);font-size:0.72rem;padding-top:10px;font-weight:700;">${k}</td></tr>`;
+    const valClass = v === '' ? '' : (k.toLowerCase().includes('tax') && !k.includes('Rate') && !k.includes('Type') && !k.includes('Slab') ? 'rose' : '');
+    return `<tr><td>${k}</td><td class="mono ${valClass}" style="text-align:right;">${v}</td></tr>`;
+  }).join('');
+
+  let adviceHTML = '';
+  if (taxNote === 'stcg' && ltcgDate && assetType !== 'debt') {
+    const dateStr = ltcgDate.toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
+    adviceHTML = `
+      <div class="advice-box">
+        <div class="advice-icon">💡</div>
+        <div class="advice-text">Consider holding until <strong>${dateStr}</strong> to qualify for LTCG treatment, which may result in a lower tax rate.</div>
+      </div>`;
+  } else if (taxNote === 'ltcg-equity') {
+    adviceHTML = `
+      <div class="advice-box advice-good">
+        <div class="advice-icon">✅</div>
+        <div class="advice-text">This is a <strong>Long-Term Capital Gain</strong>. The ₹1,25,000 annual exemption has been applied where available. Only the excess is taxed at 12.5%.</div>
+      </div>`;
+  } else if (taxNote === 'loss') {
+    adviceHTML = `
+      <div class="advice-box">
+        <div class="advice-icon">📉</div>
+        <div class="advice-text"><strong>Capital Loss:</strong> This loss can be set off against capital gains of the same or future years (within 8 assessment years for LTCL, same year for STCL against STCG/LTCG).</div>
+      </div>`;
+  } else if (taxNote === 'debt') {
+    adviceHTML = `
+      <div class="advice-box">
+        <div class="advice-icon">ℹ️</div>
+        <div class="advice-text"><strong>Debt MF (post April 2023):</strong> LTCG indexation benefit removed. All gains taxed at your income slab rate regardless of holding period.</div>
+      </div>`;
+  } else if (taxNote === 'ltcg-re') {
+    const lowerTax = withIndexTax !== null && withoutIndexTax !== null
+      ? (withIndexTax < withoutIndexTax ? 'With Indexation (20%)' : 'Without Indexation (12.5%)')
+      : '';
+    adviceHTML = `
+      <div class="advice-box advice-good">
+        <div class="advice-icon">🏠</div>
+        <div class="advice-text"><strong>Real Estate LTCG:</strong> You can choose between 20% with indexation or 12.5% without indexation. Lower option: <strong>${lowerTax}</strong>. Toggle the indexation switch to compare.</div>
+      </div>`;
+  }
+
+  const roiPct = buyValue > 0 ? ((rawGain / buyValue) * 100).toFixed(2) : '0.00';
+
+  const html = `
+    <div class="result-header">
+      <div>
+        <div class="result-title">Tax Summary</div>
+        <div style="font-size:0.78rem;color:var(--text-dim);margin-top:4px;">Held for ${hp.label} · ${hp.days} days</div>
+      </div>
+      <span class="classification-badge ${badgeClass}">${badgeText} · ${hp.label}</span>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Buy Value</div>
+        <div class="metric-value">${fmtINR(buyValue)}</div>
+        <div class="metric-sub">${qty} units × ${fmtINRFull(buyPrice)}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Sell Value</div>
+        <div class="metric-value">${fmtINR(sellValue)}</div>
+        <div class="metric-sub">${qty} units × ${fmtINRFull(sellPrice)}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Total Gain / Loss</div>
+        <div class="metric-value ${gainClass}">${fmtINR(rawGain)}</div>
+        <div class="metric-sub">ROI: ${rawGain >= 0 ? '+' : ''}${roiPct}%</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Tax Liability</div>
+        <div class="metric-value rose">${fmtINR(finalTax)}</div>
+        <div class="metric-sub">${rawGain < 0 ? 'No tax on loss' : (isLTCG && assetType === 'equity' ? 'After ₹1.25L exemption' : '')}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Net Profit After Tax</div>
+        <div class="metric-value ${netProfit >= 0 ? 'positive' : 'negative'}">${fmtINR(netProfit)}</div>
+        <div class="metric-sub">Gain minus tax</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Effective Tax Rate</div>
+        <div class="metric-value warn">${rawGain > 0 ? fmtPct((finalTax/rawGain)*100) : '—'}</div>
+        <div class="metric-sub">On total gain</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Step-by-Step Tax Computation</div>
+      <table class="step-table">
+        <tbody>${stepsHTML}</tbody>
+      </table>
+    </div>
+
+    ${adviceHTML}
+  `;
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('resultsArea').style.display = 'flex';
+  document.getElementById('resultsArea').style.flexDirection = 'column';
+  document.getElementById('resultsArea').style.gap = '20px';
+  document.getElementById('resultsArea').innerHTML = html;
+}
+
+// Set default dates
+const today = new Date();
+const oneYearAgo = new Date(today);
+oneYearAgo.setFullYear(today.getFullYear() - 1);
+oneYearAgo.setMonth(today.getMonth() - 2);
+document.getElementById('sellDate').value = today.toISOString().split('T')[0];
+document.getElementById('buyDate').value = oneYearAgo.toISOString().split('T')[0];
+
+compute();
+</script>
+</body>
+</html>

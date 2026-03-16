@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RD Calculator – Recurring Deposit</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="theme.js"></script>
+<style>
+:root {
+  --bg:#080b10; --surface:#0f1419; --surface2:#161d26; --surface3:#1c2530;
+  --border:#1e2a38; --text:#dfe6ee; --text-dim:#7b8da0; --text-muted:#4a5c6e;
+  --accent:#2d6a4f; --accent-bright:#40916c; --accent-light:#52b788; --accent-glow:#40916c22;
+  --harvest:#4e8fd4; --harvest-bg:#4e8fd412; --harvest-border:#4e8fd433;
+  --loss:#d94f4f; --loss-bg:#d94f4f12;
+  --warn:#d4a04e; --warn-bg:#d4a04e12;
+  --profit:#40916c; --profit-bg:#40916c12;
+  --purple:#9d7fe8; --purple-bg:#9d7fe812;
+  --rose:#d4607a; --rose-bg:#d4607a12;
+}
+:root[data-theme="light"] {
+  --bg:#f4f6f9; --surface:#ffffff; --surface2:#eef1f6; --surface3:#e4e8f0;
+  --border:#cdd5e0; --text:#1c2b3a; --text-dim:#526070; --text-muted:#8a9baa;
+  --accent:#1e5c3a; --accent-bright:#2d8a5e; --accent-light:#239659; --accent-glow:#2d8a5e18;
+  --harvest:#1a5faa; --harvest-bg:#1a5faa0f; --harvest-border:#1a5faa30;
+  --loss:#c03030; --loss-bg:#c030300f; --warn:#9a6010; --warn-bg:#9a60100f;
+  --profit:#1e7a4a; --profit-bg:#1e7a4a0f; --purple:#6d4ec4; --purple-bg:#6d4ec410;
+  --rose:#b0304a; --rose-bg:#b0304a10;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.55;}
+.container{max-width:1140px;margin:0 auto;padding:20px 16px;}
+
+.topnav{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.back-link{font-size:0.78rem;color:var(--text-dim);text-decoration:none;display:flex;align-items:center;gap:5px;padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:7px;transition:all .2s;}
+.back-link:hover{color:var(--text);border-color:var(--harvest);}
+.page-badge{font-size:0.72rem;font-weight:700;color:var(--harvest);background:var(--harvest-bg);border:1px solid var(--harvest-border);padding:3px 10px;border-radius:20px;font-family:'JetBrains Mono',monospace;}
+
+header{margin-bottom:22px;padding:18px 0 16px;border-bottom:1px solid var(--border);}
+h1{font-size:1.5rem;font-weight:700;letter-spacing:-.025em;background:linear-gradient(135deg,#e0e8f0 30%,var(--harvest) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;}
+.tagline{font-size:0.82rem;color:var(--text-dim);}
+
+.layout{display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start;}
+@media(max-width:860px){.layout{grid-template-columns:1fr;}}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:20px;}
+.panel-title{font-size:0.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:16px;}
+
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:6px;}
+.input-wrap{position:relative;}
+.input-prefix{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:var(--text-dim);pointer-events:none;}
+.input-suffix{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--text-dim);pointer-events:none;}
+input[type="number"],select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.88rem;padding:9px 12px;border-radius:7px;outline:none;transition:border-color .2s;}
+input.has-prefix{padding-left:26px;}
+input.has-suffix{padding-right:34px;}
+input:focus,select:focus{border-color:var(--harvest);box-shadow:0 0 0 3px var(--harvest-bg);}
+input::-webkit-inner-spin-button,input::-webkit-outer-spin-button{opacity:.4;}
+select{font-family:'DM Sans',sans-serif;font-size:0.85rem;}
+
+.range-wrap{display:flex;align-items:center;gap:10px;margin-top:4px;}
+input[type="range"]{flex:1;-webkit-appearance:none;height:4px;background:var(--surface3);border-radius:2px;border:none;padding:0;cursor:pointer;}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--harvest);border-radius:50%;cursor:pointer;}
+.range-val{font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--harvest);min-width:44px;text-align:right;}
+
+.toggle-group{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px;}
+.toggle-btn{flex:1;padding:7px 6px;text-align:center;font-size:0.74rem;font-weight:600;color:var(--text-dim);cursor:pointer;border-radius:6px;border:none;background:none;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.toggle-btn.active{background:var(--surface3);color:var(--harvest);}
+
+.preset-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px;}
+.preset-btn{padding:8px;text-align:center;font-size:0.74rem;font-weight:600;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--text-dim);cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;}
+.preset-btn:hover{border-color:var(--harvest);color:var(--harvest);}
+.preset-btn.active{border-color:var(--harvest);background:var(--harvest-bg);color:var(--harvest);}
+.preset-sub{font-size:0.64rem;color:var(--text-muted);display:block;margin-top:2px;font-family:'JetBrains Mono',monospace;}
+
+.divider{height:1px;background:var(--border);margin:16px 0;}
+
+/* Summary */
+.summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden;}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.c-harvest::after{background:var(--harvest);}
+.stat-card.c-profit::after{background:var(--profit);}
+.stat-card.c-warn::after{background:var(--warn);}
+.stat-card.c-purple::after{background:var(--purple);}
+.stat-label{font-size:0.64rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);margin-bottom:2px;}
+.stat-value{font-family:'JetBrains Mono',monospace;font-size:1.18rem;font-weight:700;}
+.stat-value.harvest{color:var(--harvest);}
+.stat-value.profit{color:var(--profit);}
+.stat-value.warn{color:var(--warn);}
+.stat-value.purple{color:var(--purple);}
+.stat-sub{font-size:0.68rem;color:var(--text-dim);margin-top:2px;}
+
+/* Comparison strip */
+.compare-strip{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:14px 16px;margin-bottom:14px;}
+.compare-strip h4{font-size:0.78rem;font-weight:700;color:var(--text-dim);margin-bottom:10px;}
+.compare-row{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;}
+.cmp-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center;}
+.cmp-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:4px;}
+.cmp-val{font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:700;margin-bottom:2px;}
+.cmp-val.rd{color:var(--harvest);}
+.cmp-val.fd{color:var(--warn);}
+.cmp-sub{font-size:0.66rem;color:var(--text-muted);}
+.vs-badge{text-align:center;font-size:0.72rem;font-weight:700;color:var(--text-muted);padding:6px;}
+.diff-tag{display:inline-block;font-size:0.7rem;font-weight:700;padding:3px 9px;border-radius:20px;margin-top:6px;}
+.diff-tag.better{background:var(--profit-bg);color:var(--profit);border:1px solid #40916c33;}
+.diff-tag.worse{background:var(--loss-bg);color:var(--loss);border:1px solid #d94f4f33;}
+
+/* Tabs */
+.tabs{display:flex;gap:2px;margin-bottom:14px;background:var(--surface2);border-radius:9px;padding:3px;border:1px solid var(--border);}
+.tab{flex:1;padding:8px;text-align:center;font-size:0.75rem;font-weight:600;color:var(--text-dim);cursor:pointer;border-radius:7px;transition:all .2s;border:none;background:none;font-family:inherit;}
+.tab.active{background:var(--surface3);color:var(--harvest);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* Table */
+.tbl-wrap{overflow-x:auto;border-radius:9px;border:1px solid var(--border);}
+table{width:100%;border-collapse:collapse;font-size:0.78rem;}
+thead th{text-align:right;padding:9px 11px;font-size:0.61rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;background:var(--surface2);}
+thead th:first-child{text-align:left;}
+tbody td{padding:8px 11px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:0.76rem;text-align:right;}
+tbody td:first-child{text-align:left;font-family:'DM Sans',sans-serif;font-size:0.78rem;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--surface2);}
+tbody tr.qtr-row td{background:var(--surface3);font-weight:600;}
+tbody tr.total-row td{background:#0f1a2a;font-weight:700;color:var(--harvest);border-top:1px solid var(--border);}
+.text-harvest{color:var(--harvest);}
+.text-profit{color:var(--profit);}
+.text-warn{color:var(--warn);}
+.text-dim{color:var(--text-dim);}
+
+footer{text-align:center;padding:20px 0;border-top:1px solid var(--border);font-size:0.72rem;color:var(--text-muted);margin-top:32px;}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="topnav">
+    <a href="index.html" class="back-link">← Home</a>
+    <span class="page-badge">RD Calculator</span>
+  </nav>
+
+  <header>
+    <h1>Recurring Deposit Calculator</h1>
+    <p class="tagline">Monthly deposits · Quarterly / Monthly / Annual compounding · Compare with FD</p>
+  </header>
+
+  <div class="layout">
+    <!-- LEFT PANEL -->
+    <div class="panel">
+      <div class="panel-title">Inputs</div>
+
+      <div class="field">
+        <label>Monthly Deposit</label>
+        <div class="input-wrap">
+          <span class="input-prefix">₹</span>
+          <input type="number" id="monthly" class="has-prefix" min="100" value="10000" step="500">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Annual Interest Rate</label>
+        <div class="input-wrap">
+          <input type="number" id="rate" class="has-suffix" min="1" max="20" value="6.5" step="0.05">
+          <span class="input-suffix">%</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Tenure</label>
+        <div class="range-wrap">
+          <input type="range" id="tenureSlider" min="6" max="120" value="24" oninput="syncTenure(this.value)">
+          <span class="range-val" id="tenureDisplay">24 mo</span>
+        </div>
+        <input type="number" id="tenure" min="6" max="120" value="24" style="margin-top:6px;" oninput="syncTenureFromInput(this.value)">
+        <div style="font-size:0.66rem;color:var(--text-muted);margin-top:4px;">6 – 120 months (0.5 – 10 years)</div>
+      </div>
+
+      <div class="field">
+        <label>Compounding Frequency</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" id="comp-quarterly" onclick="setComp('quarterly')">Quarterly</button>
+          <button class="toggle-btn" id="comp-monthly" onclick="setComp('monthly')">Monthly</button>
+          <button class="toggle-btn" id="comp-annual" onclick="setComp('annual')">Annual</button>
+        </div>
+        <div style="font-size:0.66rem;color:var(--text-muted);margin-top:4px;">Quarterly is standard for Indian banks</div>
+      </div>
+
+      <div class="divider"></div>
+      <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:8px;">Bank Presets</div>
+
+      <div class="preset-grid">
+        <button class="preset-btn active" id="preset-sbi" onclick="setPreset('sbi',6.5)">
+          SBI
+          <span class="preset-sub">6.5%</span>
+        </button>
+        <button class="preset-btn" id="preset-hdfc" onclick="setPreset('hdfc',7.0)">
+          HDFC Bank
+          <span class="preset-sub">7.0%</span>
+        </button>
+        <button class="preset-btn" id="preset-po" onclick="setPreset('po',6.7)">
+          Post Office
+          <span class="preset-sub">6.7%</span>
+        </button>
+        <button class="preset-btn" id="preset-custom" onclick="setPreset('custom',null)">
+          Custom
+          <span class="preset-sub">manual</span>
+        </button>
+      </div>
+
+    </div><!-- /left panel -->
+
+    <!-- RIGHT PANEL -->
+    <div>
+
+      <!-- Summary -->
+      <div class="summary-grid">
+        <div class="stat-card c-harvest">
+          <div class="stat-label">Total Deposited</div>
+          <div class="stat-value harvest" id="s-deposited">—</div>
+          <div class="stat-sub" id="s-deposited-sub">—</div>
+        </div>
+        <div class="stat-card c-profit">
+          <div class="stat-label">Interest Earned</div>
+          <div class="stat-value profit" id="s-interest">—</div>
+          <div class="stat-sub" id="s-interest-pct">—</div>
+        </div>
+        <div class="stat-card c-warn">
+          <div class="stat-label">Maturity Amount</div>
+          <div class="stat-value warn" id="s-maturity">—</div>
+          <div class="stat-sub" id="s-maturity-sub">—</div>
+        </div>
+        <div class="stat-card c-purple">
+          <div class="stat-label">Effective Yield</div>
+          <div class="stat-value purple" id="s-yield">—</div>
+          <div class="stat-sub">annualised return</div>
+        </div>
+      </div>
+
+      <!-- FD vs RD comparison -->
+      <div class="compare-strip">
+        <h4>Same Amount: RD vs Lump-sum FD Comparison</h4>
+        <div class="compare-row">
+          <div class="cmp-card">
+            <div class="cmp-label">Recurring Deposit</div>
+            <div class="cmp-val rd" id="cmp-rd">—</div>
+            <div class="cmp-sub">monthly deposits</div>
+            <div id="cmp-rd-diff"></div>
+          </div>
+          <div class="vs-badge">vs</div>
+          <div class="cmp-card">
+            <div class="cmp-label">Lump-sum FD</div>
+            <div class="cmp-val fd" id="cmp-fd">—</div>
+            <div class="cmp-sub">total amount upfront</div>
+            <div id="cmp-fd-diff"></div>
+          </div>
+        </div>
+        <div style="font-size:0.7rem;color:var(--text-muted);margin-top:10px;" id="cmp-note"></div>
+      </div>
+
+      <!-- Table tabs -->
+      <div class="tabs">
+        <button class="tab active" id="tab-quarterly" onclick="switchTab('quarterly')">Quarter-wise</button>
+        <button class="tab" id="tab-monthly" onclick="switchTab('monthly')">Month-wise</button>
+      </div>
+
+      <div class="tab-panel active" id="panel-quarterly">
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Quarter</th>
+                <th>Deposits This Qtr</th>
+                <th>Interest This Qtr</th>
+                <th>Cumulative Deposits</th>
+                <th>Cumulative Interest</th>
+                <th>Balance</th>
+              </tr>
+            </thead>
+            <tbody id="qtrTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-monthly">
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Deposit</th>
+                <th>Interest</th>
+                <th>Cum. Deposits</th>
+                <th>Cum. Interest</th>
+                <th>Balance</th>
+              </tr>
+            </thead>
+            <tbody id="monthTbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /right panel -->
+  </div><!-- /layout -->
+
+</div><!-- /container -->
+<footer>Personal Finance Tools · Interest rates are indicative · Actual rates vary by bank and tenure · All calculations are pre-tax</footer>
+
+<script>
+let compounding = 'quarterly';
+let activePreset = 'sbi';
+
+function setComp(c) {
+  compounding = c;
+  ['quarterly','monthly','annual'].forEach(id => {
+    document.getElementById('comp-' + id).classList.toggle('active', id === c);
+  });
+  calc();
+}
+
+function setPreset(name, rate) {
+  activePreset = name;
+  ['sbi','hdfc','po','custom'].forEach(id => {
+    document.getElementById('preset-' + id).classList.toggle('active', id === name);
+  });
+  if (rate !== null) {
+    document.getElementById('rate').value = rate;
+  }
+  calc();
+}
+
+function syncTenure(v) {
+  document.getElementById('tenure').value = v;
+  document.getElementById('tenureDisplay').textContent = v + ' mo';
+  calc();
+}
+
+function syncTenureFromInput(v) {
+  let val = Math.min(120, Math.max(6, parseInt(v)||6));
+  document.getElementById('tenureSlider').value = val;
+  document.getElementById('tenureDisplay').textContent = val + ' mo';
+  calc();
+}
+
+function switchTab(t) {
+  document.getElementById('tab-quarterly').classList.toggle('active', t === 'quarterly');
+  document.getElementById('tab-monthly').classList.toggle('active', t === 'monthly');
+  document.getElementById('panel-quarterly').classList.toggle('active', t === 'quarterly');
+  document.getElementById('panel-monthly').classList.toggle('active', t === 'monthly');
+}
+
+const fmt = v => '₹' + Math.round(v).toLocaleString('en-IN');
+const fmtD = v => parseFloat(v).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+function calcRD(R, annualRate, tenureMonths, comp) {
+  // Returns maturity amount
+  if (comp === 'quarterly') {
+    // Standard Indian RD quarterly compounding formula
+    // Each deposit R made at start of month m, compounds for (n-m) months
+    // We simulate month by month accumulation with quarterly compounding
+    const i = annualRate / 4; // quarterly rate
+    const n = tenureMonths;
+    // M = R × [(1+i)^n - 1] / [1 - (1+i)^(-1/3)]
+    // where i = r/4, n = tenure in quarters
+    const nQ = n / 3;
+    const numerator = Math.pow(1 + i, nQ) - 1;
+    const denominator = 1 - Math.pow(1 + i, -1/3);
+    return R * numerator / denominator;
+  } else if (comp === 'monthly') {
+    // M = R × [(1+r)^n - 1] / r × (1+r) -- annuity due
+    const r = annualRate / 12;
+    const n = tenureMonths;
+    return R * (Math.pow(1 + r, n) - 1) / r * (1 + r);
+  } else {
+    // Annual compounding - simulate month by month
+    let balance = 0;
+    const monthlyRate = Math.pow(1 + annualRate, 1/12) - 1;
+    for (let m = 0; m < tenureMonths; m++) {
+      balance = (balance + R) * (1 + monthlyRate);
+    }
+    return balance;
+  }
+}
+
+function calcMonthlySchedule(R, annualRate, tenureMonths, comp) {
+  const rows = [];
+  let balance = 0;
+  let cumDeposits = 0;
+  let cumInterest = 0;
+
+  for (let m = 1; m <= tenureMonths; m++) {
+    let interestThisMonth;
+    let prevBalance = balance;
+    cumDeposits += R;
+    balance += R; // deposit first
+
+    if (comp === 'monthly') {
+      const r = annualRate / 12;
+      interestThisMonth = prevBalance * r + R * r; // simplified
+      balance = prevBalance + R + interestThisMonth;
+    } else if (comp === 'quarterly') {
+      if (m % 3 === 0) {
+        // Quarter end: interest on average balance
+        // Approximate: interest on total balance built over this quarter
+        const quarterDeposits = R * 3;
+        const quarterOpenBal = balance - quarterDeposits;
+        const qRate = annualRate / 4;
+        interestThisMonth = (quarterOpenBal + quarterDeposits) * qRate;
+        balance += interestThisMonth;
+      } else {
+        interestThisMonth = 0;
+      }
+    } else {
+      // Annual
+      if (m % 12 === 0) {
+        const yearDeposits = R * 12;
+        const yearOpenBal = balance - yearDeposits;
+        interestThisMonth = (yearOpenBal + yearDeposits) * annualRate;
+        balance += interestThisMonth;
+      } else {
+        interestThisMonth = 0;
+      }
+    }
+
+    cumInterest += interestThisMonth;
+    rows.push({ m, deposit: R, interest: interestThisMonth, cumDeposits, cumInterest, balance: balance });
+  }
+  return rows;
+}
+
+function calc() {
+  const R = parseFloat(document.getElementById('monthly').value) || 0;
+  const annualRate = (parseFloat(document.getElementById('rate').value) || 6.5) / 100;
+  const tenureMonths = parseInt(document.getElementById('tenure').value) || 24;
+
+  const maturity = calcRD(R, annualRate, tenureMonths, compounding);
+  const totalDeposited = R * tenureMonths;
+  const totalInterest = maturity - totalDeposited;
+  const yrs = tenureMonths / 12;
+  // Effective annual yield (CAGR of total deposited to maturity - approximation)
+  // Since deposits are staggered, use simple ratio annualised
+  const effectiveYield = totalDeposited > 0 ? ((maturity / totalDeposited - 1) / yrs * 100) : 0;
+  const interestPct = totalDeposited > 0 ? (totalInterest / totalDeposited * 100) : 0;
+
+  // FD comparison: same total amount as lump sum
+  const fdLumpsum = totalDeposited;
+  let fdMaturity;
+  if (compounding === 'quarterly') {
+    fdMaturity = fdLumpsum * Math.pow(1 + annualRate/4, 4*yrs);
+  } else if (compounding === 'monthly') {
+    fdMaturity = fdLumpsum * Math.pow(1 + annualRate/12, 12*yrs);
+  } else {
+    fdMaturity = fdLumpsum * Math.pow(1 + annualRate, yrs);
+  }
+
+  const yrsLabel = yrs === Math.floor(yrs) ? yrs + ' yr' + (yrs !== 1 ? 's' : '') : fmtD(yrs) + ' yrs';
+
+  // Update summary
+  document.getElementById('s-deposited').textContent = fmt(totalDeposited);
+  document.getElementById('s-deposited-sub').textContent = `${tenureMonths} months × ${fmt(R)}/mo`;
+  document.getElementById('s-interest').textContent = fmt(totalInterest);
+  document.getElementById('s-interest-pct').textContent = fmtD(interestPct) + '% of deposited';
+  document.getElementById('s-maturity').textContent = fmt(maturity);
+  document.getElementById('s-maturity-sub').textContent = `after ${yrsLabel}`;
+  document.getElementById('s-yield').textContent = fmtD(effectiveYield) + '%';
+
+  // Comparison
+  document.getElementById('cmp-rd').textContent = fmt(maturity);
+  document.getElementById('cmp-fd').textContent = fmt(fdMaturity);
+  const diff = fdMaturity - maturity;
+  const diffPct = (Math.abs(diff) / maturity * 100).toFixed(1);
+  document.getElementById('cmp-rd-diff').innerHTML = '';
+  document.getElementById('cmp-fd-diff').innerHTML = diff > 0
+    ? `<span class="diff-tag better">+${fmt(diff)} more</span>`
+    : `<span class="diff-tag worse">${fmt(diff)} less</span>`;
+  document.getElementById('cmp-note').textContent =
+    `FD earns ${diff > 0 ? fmt(Math.abs(diff)) + ' more' : fmt(Math.abs(diff)) + ' less'} because it compounds the full amount from day 1, while RD adds deposits monthly. FD requires ${fmt(fdLumpsum)} upfront vs RD's ${fmt(R)}/month.`;
+
+  // Build monthly schedule
+  const monthRows = calcMonthlySchedule(R, annualRate, tenureMonths, compounding);
+
+  // Month table
+  const monthTbody = document.getElementById('monthTbody');
+  monthTbody.innerHTML = '';
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  monthRows.forEach(r => {
+    const tr = document.createElement('tr');
+    const yrNo = Math.ceil(r.m / 12);
+    const moName = monthNames[(r.m - 1) % 12];
+    tr.innerHTML = `
+      <td>Mo ${r.m} <span style="color:var(--text-muted);font-size:0.7rem;">${moName}</span></td>
+      <td class="text-harvest">${fmt(r.deposit)}</td>
+      <td class="${r.interest > 0 ? 'text-profit' : 'text-dim'}">${r.interest > 0 ? fmt(r.interest) : '—'}</td>
+      <td>${fmt(r.cumDeposits)}</td>
+      <td class="text-profit">${fmt(r.cumInterest)}</td>
+      <td class="text-warn">${fmt(r.balance)}</td>
+    `;
+    monthTbody.appendChild(tr);
+  });
+
+  // Quarter table - aggregate monthly rows
+  const qtrTbody = document.getElementById('qtrTbody');
+  qtrTbody.innerHTML = '';
+  const numQtrs = Math.ceil(tenureMonths / 3);
+  for (let q = 1; q <= numQtrs; q++) {
+    const endMo = Math.min(q * 3, tenureMonths);
+    const startMo = (q - 1) * 3 + 1;
+    const qRows = monthRows.slice(startMo - 1, endMo);
+    if (!qRows.length) continue;
+    const qDeposits = qRows.reduce((s, r) => s + r.deposit, 0);
+    const qInterest = qRows.reduce((s, r) => s + r.interest, 0);
+    const lastRow = qRows[qRows.length - 1];
+    const yrNo = Math.ceil(q / 4);
+    const tr = document.createElement('tr');
+    tr.className = 'qtr-row';
+    tr.innerHTML = `
+      <td>Q${q} <span style="color:var(--text-muted);font-size:0.7rem;">Yr ${yrNo}</span></td>
+      <td class="text-harvest">${fmt(qDeposits)}</td>
+      <td class="${qInterest > 0 ? 'text-profit' : 'text-dim'}">${qInterest > 0 ? fmt(qInterest) : '—'}</td>
+      <td>${fmt(lastRow.cumDeposits)}</td>
+      <td class="text-profit">${fmt(lastRow.cumInterest)}</td>
+      <td class="text-warn">${fmt(lastRow.balance)}</td>
+    `;
+    qtrTbody.appendChild(tr);
+  }
+
+  // Total rows
+  const totMoTr = document.createElement('tr');
+  totMoTr.className = 'total-row';
+  const lastM = monthRows[monthRows.length - 1];
+  totMoTr.innerHTML = `<td>Total</td><td class="text-harvest">${fmt(totalDeposited)}</td><td class="text-profit">${fmt(lastM?.cumInterest||0)}</td><td>${fmt(totalDeposited)}</td><td class="text-profit">${fmt(lastM?.cumInterest||0)}</td><td class="text-warn">${fmt(lastM?.balance||0)}</td>`;
+  monthTbody.appendChild(totMoTr);
+
+  const totQtrTr = document.createElement('tr');
+  totQtrTr.className = 'total-row';
+  totQtrTr.innerHTML = `<td>Total</td><td class="text-harvest">${fmt(totalDeposited)}</td><td class="text-profit">${fmt(lastM?.cumInterest||0)}</td><td>${fmt(totalDeposited)}</td><td class="text-profit">${fmt(lastM?.cumInterest||0)}</td><td class="text-warn">${fmt(lastM?.balance||0)}</td>`;
+  qtrTbody.appendChild(totQtrTr);
+}
+
+// Listeners
+['monthly','rate','tenure'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    if (id === 'tenure') syncTenureFromInput(document.getElementById('tenure').value);
+    else calc();
+  });
+});
+document.getElementById('tenureSlider').addEventListener('input', e => syncTenure(e.target.value));
+document.getElementById('rate').addEventListener('input', () => {
+  // Mark as custom preset
+  ['sbi','hdfc','po'].forEach(id => document.getElementById('preset-' + id).classList.remove('active'));
+  document.getElementById('preset-custom').classList.add('active');
+  activePreset = 'custom';
+  calc();
+});
+
+calc();
+</script>
+</body>
+</html>

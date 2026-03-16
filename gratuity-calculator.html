@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gratuity Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080b10; --surface:#0f1419; --surface2:#161d26; --surface3:#1c2530;
+  --border:#1e2a38; --text:#dfe6ee; --text-dim:#7b8da0; --text-muted:#4a5c6e;
+  --accent:#2d6a4f; --accent-bright:#40916c; --accent-light:#52b788; --accent-glow:#40916c22;
+  --harvest:#4e8fd4; --harvest-bg:#4e8fd412; --harvest-border:#4e8fd433;
+  --loss:#d94f4f; --loss-bg:#d94f4f12;
+  --warn:#d4a04e; --warn-bg:#d4a04e12;
+  --profit:#40916c; --profit-bg:#40916c12;
+  --purple:#9d7fe8; --purple-bg:#9d7fe812;
+  --rose:#d4607a; --rose-bg:#d4607a12;
+}
+:root[data-theme="light"] {
+  --bg:#f4f6f9; --surface:#ffffff; --surface2:#eef1f6; --surface3:#e4e8f0;
+  --border:#cdd5e0; --text:#1c2b3a; --text-dim:#526070; --text-muted:#8a9baa;
+  --accent:#1e5c3a; --accent-bright:#2d8a5e; --accent-light:#239659; --accent-glow:#2d8a5e18;
+  --harvest:#1a5faa; --harvest-bg:#1a5faa0f; --harvest-border:#1a5faa30;
+  --loss:#c03030; --loss-bg:#c030300f; --warn:#9a6010; --warn-bg:#9a60100f;
+  --profit:#1e7a4a; --profit-bg:#1e7a4a0f; --purple:#6d4ec4; --purple-bg:#6d4ec410;
+  --rose:#b0304a; --rose-bg:#b0304a10;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; line-height:1.55; }
+.container { max-width:1100px; margin:0 auto; padding:20px 16px; }
+
+.topnav { display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+.back-link { font-size:0.78rem; color:var(--text-dim); text-decoration:none; display:flex; align-items:center; gap:5px; padding:6px 12px; background:var(--surface); border:1px solid var(--border); border-radius:7px; transition:all .2s; }
+.back-link:hover { color:var(--text); border-color:var(--purple); }
+.page-title { font-size:0.9rem; font-weight:700; color:var(--purple); }
+
+header { margin-bottom:24px; padding:20px 0 18px; border-bottom:1px solid var(--border); }
+h1 { font-size:1.5rem; font-weight:700; letter-spacing:-0.025em; background:linear-gradient(135deg,#e0e8f0 30%,var(--purple) 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:4px; }
+.tagline { font-size:0.82rem; color:var(--text-dim); }
+
+.layout { display:grid; grid-template-columns:360px 1fr; gap:18px; align-items:start; }
+@media(max-width:860px){ .layout { grid-template-columns:1fr; } }
+
+.panel { background:var(--surface); border:1px solid var(--border); border-radius:11px; padding:20px; }
+:root[data-theme="light"] .panel { box-shadow:0 1px 4px rgba(0,0,0,.07); }
+.panel-title { font-size:0.85rem; font-weight:700; margin-bottom:16px; color:var(--text); }
+
+/* Segment buttons */
+.seg { display:flex; gap:2px; background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:3px; margin-bottom:14px; }
+.seg-btn { flex:1; padding:7px 4px; text-align:center; font-size:0.76rem; font-weight:600; color:var(--text-dim); cursor:pointer; border-radius:7px; border:none; background:none; font-family:inherit; transition:all .2s; white-space:nowrap; }
+.seg-btn.active { background:var(--surface3); color:var(--purple); }
+.seg-btn:hover:not(.active) { color:var(--text); }
+
+.field { margin-bottom:14px; }
+.field label { display:block; font-size:0.68rem; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-muted); margin-bottom:6px; }
+.field .hint { font-size:0.67rem; color:var(--text-muted); margin-top:4px; }
+.input-wrap { position:relative; }
+.input-prefix { position:absolute; left:11px; top:50%; transform:translateY(-50%); font-family:'JetBrains Mono',monospace; font-size:0.85rem; color:var(--text-dim); pointer-events:none; }
+.input-suffix { position:absolute; right:11px; top:50%; transform:translateY(-50%); font-family:'JetBrains Mono',monospace; font-size:0.8rem; color:var(--text-dim); pointer-events:none; }
+input[type="number"] { width:100%; background:var(--surface2); border:1px solid var(--border); color:var(--text); font-family:'JetBrains Mono',monospace; font-size:0.88rem; padding:9px 12px; border-radius:7px; outline:none; transition:border-color .2s; }
+input.has-prefix { padding-left:26px; }
+input.has-suffix { padding-right:30px; }
+input[type="number"]:focus { border-color:var(--purple); box-shadow:0 0 0 3px var(--purple-bg); }
+
+/* Toggle checkbox */
+.toggle-row { display:flex; align-items:center; gap:10px; padding:10px 0; }
+.toggle-row label { font-size:0.82rem; color:var(--text-dim); cursor:pointer; user-select:none; }
+.toggle { position:relative; display:inline-block; width:38px; height:21px; }
+.toggle input { opacity:0; width:0; height:0; }
+.toggle-slider { position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:var(--surface3); border-radius:21px; transition:.3s; border:1px solid var(--border); }
+.toggle-slider:before { position:absolute; content:''; height:15px; width:15px; left:2px; bottom:2px; background:var(--text-muted); border-radius:50%; transition:.3s; }
+.toggle input:checked + .toggle-slider { background:var(--purple-bg); border-color:var(--purple); }
+.toggle input:checked + .toggle-slider:before { transform:translateX(17px); background:var(--purple); }
+
+/* Hero result */
+.result-hero { background:var(--surface2); border:1px solid var(--border); border-radius:11px; padding:22px; margin-bottom:16px; }
+.result-hero .rh-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px; }
+.result-hero .rh-main { }
+.result-hero .rh-label { font-size:0.72rem; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); margin-bottom:6px; }
+.result-hero .rh-amount { font-family:'JetBrains Mono',monospace; font-size:2.4rem; font-weight:700; color:var(--purple); line-height:1.1; }
+.result-hero .rh-sub { font-size:0.78rem; color:var(--text-dim); margin-top:4px; }
+.result-hero .rh-badge { padding:5px 12px; border-radius:20px; font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+.rh-badge.eligible { background:var(--profit-bg); border:1px solid var(--profit); color:var(--profit); }
+.rh-badge.ineligible { background:var(--loss-bg); border:1px solid var(--loss); color:var(--loss); }
+.rh-badge.borderline { background:var(--warn-bg); border:1px solid var(--warn); color:var(--warn); }
+
+/* Info boxes */
+.info-box { padding:12px 14px; border-radius:8px; font-size:0.8rem; margin-bottom:12px; border:1px solid; }
+.info-box.warn { background:var(--warn-bg); border-color:var(--warn); color:var(--warn); }
+.info-box.loss { background:var(--loss-bg); border-color:var(--loss); color:var(--loss); }
+.info-box.profit { background:var(--profit-bg); border-color:var(--profit); color:var(--profit); }
+.info-box.harvest { background:var(--harvest-bg); border-color:var(--harvest); color:var(--harvest); }
+.info-box.purple { background:var(--purple-bg); border-color:var(--purple); color:var(--purple); }
+.info-box strong { font-weight:700; }
+
+/* Summary cards */
+.summary-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:16px; }
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; position:relative; overflow:hidden; }
+.stat-card::after { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+.stat-card.c-purple::after { background:var(--purple); }
+.stat-card.c-profit::after { background:var(--profit); }
+.stat-card.c-loss::after { background:var(--loss); }
+.stat-card.c-harvest::after { background:var(--harvest); }
+.stat-label { font-size:0.66rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin-bottom:2px; }
+.stat-value { font-family:'JetBrains Mono',monospace; font-size:1.1rem; font-weight:700; }
+.stat-value.purple { color:var(--purple); }
+.stat-value.profit { color:var(--profit); }
+.stat-value.loss { color:var(--loss); }
+.stat-value.harvest { color:var(--harvest); }
+.stat-sub { font-size:0.7rem; color:var(--text-dim); margin-top:2px; }
+
+/* Breakdown table */
+.section-title { font-size:0.75rem; font-weight:700; color:var(--text-dim); margin-bottom:10px; text-transform:uppercase; letter-spacing:.05em; }
+.tbl-wrap { overflow-x:auto; border-radius:9px; border:1px solid var(--border); margin-bottom:16px; }
+table { width:100%; border-collapse:collapse; font-size:0.79rem; }
+thead th { text-align:right; padding:10px 12px; font-size:0.63rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); border-bottom:1px solid var(--border); white-space:nowrap; background:var(--surface2); }
+thead th:first-child { text-align:left; }
+tbody td { padding:10px 12px; border-bottom:1px solid var(--border); font-family:'JetBrains Mono',monospace; font-size:0.82rem; text-align:right; }
+tbody td:first-child { text-align:left; font-family:'DM Sans',sans-serif; font-weight:600; font-size:0.82rem; }
+tbody tr:last-child td { border-bottom:none; }
+.text-purple { color:var(--purple); }
+.text-profit { color:var(--profit); }
+.text-loss { color:var(--loss); }
+.text-warn { color:var(--warn); }
+.text-harvest { color:var(--harvest); }
+.text-dim { color:var(--text-dim); }
+.text-muted { color:var(--text-muted); }
+
+/* Formula note */
+.formula-note { background:var(--surface2); border:1px solid var(--border); border-radius:9px; padding:14px; font-size:0.78rem; color:var(--text-dim); }
+.formula-note code { font-family:'JetBrains Mono',monospace; color:var(--purple); font-size:0.75rem; background:var(--surface3); padding:2px 5px; border-radius:4px; }
+</style>
+<script src="theme.js"></script>
+</head>
+<body>
+<div class="container">
+  <div class="topnav">
+    <a href="index.html" class="back-link">← Home</a>
+    <span class="page-title">Gratuity Calculator</span>
+  </div>
+  <header>
+    <h1>Gratuity Calculator</h1>
+    <p class="tagline">Gratuity Act · Non-covered · Government · Tax exemption breakdown</p>
+  </header>
+
+  <div class="layout">
+    <!-- Left Panel -->
+    <div class="panel">
+      <div class="panel-title">Employee Details</div>
+
+      <div class="field">
+        <label>Last Drawn Basic + DA (per month)</label>
+        <div class="input-wrap">
+          <span class="input-prefix">₹</span>
+          <input type="number" id="salary" class="has-prefix" value="50000" min="1000" oninput="calc()">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Years of Service</label>
+        <div class="input-wrap">
+          <input type="number" id="years" class="has-suffix" value="10" min="0" max="50" step="0.1" oninput="calc()">
+          <span class="input-suffix">yr</span>
+        </div>
+        <div class="hint">Decimals allowed (e.g. 5.8 = 5 years 9.6 months)</div>
+      </div>
+
+      <div class="field">
+        <label>Employment Type</label>
+        <div class="seg">
+          <button class="seg-btn" id="etGov" onclick="setEmpType('govt')">Government</button>
+          <button class="seg-btn active" id="etAct" onclick="setEmpType('act')">Private (Act)</button>
+          <button class="seg-btn" id="etNon" onclick="setEmpType('non')">Private (Non)</button>
+        </div>
+        <div class="hint" id="empTypeHint">Covered under Gratuity Act (10+ employees)</div>
+      </div>
+
+      <div class="field">
+        <label>Nomination &amp; Tax</label>
+        <div class="toggle-row">
+          <label class="toggle">
+            <input type="checkbox" id="hasNominee" checked onchange="calc()">
+            <div class="toggle-slider"></div>
+          </label>
+          <label for="hasNominee">Nominee designated (affects tax exemption)</label>
+        </div>
+      </div>
+
+      <!-- Formula note -->
+      <div class="formula-note" id="formulaNote">
+        <strong style="color:var(--text)">Formula:</strong> <code>(Basic+DA × 15 × Years) / 26</code><br>
+        <span style="margin-top:4px;display:block">Capped at ₹20,00,000. Years rounded to nearest full year (6+ months = next year).</span>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div>
+      <!-- Hero -->
+      <div class="result-hero">
+        <div class="rh-top">
+          <div class="rh-main">
+            <div class="rh-label">Gross Gratuity</div>
+            <div class="rh-amount" id="heroAmt">₹2,88,462</div>
+            <div class="rh-sub" id="heroSub">Private (Gratuity Act) · 10 years service</div>
+          </div>
+          <div class="rh-badge eligible" id="eligBadge">Eligible</div>
+        </div>
+        <div id="eligNote" class="info-box profit" style="margin-bottom:0">
+          Minimum 5 years of continuous service required. Eligible for gratuity.
+        </div>
+      </div>
+
+      <!-- Summary cards -->
+      <div class="summary-grid">
+        <div class="stat-card c-purple">
+          <div class="stat-label">Gross Gratuity</div>
+          <div class="stat-value purple" id="scGross">—</div>
+          <div class="stat-sub" id="scGrossSub"></div>
+        </div>
+        <div class="stat-card c-profit">
+          <div class="stat-label">Tax Exempt Amount</div>
+          <div class="stat-value profit" id="scExempt">—</div>
+          <div class="stat-sub" id="scExemptSub"></div>
+        </div>
+        <div class="stat-card c-loss">
+          <div class="stat-label">Taxable Amount</div>
+          <div class="stat-value loss" id="scTaxable">—</div>
+          <div class="stat-sub" id="scTaxableSub"></div>
+        </div>
+        <div class="stat-card c-harvest">
+          <div class="stat-label">Tax @ 30% Slab</div>
+          <div class="stat-value harvest" id="scTax">—</div>
+          <div class="stat-sub" id="scTaxSub"></div>
+        </div>
+      </div>
+
+      <!-- Breakdown table -->
+      <div class="section-title">Detailed Breakdown</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Calculation</th>
+              <th>Amount</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody id="breakdownBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Tax exemption note -->
+      <div class="section-title">Tax Exemption Rules</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Rule</th>
+              <th>Amount</th>
+              <th>Applicable</th>
+            </tr>
+          </thead>
+          <tbody id="taxRulesBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let empType = 'act'; // 'govt' | 'act' | 'non'
+const CAP_ACT  = 2000000; // ₹20L cap for Act / Govt
+const CAP_GOVT = 2000000; // Same cap, higher in practice but statutory is ₹20L
+const TAX_RATE = 0.30;
+
+function setEmpType(t) {
+  empType = t;
+  ['etGov','etAct','etNon'].forEach((id,i) => {
+    document.getElementById(id).classList.toggle('active', ['govt','act','non'][i] === t);
+  });
+  const hints = {
+    govt: 'Government employees — 7th Pay Commission rules apply',
+    act:  'Covered under Gratuity Act (organisations with 10+ employees)',
+    non:  'Private employer not covered under Payment of Gratuity Act'
+  };
+  document.getElementById('empTypeHint').textContent = hints[t];
+
+  const formulas = {
+    govt: '<strong style="color:var(--text)">Formula:</strong> <code>(Basic+DA × 15 × Years) / 26</code><br><span style="margin-top:4px;display:block">Government cap: ₹20,00,000. Rounded to nearest half-year.</span>',
+    act:  '<strong style="color:var(--text)">Formula:</strong> <code>(Basic+DA × 15 × Years) / 26</code><br><span style="margin-top:4px;display:block">Capped at ₹20,00,000. Years rounded to nearest full year (6+ months = next year).</span>',
+    non:  '<strong style="color:var(--text)">Formula:</strong> <code>(Basic+DA × 15 × Years) / 30</code><br><span style="margin-top:4px;display:block">No statutory cap. Employer discretion. Tax exemption still applies.</span>'
+  };
+  document.getElementById('formulaNote').innerHTML = formulas[t];
+  calc();
+}
+
+function fmtINR(n) {
+  return '₹' + Math.round(n).toLocaleString('en-IN');
+}
+function fmtINRd(n) {
+  return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function roundYears(rawYears, type) {
+  // Act / Govt: if months >= 6 round up, else round down
+  // Non-covered: use raw value (employer discretion, typically same rounding)
+  const full = Math.floor(rawYears);
+  const frac = rawYears - full;
+  if (type === 'non') return rawYears; // non-covered uses exact or employer decides; we use exact
+  return frac >= 0.5 ? full + 1 : full;
+}
+
+function calcGratuity(salary, rawYears, type) {
+  const years = roundYears(rawYears, type);
+  let gross;
+  if (type === 'govt' || type === 'act') {
+    gross = (salary * 15 * years) / 26;
+    if (type === 'act') gross = Math.min(gross, CAP_ACT);
+    if (type === 'govt') gross = Math.min(gross, CAP_GOVT);
+  } else {
+    // non-covered
+    gross = (salary * 15 * rawYears) / 30;
+    // no statutory cap but practically apply reasonable limit
+  }
+  return { gross, years };
+}
+
+function calcTaxExemption(gross, salary, rawYears, hasNominee, type) {
+  // For Act-covered and Govt: exempt = min(gross, ₹20L, salary*15/26*years)
+  // For non-covered: exempt = min(gross, ₹10L*, half-month salary per year of service)
+  // *Note: non-covered tax exemption cap is ₹20L (2023 revision) for nominated, else fully taxable
+  // Ref: Section 10(10) of Income Tax Act
+  if (!hasNominee) {
+    // No nominee — fully taxable (nominee is required for tax exemption)
+    return { exempt: 0, taxable: gross };
+  }
+
+  let exemptLimit;
+  if (type === 'govt') {
+    // Govt: fully exempt from tax (no cap issue for tax purposes)
+    return { exempt: gross, taxable: 0 };
+  } else if (type === 'act') {
+    const years = roundYears(rawYears, type);
+    const rule3 = (salary * 15 / 26) * years;
+    exemptLimit = Math.min(gross, CAP_ACT, rule3);
+  } else {
+    // Non-covered: half-month salary (basic+da/2) per completed year
+    const completedYears = Math.floor(rawYears);
+    const rule3 = (salary / 2) * completedYears;
+    exemptLimit = Math.min(gross, CAP_ACT, rule3);
+  }
+  const exempt = Math.max(0, exemptLimit);
+  const taxable = Math.max(0, gross - exempt);
+  return { exempt, taxable };
+}
+
+function isEligible(rawYears) {
+  // 5 years rule: 4 years 240 days also counts (typically interpreted as 4.66+ years)
+  // 240 days out of 365 = 0.6575 years
+  return rawYears >= 4.6575;
+}
+
+function calc() {
+  const salary   = parseFloat(document.getElementById('salary').value) || 0;
+  const rawYears = parseFloat(document.getElementById('years').value) || 0;
+  const hasNom   = document.getElementById('hasNominee').checked;
+
+  if (!salary || rawYears <= 0) return;
+
+  const { gross, years } = calcGratuity(salary, rawYears, empType);
+  const eligible = isEligible(rawYears);
+  const { exempt, taxable } = calcTaxExemption(gross, salary, rawYears, hasNom, empType);
+  const tax30 = taxable * TAX_RATE;
+
+  // Hero
+  document.getElementById('heroAmt').textContent = fmtINR(gross);
+  const empLabels = { govt:'Government', act:'Private (Gratuity Act)', non:'Private (Non-covered)' };
+  document.getElementById('heroSub').textContent = `${empLabels[empType]} · ${rawYears} years service`;
+
+  const badge = document.getElementById('eligBadge');
+  const noteBox = document.getElementById('eligNote');
+
+  if (!eligible) {
+    badge.className = 'rh-badge ineligible';
+    badge.textContent = 'Not Eligible';
+    noteBox.className = 'info-box loss';
+    noteBox.innerHTML = '<strong>Not eligible:</strong> Minimum 5 years of continuous service required (or 4 years + 240 days). Current service: ' + rawYears.toFixed(2) + ' years.';
+  } else if (rawYears >= 4.6575 && rawYears < 5) {
+    badge.className = 'rh-badge borderline';
+    badge.textContent = 'Borderline Eligible';
+    noteBox.className = 'info-box warn';
+    noteBox.innerHTML = '<strong>Borderline case:</strong> Service is 4 years + 240 days, which qualifies under the Act. Verify with your employer\'s HR department.';
+  } else {
+    badge.className = 'rh-badge eligible';
+    badge.textContent = 'Eligible';
+    noteBox.className = 'info-box profit';
+    noteBox.innerHTML = 'Minimum 5 years of continuous service requirement met. Eligible for gratuity.';
+  }
+
+  // Summary cards
+  document.getElementById('scGross').textContent = fmtINR(gross);
+  document.getElementById('scGrossSub').textContent = empType === 'act' || empType === 'govt'
+    ? `Rounded to ${years} yr${years !== 1 ? 's' : ''}`
+    : `Using ${rawYears} yrs (exact)`;
+  document.getElementById('scExempt').textContent = fmtINR(exempt);
+  document.getElementById('scExemptSub').textContent = 'Tax-free under Sec 10(10)';
+  document.getElementById('scTaxable').textContent = fmtINR(taxable);
+  document.getElementById('scTaxableSub').textContent = taxable > 0 ? 'Added to income for taxation' : 'Nil taxable amount';
+  document.getElementById('scTax').textContent = fmtINR(tax30);
+  document.getElementById('scTaxSub').textContent = taxable > 0 ? '30% slab (indicative)' : 'No tax on gratuity';
+
+  // Breakdown table
+  const divisor = (empType === 'non') ? 30 : 26;
+  const yearsUsed = (empType === 'non') ? rawYears : years;
+  const grossCalc = (salary * 15 * yearsUsed) / divisor;
+  const cappedGross = (empType === 'act') ? Math.min(grossCalc, CAP_ACT) : (empType === 'govt') ? Math.min(grossCalc, CAP_GOVT) : grossCalc;
+
+  let bRows = `
+    <tr>
+      <td>Basic + DA</td>
+      <td>Monthly salary</td>
+      <td class="text-harvest">${fmtINR(salary)}</td>
+      <td class="text-dim">Input value</td>
+    </tr>
+    <tr>
+      <td>Years of Service</td>
+      <td>Rounded (${rawYears} raw)</td>
+      <td class="text-harvest">${yearsUsed}</td>
+      <td class="text-dim">${empType === 'non' ? 'Exact years used' : '6+ months rounds up'}</td>
+    </tr>
+    <tr>
+      <td>Gross Gratuity</td>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem">${fmtINR(salary)} × 15 × ${yearsUsed} / ${divisor}</span></td>
+      <td class="text-purple">${fmtINR(grossCalc)}</td>
+      <td class="text-dim">${empType !== 'non' ? `Capped at ${fmtINR(empType === 'govt' ? CAP_GOVT : CAP_ACT)}` : 'No statutory cap'}</td>
+    </tr>`;
+
+  if ((empType === 'act' || empType === 'govt') && grossCalc > CAP_ACT) {
+    bRows += `
+      <tr>
+        <td>After Cap</td>
+        <td>Min(${fmtINR(grossCalc)}, ₹20L)</td>
+        <td class="text-purple">${fmtINR(cappedGross)}</td>
+        <td class="text-warn">Statutory cap applied</td>
+      </tr>`;
+  }
+
+  bRows += `
+    <tr>
+      <td>Tax Exempt Portion</td>
+      <td>Section 10(10)</td>
+      <td class="text-profit">${fmtINR(exempt)}</td>
+      <td class="text-dim">${hasNom ? 'Nominee present' : 'No nominee — nil exempt'}</td>
+    </tr>
+    <tr>
+      <td>Taxable Portion</td>
+      <td>${fmtINR(gross)} − ${fmtINR(exempt)}</td>
+      <td class="${taxable > 0 ? 'text-loss' : 'text-dim'}">${fmtINR(taxable)}</td>
+      <td class="text-dim">${taxable > 0 ? 'Taxed as salary income' : 'Nil'}</td>
+    </tr>
+    <tr>
+      <td>Tax @ 30% Slab</td>
+      <td>${fmtINR(taxable)} × 30%</td>
+      <td class="${tax30 > 0 ? 'text-loss' : 'text-dim'}">${fmtINR(tax30)}</td>
+      <td class="text-dim">Indicative (30% slab)</td>
+    </tr>`;
+
+  document.getElementById('breakdownBody').innerHTML = bRows;
+
+  // Tax rules table
+  const cap20L = 2000000;
+  let rule3Amount, rule3Label;
+  if (empType === 'govt') {
+    rule3Amount = gross;
+    rule3Label  = 'Govt — full amount';
+  } else if (empType === 'act') {
+    rule3Amount = (salary * 15 / 26) * years;
+    rule3Label  = `${fmtINR(salary)} × 15/26 × ${years} yr`;
+  } else {
+    const cYrs = Math.floor(rawYears);
+    rule3Amount = (salary / 2) * cYrs;
+    rule3Label  = `${fmtINR(salary)}/2 × ${cYrs} completed yr`;
+  }
+
+  const effExempt = hasNom ? (empType === 'govt' ? gross : Math.min(gross, cap20L, rule3Amount)) : 0;
+  const minOf = empType === 'govt' ? 'Fully exempt' : `Min of 3 values: ${fmtINR(effExempt)}`;
+
+  const trRules = [
+    { label: '1. Actual Gratuity Received', amount: gross, label2: 'Actual amount paid', active: true },
+    { label: '2. Statutory Maximum (₹20L)', amount: cap20L, label2: 'Sec 10(10) cap', active: gross > cap20L },
+    { label: '3. Formula-based Limit', amount: rule3Amount, label2: rule3Label, active: true },
+    { label: 'Effective Exemption', amount: effExempt, label2: minOf, highlight: true },
+  ];
+
+  document.getElementById('taxRulesBody').innerHTML = trRules.map(r => `
+    <tr style="${r.highlight ? 'background:var(--purple-bg)' : ''}">
+      <td style="${r.highlight ? 'color:var(--purple);font-weight:700' : ''}">${r.label}</td>
+      <td class="${r.highlight ? 'text-purple' : r.active ? 'text-harvest' : 'text-muted'}" style="font-weight:${r.highlight ? 700 : 400}">${fmtINR(r.amount)}</td>
+      <td class="text-dim" style="font-size:0.75rem">${r.label2}</td>
+    </tr>`).join('');
+}
+
+calc();
+</script>
+</body>
+</html>
