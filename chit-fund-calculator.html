@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chit Fund Calculator — Bid Strategy & Cost of Funds</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080b10; --surface:#0f1419; --surface2:#161d26; --border:#1e2a38;
+  --text:#dfe6ee; --text-dim:#7b8da0; --text-muted:#4a5c6e;
+  --accent:#2d6a4f; --accent-bright:#40916c; --accent-light:#52b788; --accent-glow:#40916c22;
+  --harvest:#4e8fd4; --harvest-bg:#4e8fd412; --harvest-border:#4e8fd433;
+  --warn:#d4a04e; --warn-bg:#d4a04e12; --warn-border:#d4a04e33;
+  --purple:#9d7fe8; --purple-bg:#9d7fe812;
+  --rose:#d4607a; --rose-bg:#d4607a12;
+  --profit:#52b788; --loss:#d94f4f;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+a{color:inherit;text-decoration:none;}
+
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+.topbar-back{font-size:0.8rem;color:var(--text-dim);display:flex;align-items:center;gap:5px;transition:color .2s;}
+.topbar-back:hover{color:var(--accent-light);}
+.topbar-title{font-size:0.9rem;font-weight:600;color:var(--text);}
+.topbar-badge{font-size:0.64rem;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-border);font-family:'JetBrains Mono',monospace;}
+
+.container{max-width:1200px;margin:0 auto;padding:32px 20px 60px;}
+
+/* ─ layout ─ */
+.layout{display:grid;grid-template-columns:320px 1fr;gap:24px;align-items:start;}
+@media(max-width:860px){.layout{grid-template-columns:1fr;}}
+
+/* ─ panels ─ */
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;}
+.panel-title{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:18px;}
+
+/* ─ form ─ */
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:0.76rem;font-weight:600;color:var(--text-dim);margin-bottom:6px;}
+.field input,.field select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.88rem;padding:9px 12px;border-radius:8px;outline:none;transition:border-color .2s;}
+.field input:focus,.field select:focus{border-color:var(--warn);}
+.field .hint{font-size:0.68rem;color:var(--text-muted);margin-top:4px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+.btn-calc{width:100%;background:linear-gradient(135deg,var(--warn),#e8b84e);color:#1a1000;font-family:'DM Sans',sans-serif;font-weight:700;font-size:0.88rem;border:none;border-radius:8px;padding:12px;cursor:pointer;margin-top:4px;transition:opacity .2s;}
+.btn-calc:hover{opacity:.9;}
+
+/* ─ summary cards ─ */
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+@media(max-width:700px){.summary-grid{grid-template-columns:repeat(2,1fr);}}
+.scard{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;}
+.sc-label{font-size:0.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:4px;}
+.sc-val{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--warn);}
+.sc-sub{font-size:0.68rem;color:var(--text-muted);margin-top:2px;}
+
+/* ─ recommendation box ─ */
+.rec-box{border-radius:12px;padding:20px 22px;margin-bottom:20px;display:none;}
+.rec-box.show{display:block;}
+.rec-box.good{background:#52b78810;border:1px solid #52b78833;}
+.rec-box.caution{background:var(--warn-bg);border:1px solid var(--warn-border);}
+.rec-box.bad{background:var(--rose-bg);border:1px solid #d4607a33;}
+.rec-title{font-size:0.78rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.rec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px;}
+@media(max-width:600px){.rec-grid{grid-template-columns:1fr;}}
+.rec-card{background:var(--surface);border-radius:8px;padding:12px 14px;border:1px solid var(--border);}
+.rc-label{font-size:0.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:4px;}
+.rc-disc{font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;}
+.rc-disc.green{color:var(--profit);}
+.rc-disc.warn{color:var(--warn);}
+.rc-disc.red{color:var(--loss);}
+.rc-amount{font-size:0.72rem;color:var(--text-dim);margin-top:2px;}
+.rc-apr{font-size:0.68rem;margin-top:4px;padding:2px 7px;border-radius:4px;display:inline-block;}
+.rc-apr.green{background:#52b78818;color:var(--profit);}
+.rc-apr.warn{background:var(--warn-bg);color:var(--warn);}
+.rec-plain{font-size:0.82rem;color:var(--text-dim);line-height:1.65;border-top:1px solid var(--border);padding-top:12px;margin-top:2px;}
+.rec-plain strong{color:var(--text);}
+
+/* ─ warnings ─ */
+.warn-strip{display:none;background:var(--rose-bg);border:1px solid #d4607a33;border-radius:8px;padding:10px 14px;font-size:0.78rem;color:var(--rose);margin-bottom:14px;line-height:1.6;}
+.warn-strip.show{display:block;}
+
+/* ─ table ─ */
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);}
+table.bid-table{width:100%;border-collapse:collapse;font-size:0.78rem;}
+.bid-table thead th{background:var(--surface2);padding:9px 12px;text-align:right;font-size:0.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);white-space:nowrap;border-bottom:1px solid var(--border);}
+.bid-table thead th:first-child{text-align:left;}
+.bid-table tbody td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;}
+.bid-table tbody td:first-child{text-align:left;font-family:'DM Sans',sans-serif;}
+.bid-table tbody tr:last-child td{border-bottom:none;}
+.bid-table tbody tr:hover{background:var(--surface2);}
+.bid-table tbody tr.row-best{background:#52b78808;}
+.bid-table tbody tr.row-safe{background:#4e8fd408;}
+.bid-table tbody tr.row-bad{background:#d94f4f08;}
+
+.badge{font-size:0.6rem;font-weight:700;padding:1px 6px;border-radius:4px;font-family:'DM Sans',sans-serif;display:inline-block;}
+.badge-green{background:#52b78820;color:var(--profit);border:1px solid #52b78840;}
+.badge-warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-border);}
+.badge-red{background:#d94f4f18;color:var(--loss);border:1px solid #d94f4f33;}
+.badge-blue{background:var(--harvest-bg);color:var(--harvest);border:1px solid var(--harvest-border);}
+
+.good-apr{color:var(--profit);font-weight:700;}
+.bad-apr{color:var(--loss);font-weight:700;}
+.eq-apr{color:var(--warn);font-weight:700;}
+
+/* ─ section title ─ */
+.sec-title{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin:0 0 10px;}
+
+/* ─ results wrapper ─ */
+#results{display:none;}
+#results.show{display:block;}
+
+/* ─ light theme ─ */
+:root[data-theme="light"]{
+  --bg:#f4f6f9;--surface:#fff;--surface2:#eef1f6;--border:#cdd5e0;
+  --text:#1c2b3a;--text-dim:#526070;--text-muted:#8a9baa;
+  --accent:#1e5c3a;--accent-bright:#2d8a5e;--accent-light:#239659;--accent-glow:#2d8a5e18;
+  --harvest:#1a5faa;--harvest-bg:#1a5faa0f;--harvest-border:#1a5faa30;
+  --warn:#9a6010;--warn-bg:#9a60100f;--warn-border:#9a601030;
+  --purple:#6d4ec4;--purple-bg:#6d4ec410;
+  --rose:#b0304a;--rose-bg:#b0304a10;
+  --profit:#1e7a4a;--loss:#c0392b;
+}
+:root[data-theme="light"] .panel{box-shadow:0 1px 4px rgba(0,0,0,.07);}
+</style>
+<script src="theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html" class="topbar-back">← Home</a>
+  <span style="color:var(--border)">|</span>
+  <span class="topbar-title">Chit Fund Calculator</span>
+  <span class="topbar-badge">FY 2025-26</span>
+</div>
+
+<div class="container">
+  <div class="layout">
+
+    <!-- ─── INPUTS ─────────────────────────────────── -->
+    <div class="panel">
+      <div class="panel-title">Chit Fund Details</div>
+
+      <div class="field">
+        <label>Total Chit Value (₹)</label>
+        <input type="number" id="chitValue" value="100000" min="1000" step="1000">
+        <div class="hint">Total value of the chit (e.g. ₹1,00,000)</div>
+      </div>
+
+      <div class="field">
+        <label>Number of Members</label>
+        <input type="number" id="members" value="20" min="2" max="200">
+        <div class="hint">Also equals the total duration in months</div>
+      </div>
+
+      <div class="field">
+        <label>Current Month (you are bidding now)</label>
+        <input type="number" id="currentMonth" value="5" min="1">
+        <div class="hint">Month 1 = first auction, Month N = last</div>
+      </div>
+
+      <div class="field">
+        <label>Frequency</label>
+        <select id="frequency">
+          <option value="monthly" selected>Monthly</option>
+          <option value="weekly">Weekly</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Foreman Commission (%)</label>
+        <input type="number" id="commission" value="5" min="0" max="30" step="0.5">
+        <div class="hint">Deducted from pot before distributing dividend</div>
+      </div>
+
+      <div class="field">
+        <label>Your External Investment Return (% p.a.)</label>
+        <input type="number" id="extReturn" value="12" min="0" max="50" step="0.5">
+        <div class="hint">What you earn if you invest elsewhere (FD / MF / etc.)</div>
+      </div>
+
+      <div class="field">
+        <label>Assumed Average Bid Discount for Future Months (%)</label>
+        <input type="number" id="avgFuture" value="15" min="0" max="60" step="1">
+        <div class="hint">Used to estimate future dividends (leave = your bid discount)</div>
+      </div>
+
+      <button class="btn-calc" onclick="runCalc()">Calculate Bid Strategy</button>
+    </div>
+
+    <!-- ─── RESULTS ─────────────────────────────────── -->
+    <div id="results">
+
+      <!-- Summary strip -->
+      <div class="summary-grid">
+        <div class="scard">
+          <div class="sc-label">Monthly Installment</div>
+          <div class="sc-val" id="sc-install">—</div>
+          <div class="sc-sub" id="sc-install-sub">per member</div>
+        </div>
+        <div class="scard">
+          <div class="sc-label">Remaining Months</div>
+          <div class="sc-val" id="sc-remain">—</div>
+          <div class="sc-sub">after winning this month</div>
+        </div>
+        <div class="scard">
+          <div class="sc-label">Max Safe Bid Discount</div>
+          <div class="sc-val" id="sc-maxsafe">—</div>
+          <div class="sc-sub">vs external return</div>
+        </div>
+        <div class="scard">
+          <div class="sc-label">Net Payout at Break-even</div>
+          <div class="sc-val" id="sc-payout">—</div>
+          <div class="sc-sub" id="sc-payout-sub">you take home</div>
+        </div>
+      </div>
+
+      <!-- Warnings -->
+      <div class="warn-strip" id="warnStrip"></div>
+
+      <!-- Recommendation box -->
+      <div class="rec-box" id="recBox">
+        <div class="rec-title" id="recTitle"></div>
+        <div class="rec-grid">
+          <div class="rec-card">
+            <div class="rc-label">Conservative Bid</div>
+            <div class="rc-disc green" id="rc-conservative">—</div>
+            <div class="rc-amount" id="rc-conservative-amt">—</div>
+            <span class="rc-apr green" id="rc-conservative-apr">—</span>
+          </div>
+          <div class="rec-card">
+            <div class="rc-label">Ideal Bid</div>
+            <div class="rc-disc warn" id="rc-ideal">—</div>
+            <div class="rc-amount" id="rc-ideal-amt">—</div>
+            <span class="rc-apr warn" id="rc-ideal-apr">—</span>
+          </div>
+          <div class="rec-card">
+            <div class="rc-label">Aggressive Bid (max safe)</div>
+            <div class="rc-disc red" id="rc-aggressive">—</div>
+            <div class="rc-amount" id="rc-aggressive-amt">—</div>
+            <span class="rc-apr" id="rc-aggressive-apr">—</span>
+          </div>
+        </div>
+        <div class="rec-plain" id="recPlain"></div>
+      </div>
+
+      <!-- Bid analysis table -->
+      <div class="panel" style="padding:20px;">
+        <div class="sec-title">Bid Discount Analysis</div>
+        <div class="tbl-wrap">
+          <table class="bid-table">
+            <thead>
+              <tr>
+                <th style="text-align:left">Discount</th>
+                <th>Bid (₹)</th>
+                <th>Net Payout (₹)</th>
+                <th>Dividend/mo (₹)</th>
+                <th>Net Monthly (₹)</th>
+                <th>Total Cost (₹)</th>
+                <th>Cost APR %</th>
+                <th>vs Ext. Return</th>
+                <th>Verdict</th>
+              </tr>
+            </thead>
+            <tbody id="bidTableBody"></tbody>
+          </table>
+        </div>
+        <div style="font-size:0.68rem;color:var(--text-muted);margin-top:10px;line-height:1.6;">
+          * <strong>Net Monthly</strong> = Installment − Dividend &nbsp;·&nbsp;
+          <strong>Total Cost</strong> = Total paid − Total dividends − Net payout &nbsp;·&nbsp;
+          <strong>Cost APR</strong> = effective annual rate (IRR method) &nbsp;·&nbsp;
+          Dividends assumed at the stated future discount % for all months
+        </div>
+      </div>
+
+    </div><!-- /results -->
+  </div><!-- /layout -->
+</div>
+
+<footer style="text-align:center;padding:24px 0;border-top:1px solid var(--border);font-size:0.75rem;color:var(--text-muted);">
+  Chit Fund Calculator · Calculations are indicative · Consult your chit company for exact terms
+</footer>
+
+<script>
+// ─── Helpers ────────────────────────────────────────────────────────────────
+const fmt  = v => '₹' + Math.abs(v).toLocaleString('en-IN', {maximumFractionDigits:0});
+const fmt2 = v => '₹' + Math.abs(v).toLocaleString('en-IN', {maximumFractionDigits:2, minimumFractionDigits:2});
+const pct  = v => (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+
+function solveIRR(cf) {
+  const hasPos = cf.some(x => x > 1e-6);
+  const hasNeg = cf.some(x => x < -1e-6);
+  if (!hasPos || !hasNeg) return null;
+
+  // Try multiple starting points to avoid local minima
+  const starts = [0.001, 0.01, 0.05, 0.1];
+  for (const start of starts) {
+    let r = start;
+    for (let i = 0; i < 300; i++) {
+      let npv = 0, dnpv = 0;
+      for (let t = 0; t < cf.length; t++) {
+        const f = Math.pow(1 + r, t + 1);
+        npv  += cf[t] / f;
+        dnpv -= (t + 1) * cf[t] / (f * (1 + r));
+      }
+      if (Math.abs(dnpv) < 1e-14) break;
+      const rn = r - npv / dnpv;
+      if (isNaN(rn) || !isFinite(rn)) break;
+      const rc = Math.max(-0.9999, Math.min(10, rn));
+      if (Math.abs(rc - r) < 1e-10) return rc;
+      r = rc;
+    }
+  }
+  return null;
+}
+
+function calcRow(C, N, n, fc, D, avgFutureD) {
+  const installment  = C / N;
+  // Dividend uses avgFutureD for past/future months, D for month n
+  // Simplified: assume constant dividend = avgFutureD for the purpose of cash flows
+  // At month n itself the dividend is based on D
+  const dividendFuture = Math.max(0, (avgFutureD - fc) / 100 * C / N);
+  const dividendNow    = Math.max(0, (D - fc) / 100 * C / N);
+  const netMonthly     = installment - dividendFuture;   // what you pay net each month (excl. win month)
+  const netPayout      = C * (1 - D / 100);              // what you receive at month n
+
+  if (netPayout <= 0 || D < fc) return null;
+
+  // Build monthly cash flows (index 0 = month 1)
+  const cf = Array.from({length: N}, (_, k) => {
+    // net outflow: installment minus dividend for that month
+    const div = (k === n - 1) ? dividendNow : dividendFuture;
+    return -(installment - div);
+  });
+  cf[n - 1] += netPayout;  // add receipt at winning month
+
+  const irr_m = solveIRR(cf);
+  const irr_a = irr_m !== null ? (Math.pow(1 + irr_m, 12) - 1) * 100 : null;
+
+  // Simple cost: total paid - total dividends received - net payout
+  const totalPaid      = N * installment;           // = C
+  const totalDividends = (N - 1) * dividendFuture + dividendNow; // approx
+  const netCost        = totalPaid - totalDividends - netPayout;
+
+  return { D, bidAmount: C * D / 100, netPayout, dividend: dividendNow, netMonthly, totalPaid, totalDividends, netCost, irr_m, irr_a };
+}
+
+// Find discount where IRR = target rate (binary search)
+function findBreakevenDiscount(C, N, n, fc, avgFuture, targetAPR) {
+  const targetMonthly = Math.pow(1 + targetAPR / 100, 1 / 12) - 1;
+  let lo = fc + 0.01, hi = 75;
+  for (let i = 0; i < 80; i++) {
+    const mid = (lo + hi) / 2;
+    const row = calcRow(C, N, n, fc, mid, avgFuture);
+    if (!row || row.irr_m === null) { lo = mid; continue; }
+    if (row.irr_m > targetMonthly) lo = mid; else hi = mid;
+    if (hi - lo < 0.05) return (lo + hi) / 2;
+  }
+  return null;
+}
+
+// ─── Main calculation ────────────────────────────────────────────────────────
+function runCalc() {
+  const C         = parseFloat(document.getElementById('chitValue').value)    || 100000;
+  const N         = parseInt(document.getElementById('members').value)         || 20;
+  const n         = parseInt(document.getElementById('currentMonth').value)    || 5;
+  const fc        = parseFloat(document.getElementById('commission').value)    || 5;
+  const extReturn = parseFloat(document.getElementById('extReturn').value)     || 12;
+  const avgFuture = parseFloat(document.getElementById('avgFuture').value)     || 15;
+
+  // Validation
+  if (n < 1 || n > N) { alert(`Current month must be between 1 and ${N}`); return; }
+
+  const installment = C / N;
+  const remaining   = N - n;
+
+  // Summary cards
+  document.getElementById('sc-install').textContent     = fmt(installment);
+  document.getElementById('sc-install-sub').textContent = `every month (${N} months total)`;
+  document.getElementById('sc-remain').textContent      = remaining;
+
+  // Find break-even discount vs external return
+  const maxSafeD = findBreakevenDiscount(C, N, n, fc, avgFuture, extReturn);
+  if (maxSafeD !== null) {
+    document.getElementById('sc-maxsafe').textContent = maxSafeD.toFixed(1) + '%';
+    const breakRow = calcRow(C, N, n, fc, maxSafeD, avgFuture);
+    document.getElementById('sc-payout').textContent    = fmt(breakRow?.netPayout ?? 0);
+    document.getElementById('sc-payout-sub').textContent = `at ${maxSafeD.toFixed(1)}% discount`;
+  } else {
+    document.getElementById('sc-maxsafe').textContent  = 'N/A';
+    document.getElementById('sc-payout').textContent   = '—';
+    document.getElementById('sc-payout-sub').textContent = 'bidding not beneficial';
+  }
+
+  // ─ Warnings ─
+  const warnings = [];
+  if (n > N * 0.7) warnings.push(`⚠ Late-stage auction (month ${n} of ${N}) — remaining months are fewer, so dividend benefit is limited.`);
+  if (remaining < 3) warnings.push(`⚠ Only ${remaining} months remaining — very limited payback window. Carefully evaluate the real benefit.`);
+  if (maxSafeD !== null && maxSafeD < 8) warnings.push(`⚠ Break-even discount is only ${maxSafeD.toFixed(1)}% — market bids are usually higher. Bidding may not be financially beneficial.`);
+  if (maxSafeD !== null && maxSafeD < fc + 1) warnings.push(`⚠ Maximum safe bid is barely above foreman commission (${fc}%). Effective benefit is negligible.`);
+  const warnEl = document.getElementById('warnStrip');
+  if (warnings.length) { warnEl.innerHTML = warnings.join('<br>'); warnEl.classList.add('show'); }
+  else warnEl.classList.remove('show');
+
+  // ─ Bid table ─
+  const rows = [];
+  const steps = [];
+  for (let d = 5; d <= 65; d += 5) steps.push(d);
+  // Always include break-even and fc+1
+  if (maxSafeD !== null) steps.push(Math.round(maxSafeD * 10) / 10);
+  steps.sort((a, b) => a - b);
+
+  const extMonthly = Math.pow(1 + extReturn / 100, 1 / 12) - 1;
+  const tbody = [];
+
+  for (const D of steps) {
+    const row = calcRow(C, N, n, fc, D, avgFuture);
+    if (!row) continue;
+
+    const aprVal  = row.irr_a;
+    const aprCls  = aprVal === null ? '' : (aprVal < extReturn - 0.5 ? 'good-apr' : aprVal > extReturn + 0.5 ? 'bad-apr' : 'eq-apr');
+    const diff    = aprVal !== null ? aprVal - extReturn : null;
+    const diffStr = diff !== null ? (diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`) : '—';
+    const diffCls = diff === null ? '' : (diff < -0.5 ? 'good-apr' : diff > 0.5 ? 'bad-apr' : 'eq-apr');
+
+    const isBreakeven = maxSafeD !== null && Math.abs(D - maxSafeD) < 0.3;
+    const isSafe      = aprVal !== null && aprVal < extReturn - 0.5;
+    const isBad       = aprVal !== null && aprVal > extReturn + 0.5;
+
+    let verdict = '';
+    let rowCls  = '';
+    if (isBreakeven) { verdict = '<span class="badge badge-warn">Break-even</span>'; rowCls = 'row-safe'; }
+    else if (D < fc) { verdict = '<span class="badge badge-red">Below commission</span>'; }
+    else if (isSafe) { verdict = '<span class="badge badge-green">Beneficial ✓</span>'; rowCls = 'row-best'; }
+    else if (isBad)  { verdict = '<span class="badge badge-red">Costly ✗</span>';       rowCls = 'row-bad'; }
+    else             { verdict = '<span class="badge badge-warn">Break-even ~</span>'; }
+
+    const isStep = Number.isInteger(D);
+
+    tbody.push(`<tr class="${rowCls}">
+      <td>${D.toFixed(isStep ? 0 : 1)}% ${isBreakeven ? '<span class="badge badge-warn" style="margin-left:4px">⬅ max safe</span>' : ''}</td>
+      <td>${fmt(row.bidAmount)}</td>
+      <td>${fmt(row.netPayout)}</td>
+      <td>${fmt2(row.dividend)}</td>
+      <td>${fmt2(row.netMonthly)}</td>
+      <td>${row.netCost > 0 ? fmt(row.netCost) : '<span style="color:var(--profit)">Gain '+fmt(Math.abs(row.netCost))+'</span>'}</td>
+      <td class="${aprCls}">${aprVal !== null ? aprVal.toFixed(2) + '%' : '—'}</td>
+      <td class="${diffCls}">${diffStr}</td>
+      <td>${verdict}</td>
+    </tr>`);
+  }
+  document.getElementById('bidTableBody').innerHTML = tbody.join('');
+
+  // ─ Recommendation box ─
+  const recBox = document.getElementById('recBox');
+  if (maxSafeD === null || maxSafeD < fc + 1) {
+    // Not beneficial
+    recBox.className = 'rec-box show bad';
+    document.getElementById('recTitle').innerHTML = '🚫 Bidding is NOT financially beneficial at this stage';
+    document.getElementById('rc-conservative').textContent = 'N/A';
+    document.getElementById('rc-ideal').textContent        = 'N/A';
+    document.getElementById('rc-aggressive').textContent   = 'N/A';
+    document.getElementById('rc-conservative-amt').textContent = '—';
+    document.getElementById('rc-ideal-amt').textContent        = '—';
+    document.getElementById('rc-aggressive-amt').textContent   = '—';
+    document.getElementById('rc-conservative-apr').textContent = '—';
+    document.getElementById('rc-ideal-apr').textContent        = '—';
+    document.getElementById('rc-aggressive-apr').textContent   = '—';
+    document.getElementById('recPlain').innerHTML = `The maximum safe bid discount (where your cost of funds equals your external return of <strong>${extReturn}%</strong>) is too low for the chit market to accept. This means any realistic bid would cost you more than what you'd earn by investing the same money elsewhere. <strong>Recommendation: skip this month's auction</strong> and wait for a better opportunity, or reassess your external return benchmark.`;
+  } else {
+    const consD   = Math.max(fc + 1, maxSafeD - 7);
+    const idealD  = Math.max(fc + 1, maxSafeD - 3);
+    const aggrD   = maxSafeD;
+
+    const consRow  = calcRow(C, N, n, fc, consD,  avgFuture);
+    const idealRow = calcRow(C, N, n, fc, idealD, avgFuture);
+    const aggrRow  = calcRow(C, N, n, fc, aggrD,  avgFuture);
+
+    const isGood = maxSafeD >= 15;
+    recBox.className = `rec-box show ${isGood ? 'good' : 'caution'}`;
+    document.getElementById('recTitle').innerHTML = isGood
+      ? `✅ Bidding is beneficial — your cost of funds will be below ${extReturn}% p.a.`
+      : `⚠ Marginal benefit — proceed with caution`;
+
+    const fillRec = (suffix, row, cls) => {
+      document.getElementById(`rc-${suffix}`).textContent     = `${row.D.toFixed(1)}% off`;
+      document.getElementById(`rc-${suffix}-amt`).textContent = `Receive ${fmt(row.netPayout)} · Forgo ${fmt(row.bidAmount)}`;
+      const el = document.getElementById(`rc-${suffix}-apr`);
+      el.textContent = row.irr_a !== null ? `Cost APR: ${row.irr_a.toFixed(2)}%` : '—';
+      el.className   = `rc-apr ${cls}`;
+    };
+    if (consRow)  fillRec('conservative', consRow,  'green');
+    if (idealRow) fillRec('ideal',        idealRow, 'warn');
+    if (aggrRow)  fillRec('aggressive',   aggrRow,  'warn');
+
+    const aggrApr = aggrRow?.irr_a?.toFixed(2) ?? '—';
+    const consAmt = consRow  ? fmt(consRow.netPayout)  : '—';
+    const idealAmt= idealRow ? fmt(idealRow.netPayout) : '—';
+
+    document.getElementById('recPlain').innerHTML = `
+      <strong>How to read this:</strong> Bidding at a <em>higher discount</em> means you get <em>less money</em> but are more likely to win the auction.
+      Your external return benchmark is <strong>${extReturn}% p.a.</strong> — any bid below <strong>${aggrD.toFixed(1)}% discount</strong> (≈ ${fmt(C * aggrD / 100)} off) means your cost of funds is cheaper than that benchmark, so bidding is worthwhile.<br><br>
+      <strong>Conservative (${consD.toFixed(1)}%):</strong> You receive ${consAmt} — lower chance of winning but better value.<br>
+      <strong>Ideal (${idealD.toFixed(1)}%):</strong> You receive ${idealAmt} — balanced bid with good chance of winning.<br>
+      <strong>Aggressive / Max Safe (${aggrD.toFixed(1)}%):</strong> Cost APR exactly matches your external return (${aggrApr}%) — beyond this discount, you'd be better off not bidding.<br><br>
+      Monthly installment is <strong>${fmt(installment)}</strong>. After dividends of approx ${fmt2(calcRow(C,N,n,fc,avgFuture,avgFuture)?.dividend ?? 0)}/month, your <strong>net monthly outflow is ${fmt2(calcRow(C,N,n,fc,idealD,avgFuture)?.netMonthly ?? 0)}</strong> for ${N} months total.
+    `;
+  }
+
+  document.getElementById('results').classList.add('show');
+  document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+// Auto-run on load with defaults
+window.addEventListener('DOMContentLoaded', runCalc);
+</script>
+</body>
+</html>

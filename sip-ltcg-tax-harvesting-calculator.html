@@ -371,7 +371,7 @@
         <div class="fetch-bar">
           <button class="btn-fetch" id="fetchBtn" onclick="fetchAllCMPs('cmpGrid','fetchBtn','fetchProgress')">⚡ Fetch Live Prices (NSE)</button>
           <span id="fetchProgress"></span>
-          <span class="fetch-note">Yahoo Finance · 4 proxy fallbacks</span>
+          <span class="fetch-note">Yahoo Finance · CF Worker + 4 proxy fallbacks</span>
         </div>
         <div class="cmp-grid" id="cmpGrid"></div>
         <div class="btn-row">
@@ -411,7 +411,7 @@ SBI, 2024-02-15, buy, 10, 645"></textarea>
         <div class="fetch-bar">
           <button class="btn-fetch" id="fetchBtnPaste" onclick="fetchAllCMPs('cmpGridPaste','fetchBtnPaste','fetchProgressPaste')">⚡ Fetch Live Prices (NSE)</button>
           <span id="fetchProgressPaste"></span>
-          <span class="fetch-note">Yahoo Finance · 4 proxy fallbacks</span>
+          <span class="fetch-note">Yahoo Finance · CF Worker + 4 proxy fallbacks</span>
         </div>
         <div class="cmp-grid" id="cmpGridPaste"></div>
         <div class="btn-row">
@@ -903,46 +903,53 @@ function showCMPEntry(sectionId, gridId) {
   }).join('');
 }
 
-// ─── Live Price Fetching (Yahoo Finance via CORS proxies) ─────────────────────
+// ─── Live Price Fetching ───────────────────────────────────────────────────────
+// ⚙ Set your Cloudflare Worker URL here for reliable fetching (see README).
+// Free setup at dash.cloudflare.com → Workers & Pages → Create Worker.
+const CF_WORKER_URL = ''; // e.g. 'https://stock-proxy.yourname.workers.dev'
+
 async function fetchCMPForSymbol(symbol) {
   const yhSym = symbol.replace('&', '').replace(/-/g, '') + '.NS';
-  const yUrl1 = `https://query1.finance.yahoo.com/v8/finance/chart/${yhSym}?interval=1d&range=1d`;
-  const yUrl2 = `https://query2.finance.yahoo.com/v8/finance/chart/${yhSym}?interval=1d&range=1d`;
+  // corsDomain param sometimes lets Yahoo bypass CORS check
+  const yUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${yhSym}?interval=1d&range=1d&corsDomain=finance.yahoo.com`;
 
   const extractPrice = d => d?.chart?.result?.[0]?.meta?.regularMarketPrice || null;
 
-  const tryFetch = async (url, timeout = 6000) => {
-    const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), timeout);
+  const tryFetch = async (url, timeout, wrapped = false) => {
     try {
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), timeout);
       const r = await fetch(url, { signal: ctrl.signal });
       clearTimeout(tid);
       if (!r.ok) return null;
       const d = await r.json();
-      return extractPrice(d);
-    } catch(e) { clearTimeout(tid); return null; }
+      // allorigins /get wraps response: { contents: "<json string>" }
+      const payload = wrapped ? JSON.parse(d.contents) : d;
+      return extractPrice(payload);
+    } catch(e) { return null; }
   };
 
-  // 1. Direct query1
-  let price = await tryFetch(yUrl1, 5000);
-  if (price) return { price, source: 'direct' };
-
-  // 2. Direct query2 (different Yahoo server, different CORS behaviour)
-  price = await tryFetch(yUrl2, 5000);
-  if (price) return { price, source: 'direct2' };
-
-  // 3–6. CORS proxy fallbacks (tried in order until one works)
-  const proxies = [
-    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
-    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-    u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-    u => `https://thingproxy.freeboard.io/fetch/${u}`,
-  ];
-
-  for (const makeProxy of proxies) {
-    price = await tryFetch(makeProxy(yUrl1), 9000);
-    if (price) return { price, source: 'proxy' };
+  // 1. Cloudflare Worker (most reliable — configure CF_WORKER_URL above)
+  if (CF_WORKER_URL) {
+    const p = await tryFetch(`${CF_WORKER_URL}?url=${encodeURIComponent(yUrl)}`, 8000);
+    if (p) return { price: p, source: 'worker' };
   }
+
+  // 2. Direct with corsDomain trick (works sometimes)
+  let p = await tryFetch(yUrl, 5000);
+  if (p) return { price: p, source: 'direct' };
+
+  // 3. allorigins /get — wraps response in JSON, more reliable than /raw
+  p = await tryFetch(`https://api.allorigins.win/get?url=${encodeURIComponent(yUrl)}`, 9000, true);
+  if (p) return { price: p, source: 'allorigins' };
+
+  // 4. corsproxy.io
+  p = await tryFetch(`https://corsproxy.io/?${encodeURIComponent(yUrl)}`, 9000);
+  if (p) return { price: p, source: 'corsproxy' };
+
+  // 5. codetabs
+  p = await tryFetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(yUrl)}`, 9000);
+  if (p) return { price: p, source: 'codetabs' };
 
   return null;
 }

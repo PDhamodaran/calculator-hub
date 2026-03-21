@@ -149,6 +149,44 @@ Your site will be live at `https://YOUR_USERNAME.github.io/REPO_NAME/` within ~2
 
 ---
 
+## Live Stock Price Fetching (LTCG Calculator)
+
+The LTCG calculator fetches NSE live prices via Yahoo Finance. Because Yahoo Finance blocks direct browser requests (CORS), a **Cloudflare Worker** is the most reliable solution.
+
+### Setup (free, 3 minutes)
+
+1. Sign up at [dash.cloudflare.com](https://dash.cloudflare.com) (free)
+2. Go to **Workers & Pages → Create → Create Worker**
+3. Replace the default code with:
+
+```javascript
+export default {
+  async fetch(request) {
+    const { searchParams } = new URL(request.url);
+    const target = searchParams.get('url');
+    if (!target) return new Response('Missing url', { status: 400 });
+    const resp = await fetch(target, {
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' }
+    });
+    const body = await resp.text();
+    return new Response(body, {
+      headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
+    });
+  }
+}
+```
+
+4. Click **Deploy** — copy the worker URL (e.g. `https://stock-proxy.yourname.workers.dev`)
+5. Open `sip-ltcg-tax-harvesting-calculator.html` and set:
+
+```javascript
+const CF_WORKER_URL = 'https://stock-proxy.yourname.workers.dev';
+```
+
+Without the worker, the calculator falls back to 4 public CORS proxies automatically, but those can be unreliable.
+
+---
+
 ## Disclaimer
 
 All calculations are **indicative only**. Tax rules and rates change annually — always verify with a qualified Chartered Accountant before making financial decisions. This tool does not constitute financial or tax advice.

@@ -937,6 +937,43 @@ h1, h2, h3, h4, h5, h6, .summary-card .value, .sp-header h1 {
   box-shadow: 0 1px 0 rgba(0,0,0,0.1);
 }
 
+/* ===== Workload Suggestions Tab ===== */
+.sug-dev-card { border-radius: 10px; padding: 12px 14px; border: 1px solid var(--border); }
+.sug-dev-card.overloaded { background: #fef2f2; border-color: #fecaca; }
+.sug-dev-card.available  { background: #f0fdf4; border-color: #bbf7d0; }
+.sug-avatar { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0; }
+.sug-impact-box { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+.sug-impact-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-light); margin-bottom: 8px; }
+.sug-timeline-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.sug-timeline-row .tl-label { font-size: 11px; color: var(--text-light); width: 42px; flex-shrink: 0; }
+.sug-timeline-row .tl-bar-wrap { flex: 1; height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.sug-timeline-row .tl-bar { height: 100%; border-radius: 3px; transition: width .4s; }
+.sug-timeline-row .tl-date { font-size: 11px; font-family: var(--mono); min-width: 90px; text-align: right; }
+.sug-saving { font-size: 12px; font-weight: 700; color: var(--success); margin-top: 6px; }
+.sug-tasks-header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-light); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+.sug-task-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: #fff; margin-bottom: 5px; cursor: pointer; transition: background .15s; }
+.sug-task-item:hover { background: #f8fafc; }
+.sug-task-item input[type=checkbox] { flex-shrink: 0; width: 15px; height: 15px; accent-color: var(--primary); }
+.sug-task-key  { font-family: var(--mono); font-size: 11px; color: var(--primary); font-weight: 600; white-space: nowrap; }
+.sug-task-sum  { flex: 1; font-size: 12px; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sug-task-hrs  { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--text-light); white-space: nowrap; }
+.sug-task-role { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+.sug-total-bar { font-size: 12px; color: var(--text-light); padding: 5px 0 2px; }
+.sug-overflow-box { background: var(--danger-light); border: 1px solid #fecaca; border-radius: 8px; padding: 12px 14px; }
+.sug-filter-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.sug-pill { font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border); background: #fff; color: var(--text-light); cursor: pointer; transition: all .15s; }
+.sug-pill:hover { border-color: var(--primary); color: var(--primary); }
+.sug-pill.active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+.sug-empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+.sug-empty i { font-size: 2.5rem; margin-bottom: 12px; opacity: .3; }
+.sug-stats-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.sug-stat { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 12px; color: var(--text-light); }
+.sug-stat strong { color: var(--text); font-family: var(--mono); }
+.card-header.sug-header-high    { background: #fef2f2; border-bottom-color: #fecaca; }
+.card-header.sug-header-medium  { background: #fefce8; border-bottom-color: #fde68a; }
+.card-header.sug-header-overflow{ background: #fef2f2; border-bottom-color: #fecaca; }
+.applied-banner { background: var(--success-light); color: var(--success); text-align: center; padding: 10px; font-weight: 700; font-size: 13px; border-top: 1px solid #bbf7d0; }
+
 /* ===== Sprint Health Indicator ===== */
 .sprint-health {
   display: inline-flex;
@@ -1637,6 +1674,7 @@ h1, h2, h3, h4, h5, h6, .summary-card .value, .sp-header h1 {
     <li class="nav-item"><a class="nav-link" href="#" data-tab="resource-breakdown-tab" onclick="event.preventDefault(); switchTab(this)"><i class="fas fa-users"></i> Resource Breakdown</a></li>
     <li class="nav-item"><a class="nav-link" href="#" data-tab="sprint-availability-tab" onclick="event.preventDefault(); switchTab(this)"><i class="fas fa-calendar-check"></i> Sprint Availability</a></li>
     <li class="nav-item"><a class="nav-link" href="#" data-tab="summary-tab" onclick="event.preventDefault(); switchTab(this)"><i class="fas fa-chart-pie"></i> Summary</a></li>
+    <li class="nav-item"><a class="nav-link" href="#" data-tab="workload-tab" onclick="event.preventDefault(); switchTab(this); renderWorkloadSuggestions();"><i class="fas fa-lightbulb"></i> Workload Suggestions</a></li>
   </ul>
 
   <div class="tab-content-area">
@@ -1736,6 +1774,15 @@ h1, h2, h3, h4, h5, h6, .summary-card .value, .sp-header h1 {
         <i class="fas fa-chart-pie fa-3x mb-3 d-block" style="opacity:0.3;"></i>
         <p>Click <b>Calculate Schedule</b> to see the summary.</p>
       </div>
+    </div>
+  </div>
+  <!-- ── Workload Suggestions Tab ── -->
+  <div id="workload-tab">
+    <div id="workload-content">
+      <div class="card"><div class="card-body text-center p-5 text-muted">
+        <i class="fas fa-lightbulb fa-3x mb-3 d-block" style="opacity:.3"></i>
+        <p>Click <b>Calculate Schedule</b> first, then come back here for suggestions.</p>
+      </div></div>
     </div>
   </div>
   </div>
@@ -3754,7 +3801,7 @@ function renderSummaryDetail() {
   let html = '<div class="card-body"><h5 class="card-title mb-3"><i class="fas fa-users me-2 text-primary"></i>Engineer Workload Summary</h5><div class="table-responsive mb-4"><table class="table table-sm table-hover align-middle"><thead class="table-light"><tr><th>Engineer</th><th>Role</th><th>Tasks</th><th>Total Hours</th><th>Start</th><th>End</th></tr></thead><tbody>';
   for (const [eng, stat] of Object.entries(engStats)) { const tagClass = stat.role === 'BE' ? 'tag-be' : (stat.role === 'FE' ? 'tag-fe' : (stat.role === 'Test' ? 'tag-test' : '')); html += `<tr style="font-size:12.5px;font-weight:400;"><td><strong>${escapeHtml(eng)}</strong></td><td><span class="engineer-tag ${tagClass}">${escapeHtml(stat.role)}</span></td><td>${stat.tasks}</td><td>${Math.round(stat.hours * 10) / 10}h</td><td>${stat.earliest ? formatDateShort(stat.earliest) : '-'}</td><td>${stat.latest ? formatDateShort(stat.latest) : '-'}</td></tr>`; }
   html += '</tbody></table></div><h5 class="card-title mb-3"><i class="fas fa-book me-2 text-primary"></i>Story Schedule Summary</h5><div class="table-responsive"><table class="table table-sm table-hover align-middle"><thead class="table-light"><tr><th>Story</th><th>Tasks</th><th>Hours</th><th>Start</th><th>End</th></tr></thead><tbody>';
-  for (const [key, stat] of Object.entries(storyStats)) { html += `<tr style="font-size:12.5px;font-weight:400;"><td><strong>${escapeHtml(key)}</strong> - ${escapeHtml(truncate(stat.summary, 40))}</td><td>${stat.tasks}</td><td>${Math.round(stat.hours * 10) / 10}h</td><td>${stat.earliest ? formatDateShort(stat.earliest) : '-'}</td><td>${stat.latest ? formatDateShort(stat.latest) : '-'}</td></tr>`; }
+  for (const [key, stat] of Object.entries(storyStats)) { html += `<tr style="font-size:12.5px;font-weight:400;"><td><strong>${escapeHtml(key)}</strong> - ${escapeHtml(truncate(stat.summary, 400))}</td><td>${stat.tasks}</td><td>${Math.round(stat.hours * 10) / 10}h</td><td>${stat.earliest ? formatDateShort(stat.earliest) : '-'}</td><td>${stat.latest ? formatDateShort(stat.latest) : '-'}</td></tr>`; }
   html += '</tbody></table></div></div>'; container.innerHTML = html;
 }
 
@@ -4104,6 +4151,442 @@ document.addEventListener('keydown', function(e) {
     if (modal) { modal.remove(); renderEngineers(); }
   }
 });
+
+// ==================== WORKLOAD SUGGESTIONS ====================
+let sugDismissed = new Set();
+let sugFilterActive = 'all';
+
+function calcEngCapacity(engName, info, dates) {
+  if (!dates || !dates.devStart || !dates.sprintEnd) return 0;
+  const effStart = (info.role === 'Test' && dates.testStart) ? dates.testStart : dates.devStart;
+  const start = new Date(effStart    + 'T00:00:00');
+  const end   = new Date(dates.sprintEnd + 'T00:00:00');
+  const holSet   = new Set(holidays.map(h => h.date));
+  const leaveSet = new Set(info.leaveDates || []);
+  let wd = 0;
+  for (const cur = new Date(start); cur <= end; cur.setDate(cur.getDate() + 1)) {
+    const dow = cur.getDay(), ds = formatDateInput(cur);
+    if (dow !== 0 && dow !== 6 && !holSet.has(ds) && !leaveSet.has(ds)) wd++;
+  }
+  return Math.round(wd * (info.hoursPerDay || defaultHoursPerDay) * 10) / 10;
+}
+
+function engInitials(name) {
+  return name.split(' ').map(w => w[0] || '').join('').toUpperCase().slice(0, 2);
+}
+
+function roleColor(role) {
+  if (role === 'FE') return { bg: '#dbeafe', text: '#1d4ed8' };
+  if (role === 'Test') return { bg: '#fef9c3', text: '#92400e' };
+  return { bg: '#dcfce7', text: '#15803d' }; // BE default
+}
+
+function utilColor(pct) {
+  if (pct > 100) return 'danger';
+  if (pct > 85)  return 'warning';
+  if (pct > 60)  return 'primary';
+  return 'success';
+}
+
+function generateWorkloadSuggestions() {
+  if (!scheduledTasks.length) return null; // not calculated yet
+
+  const dates = getSprintDates();
+  if (!dates.devStart || !dates.sprintEnd) return null;
+
+  const sprintEnd = new Date(dates.sprintEnd + 'T23:59:59');
+
+  // ── Build per-engineer stats ──────────────────────────────────────────────
+  const engStats = {};
+  for (const [name, info] of Object.entries(engineers)) {
+    const tasks   = scheduledTasks.filter(t => t.assignee === name);
+    const assigned = tasks.reduce((s, t) => s + (t.estimateHours || 0), 0);
+    const cap      = calcEngCapacity(name, info, dates);
+    const latestEnd= tasks.reduce((d, t) => t.endDate && (!d || t.endDate > d) ? t.endDate : d, null);
+    engStats[name] = { name, role: info.role || 'BE', hoursPerDay: info.hoursPerDay || defaultHoursPerDay,
+      tasks, assigned, cap, latestEnd,
+      util: cap > 0 ? Math.round(assigned / cap * 100) : 0,
+      free: Math.max(0, cap - assigned) };
+  }
+
+  // Also count unassigned engineers referenced in tasks but not in engineers dict
+  scheduledTasks.forEach(t => {
+    if (t.assignee && !engStats[t.assignee] && t.assignee !== 'Unassigned') {
+      const tasks = scheduledTasks.filter(x => x.assignee === t.assignee);
+      const assigned = tasks.reduce((s, x) => s + (x.estimateHours || 0), 0);
+      engStats[t.assignee] = { name: t.assignee, role: t.role || 'BE', hoursPerDay: defaultHoursPerDay,
+        tasks, assigned, cap: 0, latestEnd: null, util: 0, free: 0 };
+    }
+  });
+
+  // ── Group by role ─────────────────────────────────────────────────────────
+  const roles = {};
+  for (const stats of Object.values(engStats)) {
+    if (!roles[stats.role]) roles[stats.role] = [];
+    roles[stats.role].push(stats);
+  }
+
+  const suggestions = [];
+
+  for (const [role, members] of Object.entries(roles)) {
+    if (members.length < 1) continue;
+
+    // Sort by utilisation desc
+    const sorted = [...members].sort((a, b) => b.util - a.util);
+
+    for (let i = 0; i < sorted.length; i++) {
+      const over = sorted[i];
+      if (over.util < 75) continue; // not loaded enough to warrant suggestion
+
+      // Find all under-loaded members of same role
+      const receivers = sorted.filter((u, idx) => idx > i && u.free >= 2);
+
+      if (!receivers.length) {
+        // Over-capacity with nobody to redistribute to
+        if (over.util > 100 && !sugDismissed.has('overflow_' + over.name)) {
+          const overHours = Math.round(over.assigned - over.cap);
+          const deferrable = over.tasks
+            .filter(t => t.estimateHours > 0)
+            .sort((a, b) => b.estimateHours - a.estimateHours)
+            .slice(0, 5);
+          suggestions.push({ id: 'overflow_' + over.name, type: 'overflow', priority: 'high',
+            role, over, overHours, deferrable, sprintEnd });
+        }
+        continue;
+      }
+
+      for (const under of receivers) {
+        const diff = over.util - under.util;
+        if (diff < 20) continue;
+
+        const sugId = `rb_${role}_${over.name}_${under.name}`;
+        if (sugDismissed.has(sugId)) continue;
+
+        // Tasks to move: pick tasks from `over` to close the gap
+        const targetMove = Math.min(under.free, (over.assigned - under.assigned) / 2);
+        const moveable   = over.tasks.filter(t => t.estimateHours > 0)
+          .sort((a, b) => b.estimateHours - a.estimateHours);
+
+        const suggested = [];
+        let accum = 0;
+        for (const t of moveable) {
+          if (accum >= targetMove * 1.15) break;
+          suggested.push(t);
+          accum += t.estimateHours;
+        }
+        if (!suggested.length) continue;
+
+        // Timeline impact (simple: hours moved → days freed from overloaded person's end)
+        const hoursMoved   = suggested.reduce((s, t) => s + t.estimateHours, 0);
+        const daysSaved    = Math.ceil(hoursMoved / over.hoursPerDay);
+        const newOverEnd   = over.latestEnd
+          ? new Date(over.latestEnd.getTime() - daysSaved * 86400000)
+          : null;
+        const overflowBefore = over.latestEnd ? Math.max(0, dateDiffDays(sprintEnd, over.latestEnd)) : 0;
+        const overflowAfter  = newOverEnd     ? Math.max(0, dateDiffDays(sprintEnd, newOverEnd))     : 0;
+        const newOverUtil    = Math.round((over.assigned - hoursMoved) / over.cap * 100);
+        const newUnderUtil   = Math.round((under.assigned + hoursMoved) / under.cap * 100);
+
+        suggestions.push({ id: sugId, type: 'rebalance', priority: over.util > 100 ? 'high' : 'medium',
+          role, over, under, suggested, hoursMoved, daysSaved,
+          overflowBefore, overflowAfter, newOverUtil, newUnderUtil,
+          newOverEnd, sprintEnd });
+      }
+    }
+  }
+
+  return { suggestions, engStats, roles };
+}
+
+function renderWorkloadSuggestions() {
+  const container = document.getElementById('workload-content');
+  const result = generateWorkloadSuggestions();
+
+  if (!result) {
+    container.innerHTML = `<div class="card"><div class="card-body text-center p-5 text-muted">
+      <i class="fas fa-lightbulb fa-3x mb-3 d-block" style="opacity:.3"></i>
+      <p>Click <b>Calculate Schedule</b> first, then come back here for workload suggestions.</p>
+    </div></div>`;
+    return;
+  }
+
+  const { suggestions, engStats } = result;
+
+  // Filter
+  const show = suggestions.filter(s => {
+    if (sugDismissed.has(s.id)) return false;
+    if (sugFilterActive === 'high')      return s.priority === 'high';
+    if (sugFilterActive === 'rebalance') return s.type === 'rebalance';
+    if (sugFilterActive === 'overflow')  return s.type === 'overflow';
+    return true;
+  });
+
+  // Stats row
+  const totalEngs   = Object.keys(engStats).length;
+  const overloaded  = Object.values(engStats).filter(e => e.util > 85).length;
+  const benched     = Object.values(engStats).filter(e => e.util < 40).length;
+  const highCount   = suggestions.filter(s => s.priority === 'high').length;
+
+  const statsHtml = `<div class="sug-stats-row">
+    <div class="sug-stat"><strong>${totalEngs}</strong> Engineers</div>
+    <div class="sug-stat"><strong style="color:var(--danger)">${overloaded}</strong> Over-loaded (&gt;85%)</div>
+    <div class="sug-stat"><strong style="color:var(--success)">${benched}</strong> Under-loaded (&lt;40%)</div>
+    <div class="sug-stat"><strong>${suggestions.length}</strong> Suggestions · <strong style="color:var(--danger)">${highCount}</strong> High Priority</div>
+  </div>`;
+
+  const filterHtml = `<div class="sug-filter-pills">
+    <button class="sug-pill ${sugFilterActive==='all'?'active':''}"       onclick="setSugFilter('all')">All (${suggestions.length})</button>
+    <button class="sug-pill ${sugFilterActive==='rebalance'?'active':''}" onclick="setSugFilter('rebalance')">🔀 Rebalance (${suggestions.filter(s=>s.type==='rebalance').length})</button>
+    <button class="sug-pill ${sugFilterActive==='overflow'?'active':''}"  onclick="setSugFilter('overflow')">⚠ Over-capacity (${suggestions.filter(s=>s.type==='overflow').length})</button>
+    <button class="sug-pill ${sugFilterActive==='high'?'active':''}"      onclick="setSugFilter('high')">🔴 High Priority (${highCount})</button>
+  </div>`;
+
+  if (!show.length) {
+    container.innerHTML = statsHtml + filterHtml + `<div class="sug-empty">
+      <i class="fas fa-check-circle text-success"></i>
+      <p class="mt-2 fw-600">Workload looks balanced!</p>
+      <p class="text-muted small">No suggestions match the current filter.</p>
+    </div>`;
+    return;
+  }
+
+  const cardsHtml = show.map(s => s.type === 'rebalance' ? buildRebalanceCard(s) : buildOverflowCard(s)).join('');
+  container.innerHTML = statsHtml + filterHtml + cardsHtml;
+}
+
+function setSugFilter(f) {
+  sugFilterActive = f;
+  renderWorkloadSuggestions();
+}
+
+function buildRebalanceCard(s) {
+  const { over, under, suggested, hoursMoved, daysSaved, overflowBefore, overflowAfter,
+          newOverUtil, newUnderUtil, newOverEnd, sprintEnd, role, priority, id } = s;
+  const priLabel = priority === 'high' ? '🔴 High Priority' : '🟡 Medium';
+  const hdrCls   = priority === 'high' ? 'sug-header-high' : 'sug-header-medium';
+  const rc        = roleColor(role);
+
+  // Bar colours
+  const overBarW  = Math.min(over.util,  100);
+  const underBarW = Math.min(under.util, 100);
+  const newOverW  = Math.min(newOverUtil,  100);
+  const newUnderW = Math.min(newUnderUtil, 100);
+  const overUtilCls  = utilColor(over.util);
+  const underUtilCls = utilColor(under.util);
+
+  // Timeline section
+  const spEndStr   = formatDateShort(sprintEnd);
+  let timelineHtml = '';
+  if (over.latestEnd) {
+    const beforeStr = formatDateShort(over.latestEnd);
+    const afterStr  = newOverEnd ? formatDateShort(newOverEnd) : '—';
+    const pctSaved  = over.latestEnd ? Math.round(daysSaved / (dateDiffDays(new Date(over.tasks[0]?.startDate || sprintEnd), over.latestEnd) + 1) * 100) : 0;
+    timelineHtml = `<div class="sug-impact-box mb-3">
+      <div class="sug-impact-title">📅 Timeline Impact for ${over.name.split(' ')[0]}</div>
+      <div class="sug-timeline-row">
+        <span class="tl-label" style="color:#dc2626">Before</span>
+        <div class="tl-bar-wrap"><div class="tl-bar" style="width:100%;background:#dc2626"></div></div>
+        <span class="tl-date" style="color:#dc2626">${beforeStr}${overflowBefore > 0 ? ` (+${overflowBefore}d over)` : ''}</span>
+      </div>
+      <div class="sug-timeline-row">
+        <span class="tl-label" style="color:#059669">After</span>
+        <div class="tl-bar-wrap"><div class="tl-bar" style="width:${Math.max(10,100-pctSaved)}%;background:#059669"></div></div>
+        <span class="tl-date" style="color:#059669">${afterStr}${overflowAfter > 0 ? ` (+${overflowAfter}d)` : ' ✓ On track'}</span>
+      </div>
+      <div class="sug-saving">🚀 ${daysSaved} day${daysSaved!==1?'s':''} freed · ${over.name.split(' ')[0]} goes ${over.util}% → ${newOverUtil}% · Sprint ${overflowAfter <= 0 ? 'back on track!' : `overflow reduces to ${overflowAfter}d`}</div>
+    </div>`;
+  }
+
+  // Task checklist
+  const taskItems = suggested.map(t => {
+    const r = roleColor(t.role || role);
+    return `<label class="sug-task-item" id="ti_${id}_${t.key}">
+      <input type="checkbox" checked value="${t.key}" onchange="updateSugTotal('${id}')">
+      <span class="sug-task-key">${escapeHtml(t.key)}</span>
+      <span class="sug-task-sum" title="${escapeHtml(t.summary)}">${escapeHtml(t.summary)}</span>
+      ${t.storySummary && t.storyKey !== t.key ? `<span class="badge" style="background:#f0f4ff;color:#3730a3;font-size:10px;white-space:nowrap">${escapeHtml(t.storyKey)}</span>` : ''}
+      <span class="sug-task-hrs">${t.estimateHours}h</span>
+    </label>`;
+  }).join('');
+
+  const totalH = suggested.reduce((s, t) => s + t.estimateHours, 0);
+
+  return `<div class="card shadow-sm mb-3" id="sug-${id.replace(/[^a-z0-9]/gi,'_')}">
+    <div class="card-header ${hdrCls} d-flex align-items-center gap-2 py-2 flex-wrap">
+      <span class="badge bg-${priority==='high'?'danger':'warning'} text-${priority==='high'?'white':'dark'}">${priLabel}</span>
+      <span class="badge" style="background:${rc.bg};color:${rc.text}">${role}</span>
+      <span class="fw-600 ms-1" style="font-size:13px">Workload Imbalance — ${over.name} is overloaded</span>
+      <button class="btn btn-sm btn-outline-secondary ms-auto" style="font-size:11px" onclick="dismissWorkloadSug('${id}')">Dismiss</button>
+    </div>
+    <div class="card-body">
+      <div class="row g-3 mb-3 align-items-stretch">
+        <div class="col-md-5">
+          <div class="sug-dev-card overloaded h-100">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <div class="sug-avatar" style="background:#fecaca;color:#b91c1c">${engInitials(over.name)}</div>
+              <div><div class="fw-600 small">${escapeHtml(over.name)}</div><div class="text-muted" style="font-size:11px">${escapeHtml(role)} · ${over.assigned}h assigned</div></div>
+              <span class="badge bg-${overUtilCls} ms-auto">${over.util}%</span>
+            </div>
+            <div class="progress mb-1" style="height:7px"><div class="progress-bar bg-${overUtilCls}" style="width:${overBarW}%"></div></div>
+            <div class="d-flex justify-content-between" style="font-size:11px;color:var(--text-light)">
+              <span>${over.assigned}h / ${over.cap}h cap</span>
+              <span>${over.latestEnd ? 'ends '+formatDateShort(over.latestEnd) : '—'}</span>
+            </div>
+            ${over.util > 100 ? `<div class="badge bg-danger mt-1" style="font-size:10px">⚠ ${Math.round(over.assigned - over.cap)}h overflow!</div>` : ''}
+          </div>
+        </div>
+        <div class="col-md-2 d-flex align-items-center justify-content-center">
+          <div class="text-center text-muted">
+            <i class="fas fa-exchange-alt fa-lg text-primary"></i>
+            <div style="font-size:11px;margin-top:4px"><strong>${hoursMoved}h</strong> move</div>
+            <div style="font-size:10px;color:var(--text-muted)">${daysSaved}d freed</div>
+          </div>
+        </div>
+        <div class="col-md-5">
+          <div class="sug-dev-card available h-100">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <div class="sug-avatar" style="background:#bbf7d0;color:#15803d">${engInitials(under.name)}</div>
+              <div><div class="fw-600 small">${escapeHtml(under.name)}</div><div class="text-muted" style="font-size:11px">${escapeHtml(role)} · ${under.free}h free</div></div>
+              <span class="badge bg-${underUtilCls} ms-auto">${under.util}%</span>
+            </div>
+            <div class="progress mb-1" style="height:7px"><div class="progress-bar bg-${underUtilCls}" style="width:${underBarW}%"></div></div>
+            <div class="d-flex justify-content-between" style="font-size:11px;color:var(--text-light)">
+              <span>${under.assigned}h / ${under.cap}h cap</span>
+              <span>${under.free}h available</span>
+            </div>
+            <div class="badge bg-success mt-1" style="font-size:10px">After: ${newUnderUtil}% utilised</div>
+          </div>
+        </div>
+      </div>
+      ${timelineHtml}
+      <div class="mb-3">
+        <div class="sug-tasks-header">
+          <span><i class="fas fa-tasks me-1"></i>Suggested tasks to reassign to ${escapeHtml(under.name)}</span>
+          <span id="sug-total-${id.replace(/[^a-z0-9]/gi,'_')}" class="text-primary fw-600" style="font-size:12px">${totalH}h selected</span>
+        </div>
+        <div id="tasklist-${id.replace(/[^a-z0-9]/gi,'_')}">${taskItems}</div>
+      </div>
+      <div class="d-flex gap-2 justify-content-end align-items-center flex-wrap">
+        <span class="text-muted" style="font-size:11px;flex:1">Applying will reassign selected tasks and recalculate the full schedule.</span>
+        <button class="btn btn-sm btn-outline-secondary" onclick="dismissWorkloadSug('${id}')">Skip</button>
+        <button class="btn btn-sm btn-primary" onclick="applyWorkloadRebalance('${id}','${over.name}','${under.name}')">
+          <i class="fas fa-check me-1"></i>Apply Selected →
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildOverflowCard(s) {
+  const { over, overHours, deferrable, role, id } = s;
+  const rc = roleColor(role);
+
+  const deferItems = deferrable.map(t => `<div class="sug-task-item">
+    <span class="sug-task-key">${escapeHtml(t.key)}</span>
+    <span class="sug-task-sum">${escapeHtml(t.summary)}</span>
+    <span class="sug-task-hrs">${t.estimateHours}h</span>
+  </div>`).join('');
+
+  return `<div class="card shadow-sm mb-3 border-danger" id="sug-${id.replace(/[^a-z0-9]/gi,'_')}">
+    <div class="card-header sug-header-overflow d-flex align-items-center gap-2 py-2 flex-wrap">
+      <span class="badge bg-danger">🔴 Over-capacity</span>
+      <span class="badge" style="background:${rc.bg};color:${rc.text}">${role}</span>
+      <span class="fw-600 ms-1" style="font-size:13px">${escapeHtml(over.name)} has ${overHours}h overflow — no peer to redistribute to</span>
+      <button class="btn btn-sm btn-outline-secondary ms-auto" style="font-size:11px" onclick="dismissWorkloadSug('${id}')">Dismiss</button>
+    </div>
+    <div class="card-body">
+      <div class="sug-overflow-box mb-3">
+        <div class="fw-600 mb-1" style="font-size:13px">
+          <i class="fas fa-exclamation-triangle me-1"></i>
+          ${over.assigned}h assigned / ${over.cap}h capacity — <span class="text-danger">${overHours}h overflow</span>
+        </div>
+        <div class="progress mb-2" style="height:8px">
+          <div class="progress-bar bg-danger" style="width:${Math.min(over.util,100)}%"></div>
+        </div>
+        <div style="font-size:12px;color:var(--text-light)">${over.util}% utilised · ${over.latestEnd ? 'Projected end: '+formatDateShort(over.latestEnd) : '—'}</div>
+      </div>
+      <div class="alert alert-warning d-flex gap-2 align-items-start py-2" style="font-size:13px">
+        <i class="fas fa-info-circle mt-1"></i>
+        <div>No other <strong>${role}</strong> developers available in this sprint to take on tasks.
+        Consider: <strong>adding a developer</strong>, <strong>reducing scope</strong>, or <strong>extending the sprint</strong>.</div>
+      </div>
+      ${deferItems.length ? `<div class="sug-tasks-header mb-2"><span>Heaviest tasks (consider deferring to next sprint)</span></div>${deferItems}` : ''}
+    </div>
+  </div>`;
+}
+
+function updateSugTotal(rawId) {
+  const safeId = rawId.replace(/[^a-z0-9]/gi, '_');
+  const list    = document.getElementById('tasklist-' + safeId);
+  const totalEl = document.getElementById('sug-total-' + safeId);
+  if (!list || !totalEl) return;
+  const checked = [...list.querySelectorAll('input[type=checkbox]:checked')];
+  // get hours by matching keys back to scheduledTasks
+  let total = 0;
+  checked.forEach(c => {
+    const t = scheduledTasks.find(x => x.key === c.value);
+    if (t) total += t.estimateHours || 0;
+  });
+  totalEl.textContent = total + 'h selected';
+}
+
+function applyWorkloadRebalance(rawId, fromEng, toEng) {
+  const safeId  = rawId.replace(/[^a-z0-9]/gi, '_');
+  const list    = document.getElementById('tasklist-' + safeId);
+  if (!list) return;
+  const checked = [...list.querySelectorAll('input[type=checkbox]:checked')];
+  const taskKeys = checked.map(c => c.value);
+  if (!taskKeys.length) { notify('No tasks selected', 'warning'); return; }
+
+  let updated = 0;
+  // Update hierarchy in-place
+  for (const [epicKey, epic] of Object.entries(hierarchy)) {
+    for (const [vKey, fv] of Object.entries(epic.fixVersions)) {
+      for (const [storyKey, story] of Object.entries(fv.stories)) {
+        if (taskKeys.includes(story.info.key) && story.info.assignee === fromEng) {
+          story.info.assignee = toEng; updated++;
+        }
+        story.subtasks.forEach(st => {
+          if (taskKeys.includes(st.key) && st.assignee === fromEng) {
+            st.assignee = toEng; updated++;
+          }
+        });
+      }
+    }
+  }
+
+  if (!updated) { notify('Could not find tasks to reassign — please recalculate first', 'error'); return; }
+
+  // Ensure receiving engineer exists in engineers dict
+  if (!engineers[toEng] && engineers[fromEng]) {
+    engineers[toEng] = { ...engineers[fromEng] };
+    saveEngineers();
+  }
+
+  // Mark applied in the card
+  const card = document.getElementById('sug-' + safeId);
+  if (card) {
+    const footer = card.querySelector('.card-body > .d-flex.gap-2.justify-content-end');
+    if (footer) footer.innerHTML = `<div class="applied-banner w-100 rounded"><i class="fas fa-check-circle me-1"></i>${updated} task${updated!==1?'s':''} reassigned from ${escapeHtml(fromEng)} → ${escapeHtml(toEng)} · Recalculating…</div>`;
+  }
+
+  sugDismissed.add(rawId);
+
+  // Re-run the full scheduler and refresh suggestions
+  setTimeout(() => {
+    recalculateDates();
+    renderWorkloadSuggestions();
+    notify(`${updated} task${updated!==1?'s':''} moved to ${toEng} · Schedule updated`, 'success');
+  }, 300);
+}
+
+function dismissWorkloadSug(id) {
+  sugDismissed.add(id);
+  const safeId = id.replace(/[^a-z0-9]/gi, '_');
+  const el = document.getElementById('sug-' + safeId);
+  if (el) { el.style.opacity = '0'; el.style.transform = 'translateX(20px)'; el.style.transition = 'all .3s'; }
+  setTimeout(() => renderWorkloadSuggestions(), 400);
+}
 
 // ==================== SPRINT HEALTH INDICATOR ====================
 function renderSprintHealth() {

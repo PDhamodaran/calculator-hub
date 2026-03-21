@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resource Allocator — Team · Skills · Projects</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080b10;--surface:#0f1419;--surface2:#161d26;--surface3:#1c2535;--border:#1e2a38;
+  --text:#dfe6ee;--text-dim:#7b8da0;--text-muted:#4a5c6e;
+  --accent:#2d6a4f;--accent-light:#52b788;--accent-glow:#40916c22;
+  --harvest:#4e8fd4;--harvest-bg:#4e8fd412;--harvest-border:#4e8fd433;
+  --warn:#d4a04e;--warn-bg:#d4a04e12;--warn-border:#d4a04e33;
+  --purple:#9d7fe8;--purple-bg:#9d7fe812;--purple-border:#9d7fe833;
+  --rose:#d4607a;--rose-bg:#d4607a12;--rose-border:#d4607a33;
+  --profit:#52b788;--loss:#d94f4f;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+a{color:inherit;text-decoration:none;}
+button{cursor:pointer;font-family:'DM Sans',sans-serif;}
+
+/* ── topbar ── */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;}
+.topbar-back{font-size:0.8rem;color:var(--text-dim);display:flex;align-items:center;gap:5px;transition:color .2s;}
+.topbar-back:hover{color:var(--accent-light);}
+.topbar-title{font-size:0.9rem;font-weight:600;}
+.topbar-sep{color:var(--border);}
+
+/* ── tabs ── */
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:4px;}
+.tab{background:none;border:none;color:var(--text-dim);font-size:0.82rem;font-weight:600;padding:10px 16px;border-bottom:2px solid transparent;transition:all .2s;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--purple);border-bottom-color:var(--purple);}
+
+/* ── container ── */
+.container{max-width:1300px;margin:0 auto;padding:24px 20px 60px;}
+
+/* ── view ── */
+.view{display:none;}
+.view.active{display:block;}
+
+/* ── view header ── */
+.view-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+.view-hdr-left{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.stats-chips{display:flex;gap:8px;flex-wrap:wrap;}
+.sc{font-size:0.72rem;font-weight:600;padding:4px 10px;border-radius:20px;background:var(--surface);border:1px solid var(--border);color:var(--text-dim);}
+.sc span{color:var(--text);font-family:'JetBrains Mono',monospace;}
+.search-box{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.8rem;padding:6px 12px;border-radius:8px;outline:none;width:180px;}
+.search-box:focus{border-color:var(--purple);}
+
+/* ── btn ── */
+.btn{display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;padding:7px 14px;border-radius:8px;border:none;transition:opacity .2s;}
+.btn:hover{opacity:.85;}
+.btn-purple{background:var(--purple);color:#fff;}
+.btn-green{background:var(--accent-light);color:#05160d;}
+.btn-sm{font-size:0.7rem;padding:4px 10px;border-radius:6px;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-dim);font-size:0.72rem;padding:4px 10px;border-radius:6px;}
+.btn-ghost:hover{border-color:var(--purple);color:var(--purple);}
+.btn-danger{background:#d94f4f18;border:1px solid #d94f4f33;color:var(--loss);font-size:0.7rem;padding:4px 10px;border-radius:6px;}
+.btn-danger:hover{background:#d94f4f30;}
+
+/* ── resource grid ── */
+.resource-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;}
+.r-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;transition:box-shadow .2s;position:relative;}
+.r-card:hover{box-shadow:0 4px 20px #00000030;}
+.r-card-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;}
+.avatar{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0;}
+.r-name{font-weight:700;font-size:0.92rem;margin-bottom:2px;}
+.r-role{font-size:0.72rem;color:var(--text-dim);}
+.r-actions{margin-left:auto;display:flex;gap:6px;opacity:0;transition:opacity .2s;}
+.r-card:hover .r-actions{opacity:1;}
+
+.skills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;}
+.skill-tag{font-size:0.62rem;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border);}
+
+/* ── capacity bar ── */
+.cap-section{margin-bottom:10px;}
+.cap-label{display:flex;justify-content:space-between;font-size:0.68rem;color:var(--text-dim);margin-bottom:5px;}
+.cap-bar{height:10px;border-radius:5px;background:var(--surface2);overflow:hidden;display:flex;position:relative;}
+.cap-seg{height:100%;transition:width .3s;}
+.cap-available{height:100%;flex:1;background:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(255,255,255,.04) 3px,rgba(255,255,255,.04) 6px);}
+.cap-num{font-family:'JetBrains Mono',monospace;font-size:0.7rem;font-weight:600;}
+.cap-num.over{color:var(--loss);}
+.cap-num.full{color:var(--warn);}
+.cap-num.ok{color:var(--profit);}
+
+.alloc-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.alloc-chip{font-size:0.62rem;font-weight:600;padding:2px 8px;border-radius:4px;display:flex;align-items:center;gap:3px;cursor:pointer;transition:filter .2s;}
+.alloc-chip:hover{filter:brightness(1.2);}
+.alloc-chip .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+
+.badge-over{font-size:0.6rem;font-weight:700;padding:1px 6px;border-radius:4px;background:#d94f4f18;color:var(--loss);border:1px solid #d94f4f33;}
+.badge-bench{font-size:0.6rem;font-weight:700;padding:1px 6px;border-radius:4px;background:var(--harvest-bg);color:var(--harvest);border:1px solid var(--harvest-border);}
+
+/* ── project grid ── */
+.project-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;}
+.p-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:box-shadow .2s;}
+.p-card:hover{box-shadow:0 4px 20px #00000030;}
+.p-stripe{height:4px;}
+.p-body{padding:18px;}
+.p-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;}
+.p-name{font-weight:700;font-size:0.95rem;}
+.p-meta{font-size:0.7rem;color:var(--text-dim);margin-bottom:10px;display:flex;gap:10px;flex-wrap:wrap;}
+.p-desc{font-size:0.76rem;color:var(--text-dim);margin-bottom:14px;line-height:1.5;}
+.status-badge{font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace;}
+.s-active{background:#52b78818;color:var(--profit);border:1px solid #52b78840;}
+.s-planning{background:var(--harvest-bg);color:var(--harvest);border:1px solid var(--harvest-border);}
+.s-completed{background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);}
+.s-onhold{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-border);}
+
+.team-list{border-top:1px solid var(--border);padding-top:12px;}
+.team-title{font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.team-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.team-avatar{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700;flex-shrink:0;}
+.team-name{font-size:0.76rem;flex:1;}
+.team-bar-wrap{width:80px;height:6px;border-radius:3px;background:var(--surface2);overflow:hidden;}
+.team-bar{height:100%;border-radius:3px;}
+.team-pct{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--text-dim);width:28px;text-align:right;}
+.team-del{opacity:0;background:none;border:none;color:var(--loss);font-size:0.9rem;line-height:1;transition:opacity .2s;}
+.team-row:hover .team-del{opacity:1;}
+.p-footer{padding:10px 18px 14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.p-actions{display:flex;gap:6px;opacity:0;transition:opacity .2s;}
+.p-card:hover .p-actions{opacity:1;}
+
+/* ── matrix ── */
+.matrix-wrap{overflow:auto;border-radius:12px;border:1px solid var(--border);}
+table.matrix{border-collapse:collapse;width:100%;font-size:0.76rem;}
+.matrix th,.matrix td{padding:8px 14px;border:1px solid var(--border);white-space:nowrap;}
+.matrix thead th{background:var(--surface2);font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);}
+.matrix thead th.proj-header{text-align:center;}
+.matrix tbody th{background:var(--surface);font-weight:600;text-align:left;position:sticky;left:0;z-index:1;}
+.matrix td{text-align:center;font-family:'JetBrains Mono',monospace;font-size:0.75rem;}
+.matrix td.empty{color:var(--text-muted);}
+.matrix tr:hover td,.matrix tr:hover th{background:var(--surface2)!important;}
+.cell-alloc{display:inline-flex;align-items:center;justify-content:center;width:44px;height:28px;border-radius:6px;font-weight:600;cursor:pointer;transition:filter .2s;}
+.cell-alloc:hover{filter:brightness(1.15);}
+.total-cell{font-weight:700;font-family:'JetBrains Mono',monospace;}
+.total-cell.ok{color:var(--profit);}
+.total-cell.full{color:var(--warn);}
+.total-cell.over{color:var(--loss);}
+
+/* ── modal ── */
+.overlay{position:fixed;inset:0;background:#000000a0;z-index:100;display:none;align-items:center;justify-content:center;}
+.overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px #00000060;padding:28px;}
+.modal-title{font-size:1rem;font-weight:700;margin-bottom:20px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:0.74rem;font-weight:600;color:var(--text-dim);margin-bottom:5px;}
+.field input,.field select,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.85rem;padding:8px 12px;border-radius:8px;outline:none;transition:border-color .2s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--purple);}
+.field textarea{resize:vertical;min-height:60px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.hint{font-size:0.68rem;color:var(--text-muted);margin-top:3px;}
+
+/* skill tag input */
+.skill-input-wrap{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 8px;display:flex;flex-wrap:wrap;gap:5px;min-height:38px;cursor:text;transition:border-color .2s;}
+.skill-input-wrap:focus-within{border-color:var(--purple);}
+.skill-input-wrap .skill-tag{display:flex;align-items:center;gap:4px;}
+.skill-input-wrap .skill-tag button{background:none;border:none;color:var(--purple);font-size:0.8rem;line-height:1;padding:0;}
+.skill-input-wrap input{background:none;border:none;outline:none;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.82rem;min-width:80px;flex:1;}
+
+/* color swatches */
+.color-swatches{display:flex;gap:8px;flex-wrap:wrap;}
+.swatch{width:24px;height:24px;border-radius:6px;cursor:pointer;border:2px solid transparent;transition:transform .15s;}
+.swatch.selected{border-color:#fff;transform:scale(1.15);}
+.swatch:hover{transform:scale(1.1);}
+
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
+.alloc-summary{background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:0.78rem;}
+.alloc-summary .row{display:flex;justify-content:space-between;margin-bottom:4px;color:var(--text-dim);}
+.alloc-summary .row:last-child{margin-bottom:0;}
+.alloc-summary .row span{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--text);}
+.alloc-summary .row span.warn{color:var(--warn);}
+.alloc-summary .row span.over{color:var(--loss);}
+.alloc-summary .row span.ok{color:var(--profit);}
+
+/* empty state */
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted);}
+.empty-state .icon{font-size:2.5rem;margin-bottom:12px;}
+.empty-state p{font-size:0.85rem;margin-bottom:16px;}
+
+/* light theme */
+:root[data-theme="light"]{
+  --bg:#f4f6f9;--surface:#fff;--surface2:#eef1f6;--surface3:#e4e8f0;--border:#cdd5e0;
+  --text:#1c2b3a;--text-dim:#526070;--text-muted:#8a9baa;
+  --accent:#1e5c3a;--accent-light:#239659;--accent-glow:#2d8a5e18;
+  --harvest:#1a5faa;--harvest-bg:#1a5faa0f;--harvest-border:#1a5faa30;
+  --warn:#9a6010;--warn-bg:#9a60100f;--warn-border:#9a601030;
+  --purple:#6d4ec4;--purple-bg:#6d4ec410;--purple-border:#6d4ec430;
+  --rose:#b0304a;--rose-bg:#b0304a10;--rose-border:#b0304a30;
+  --profit:#1e7a4a;--loss:#c0392b;
+}
+:root[data-theme="light"] .modal{box-shadow:0 12px 48px rgba(0,0,0,.18);}
+:root[data-theme="light"] .matrix tbody th{background:#fff;}
+
+/* ── suggestions tab ── */
+.sug-list{display:flex;flex-direction:column;gap:14px;}
+.sug-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:box-shadow .2s;}
+.sug-card:hover{box-shadow:0 4px 20px #00000030;}
+.sug-stripe{height:3px;}
+.sug-body{padding:18px 20px;}
+.sug-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.sug-badge{font-size:0.62rem;font-weight:700;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;}
+.sug-badge-high{background:#d94f4f18;color:var(--loss);border:1px solid #d94f4f33;}
+.sug-badge-medium{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-border);}
+.sug-badge-info{background:var(--harvest-bg);color:var(--harvest);border:1px solid var(--harvest-border);}
+.sug-type{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);}
+.sug-proj{font-size:0.78rem;font-weight:700;margin-left:auto;}
+
+.sug-compare{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;margin-bottom:14px;}
+.sug-person{background:var(--surface2);border-radius:8px;padding:10px 12px;}
+.sug-arrow{font-size:1.2rem;color:var(--text-muted);text-align:center;}
+.sp-name{font-size:0.8rem;font-weight:700;margin-bottom:2px;}
+.sp-role{font-size:0.66rem;color:var(--text-dim);margin-bottom:8px;}
+.sp-bar-wrap{height:8px;border-radius:4px;background:var(--border);overflow:hidden;margin-bottom:4px;position:relative;}
+.sp-bar-before{height:100%;border-radius:4px;opacity:.4;position:absolute;top:0;left:0;transition:width .3s;}
+.sp-bar-after{height:100%;border-radius:4px;position:absolute;top:0;left:0;transition:width .3s;}
+.sp-pct{font-family:'JetBrains Mono',monospace;font-size:0.68rem;display:flex;justify-content:space-between;color:var(--text-dim);}
+.sp-pct strong{color:var(--text);}
+.sp-change{font-size:0.68rem;margin-top:4px;}
+
+.sug-skills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;}
+.sug-skills-label{font-size:0.66rem;color:var(--text-muted);margin-right:4px;}
+.match-tag{font-size:0.62rem;font-weight:600;padding:2px 7px;border-radius:4px;background:#52b78818;color:var(--profit);border:1px solid #52b78830;}
+.nmatch-tag{font-size:0.62rem;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--surface2);color:var(--text-muted);border:1px solid var(--border);}
+
+.sug-impact{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.impact-pill{font-size:0.72rem;padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:5px;}
+.impact-time{background:#52b78818;color:var(--profit);border:1px solid #52b78830;}
+.impact-load{background:var(--harvest-bg);color:var(--harvest);border:1px solid var(--harvest-border);}
+.impact-warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-border);}
+
+.sug-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-top:1px solid var(--border);background:var(--surface2);}
+.sug-action-desc{font-size:0.74rem;color:var(--text-dim);}
+.sug-action-desc strong{color:var(--text);}
+.sug-btns{display:flex;gap:8px;}
+.btn-apply{background:var(--purple);color:#fff;border:none;font-size:0.74rem;font-weight:600;padding:6px 14px;border-radius:7px;transition:opacity .2s;}
+.btn-apply:hover{opacity:.85;}
+.btn-dismiss{background:none;border:1px solid var(--border);color:var(--text-dim);font-size:0.72rem;padding:5px 12px;border-radius:7px;transition:all .2s;}
+.btn-dismiss:hover{border-color:var(--rose);color:var(--rose);}
+.sug-applied{font-size:0.74rem;color:var(--profit);padding:6px 0;font-weight:600;}
+
+.sug-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.sf{font-size:0.72rem;font-weight:600;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text-dim);cursor:pointer;transition:all .2s;}
+.sf:hover{border-color:var(--purple);color:var(--purple);}
+.sf.active{background:var(--purple-bg);border-color:var(--purple);color:var(--purple);}
+
+.sug-no-results{text-align:center;padding:50px 20px;color:var(--text-muted);}
+.sug-no-results .icon{font-size:2.5rem;margin-bottom:12px;}
+
+/* ── timeline block ── */
+.timeline-block{background:var(--surface2);border-radius:8px;padding:12px 14px;margin-bottom:14px;border-left:3px solid var(--profit);}
+.tl-title{font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:8px;}
+.tl-row{display:flex;align-items:center;gap:10px;margin-bottom:5px;font-size:0.78rem;}
+.tl-row:last-child{margin-bottom:0;}
+.tl-label{color:var(--text-dim);width:60px;flex-shrink:0;}
+.tl-bar-wrap{flex:1;height:6px;border-radius:3px;background:var(--border);}
+.tl-bar{height:100%;border-radius:3px;}
+.tl-date{font-family:'JetBrains Mono',monospace;font-size:0.72rem;width:90px;text-align:right;}
+.tl-saving{font-size:0.8rem;font-weight:700;color:var(--profit);margin-top:6px;}
+</style>
+<script src="theme.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html" class="topbar-back">← Home</a>
+  <span class="topbar-sep">|</span>
+  <span class="topbar-title">Resource Allocator</span>
+</div>
+
+<div class="tab-bar">
+  <button class="tab active" data-tab="resources" onclick="switchTab('resources')">👥 Resources</button>
+  <button class="tab" data-tab="projects" onclick="switchTab('projects')">📁 Projects</button>
+  <button class="tab" data-tab="matrix" onclick="switchTab('matrix')">📊 Overview Matrix</button>
+  <button class="tab" data-tab="suggestions" onclick="switchTab('suggestions')">💡 Workload Suggestions</button>
+</div>
+
+<div class="container">
+
+  <!-- ══ RESOURCES ══════════════════════════════════════════════════ -->
+  <div id="view-resources" class="view active">
+    <div class="view-hdr">
+      <div class="view-hdr-left">
+        <div class="stats-chips" id="r-stats"></div>
+        <input class="search-box" id="r-search" placeholder="🔍 Search by name or skill…" oninput="renderResources()">
+      </div>
+      <button class="btn btn-purple" onclick="openResourceModal()">+ Add Resource</button>
+    </div>
+    <div class="resource-grid" id="resource-grid"></div>
+  </div>
+
+  <!-- ══ PROJECTS ═══════════════════════════════════════════════════ -->
+  <div id="view-projects" class="view">
+    <div class="view-hdr">
+      <div class="view-hdr-left">
+        <div class="stats-chips" id="p-stats"></div>
+        <input class="search-box" id="p-search" placeholder="🔍 Search projects…" oninput="renderProjects()">
+      </div>
+      <button class="btn btn-green" onclick="openProjectModal()">+ Add Project</button>
+    </div>
+    <div class="project-grid" id="project-grid"></div>
+  </div>
+
+  <!-- ══ MATRIX ══════════════════════════════════════════════════════ -->
+  <div id="view-matrix" class="view">
+    <div class="view-hdr">
+      <div class="view-hdr-left">
+        <span style="font-size:0.78rem;color:var(--text-dim)">Allocation heatmap · click any cell to edit</span>
+      </div>
+    </div>
+    <div class="matrix-wrap" id="matrix-wrap"></div>
+  </div>
+
+  <!-- ══ SUGGESTIONS ════════════════════════════════════════════════ -->
+  <div id="view-suggestions" class="view">
+    <div class="view-hdr">
+      <div class="view-hdr-left">
+        <div class="stats-chips" id="sug-stats"></div>
+      </div>
+      <button class="btn btn-ghost" onclick="renderSuggestions()" style="font-size:.76rem">🔄 Refresh</button>
+    </div>
+    <div class="sug-filters">
+      <button class="sf active" data-sf="all"       onclick="setSugFilter(this,'all')">All</button>
+      <button class="sf"        data-sf="rebalance" onclick="setSugFilter(this,'rebalance')">🔀 Rebalance</button>
+      <button class="sf"        data-sf="add"       onclick="setSugFilter(this,'add')">➕ Add Resource</button>
+      <button class="sf"        data-sf="high"      onclick="setSugFilter(this,'high')">🔴 High Priority</button>
+    </div>
+    <div class="sug-list" id="sug-list"></div>
+  </div>
+
+</div>
+
+<!-- ══ MODALS ════════════════════════════════════════════════════════ -->
+
+<!-- Resource Modal -->
+<div class="overlay" id="overlay-resource" onclick="closeModal(event,'overlay-resource')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title" id="res-modal-title">Add Resource</div>
+    <div class="field-row">
+      <div class="field"><label>Full Name *</label><input id="res-name" placeholder="e.g. Arjun Mehta"></div>
+      <div class="field"><label>Role / Designation</label><input id="res-role" placeholder="e.g. Frontend Dev"></div>
+    </div>
+    <div class="field">
+      <label>Skills</label>
+      <div class="skill-input-wrap" id="skill-input-wrap" onclick="document.getElementById('skill-new').focus()">
+        <input id="skill-new" placeholder="Type skill + Enter…" onkeydown="handleSkillKey(event)" autocomplete="off">
+      </div>
+      <div class="hint">Press Enter or comma to add each skill</div>
+    </div>
+    <div class="field">
+      <label>Capacity (%)</label>
+      <input id="res-capacity" type="number" value="100" min="10" max="200" step="10">
+      <div class="hint">100% = full-time. 50% = half-time</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeOverlay('overlay-resource')">Cancel</button>
+      <button class="btn btn-purple" onclick="saveResource()">Save Resource</button>
+    </div>
+    <input type="hidden" id="res-edit-id">
+  </div>
+</div>
+
+<!-- Project Modal -->
+<div class="overlay" id="overlay-project" onclick="closeModal(event,'overlay-project')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title" id="proj-modal-title">Add Project</div>
+    <div class="field"><label>Project Name *</label><input id="proj-name" placeholder="e.g. Project Alpha"></div>
+    <div class="field"><label>Description</label><textarea id="proj-desc" placeholder="Short description…"></textarea></div>
+    <div class="field-row">
+      <div class="field">
+        <label>Status</label>
+        <select id="proj-status">
+          <option value="planning">Planning</option>
+          <option value="active" selected>Active</option>
+          <option value="onhold">On Hold</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+      <div class="field"><label>Capacity (total %)</label><input id="proj-capacity" type="number" value="100" min="10" max="500"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Start Date</label><input id="proj-start" type="date"></div>
+      <div class="field"><label>End Date</label><input id="proj-end" type="date"></div>
+    </div>
+    <div class="field">
+      <label>Colour</label>
+      <div class="color-swatches" id="proj-color-swatches"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeOverlay('overlay-project')">Cancel</button>
+      <button class="btn btn-green" onclick="saveProject()">Save Project</button>
+    </div>
+    <input type="hidden" id="proj-edit-id">
+    <input type="hidden" id="proj-sel-color" value="#4e8fd4">
+  </div>
+</div>
+
+<!-- Allocation Modal -->
+<div class="overlay" id="overlay-alloc" onclick="closeModal(event,'overlay-alloc')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title" id="alloc-modal-title">Allocate Resource to Project</div>
+    <div class="field">
+      <label>Resource *</label>
+      <select id="alloc-resource" onchange="refreshAllocSummary()"></select>
+    </div>
+    <div class="field">
+      <label>Project *</label>
+      <select id="alloc-project" onchange="refreshAllocSummary()"></select>
+    </div>
+    <div class="alloc-summary" id="alloc-summary"></div>
+    <div class="field">
+      <label>Allocation (%) *</label>
+      <input id="alloc-pct" type="number" value="50" min="1" max="200" step="5" oninput="refreshAllocSummary()">
+      <div class="hint">% of the resource's working capacity for this project</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-danger" id="alloc-del-btn" style="display:none;margin-right:auto" onclick="deleteAllocation()">Remove Allocation</button>
+      <button class="btn-ghost" onclick="closeOverlay('overlay-alloc')">Cancel</button>
+      <button class="btn btn-purple" onclick="saveAllocation()">Save Allocation</button>
+    </div>
+    <input type="hidden" id="alloc-edit-id">
+  </div>
+</div>
+
+<footer style="text-align:center;padding:20px;font-size:0.74rem;color:var(--text-muted);border-top:1px solid var(--border);">
+  Resource Allocator · All data saved in your browser via localStorage · No server, no login
+</footer>
+
+<script>
+// ─── Config ──────────────────────────────────────────────────────────────────
+const PROJECT_COLORS = ['#4e8fd4','#52b788','#d4a04e','#9d7fe8','#d4607a','#4ecac4','#d47a4e','#7ab8e8','#c488e8','#e88884','#8fc488','#e8c344'];
+const AVATAR_COLORS  = ['#4e8fd4','#52b788','#9d7fe8','#d4a04e','#d4607a','#4ecac4','#7ab8e8'];
+
+const uid = () => Math.random().toString(36).slice(2,9);
+let editSkills = [];
+let currentTab = 'resources';
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let state = { resources: [], projects: [], allocations: [] };
+
+function load() {
+  try { const s = localStorage.getItem('resourceAllocator'); if (s) state = JSON.parse(s); else seedDemo(); }
+  catch(e) { seedDemo(); }
+}
+function save() { localStorage.setItem('resourceAllocator', JSON.stringify(state)); }
+
+function seedDemo() {
+  state.resources = [
+    {id:'r1',name:'Arjun Mehta',    role:'Frontend Developer', skills:['React','TypeScript','CSS','Next.js'],    capacity:100, color:'#4e8fd4'},
+    {id:'r2',name:'Priya Sharma',   role:'Backend Developer',  skills:['Node.js','Python','PostgreSQL','AWS'],  capacity:100, color:'#52b788'},
+    {id:'r3',name:'Ravi Kumar',     role:'UI/UX Designer',     skills:['Figma','Adobe XD','CSS','Prototyping'], capacity:100, color:'#9d7fe8'},
+    {id:'r4',name:'Sneha Patel',    role:'Full Stack Dev',     skills:['React','Node.js','MongoDB','Docker'],   capacity:100, color:'#d4a04e'},
+    {id:'r5',name:'Karan Singh',    role:'DevOps Engineer',    skills:['AWS','Docker','Kubernetes','Terraform'], capacity:50,  color:'#d4607a'},
+  ];
+  state.projects = [
+    {id:'p1',name:'Project Alpha',  status:'active',    color:'#4e8fd4', description:'E-commerce platform rebuild', startDate:'2025-01-01',endDate:'2025-06-30', capacity:300},
+    {id:'p2',name:'Project Beta',   status:'active',    color:'#52b788', description:'Mobile app MVP launch',        startDate:'2025-02-01',endDate:'2025-08-31', capacity:200},
+    {id:'p3',name:'Project Gamma',  status:'planning',  color:'#9d7fe8', description:'Analytics dashboard v2',       startDate:'2025-04-01',endDate:'2025-12-31', capacity:150},
+  ];
+  state.allocations = [
+    {id:'a1',resourceId:'r1',projectId:'p1',allocation:60},
+    {id:'a2',resourceId:'r1',projectId:'p2',allocation:30},
+    {id:'a3',resourceId:'r2',projectId:'p1',allocation:50},
+    {id:'a4',resourceId:'r2',projectId:'p3',allocation:30},
+    {id:'a5',resourceId:'r3',projectId:'p1',allocation:40},
+    {id:'a6',resourceId:'r3',projectId:'p2',allocation:40},
+    {id:'a7',resourceId:'r4',projectId:'p2',allocation:70},
+    {id:'a8',resourceId:'r4',projectId:'p3',allocation:30},
+    {id:'a9',resourceId:'r5',projectId:'p1',allocation:50},
+  ];
+  save();
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function initials(name) { return name.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2); }
+function avatarColor(id) { const idx=state.resources.findIndex(r=>r.id===id); return AVATAR_COLORS[idx % AVATAR_COLORS.length]; }
+
+function resourceAlloc(rid) {
+  const allocs = state.allocations.filter(a=>a.resourceId===rid);
+  const total  = allocs.reduce((s,a)=>s+a.allocation,0);
+  const res    = state.resources.find(r=>r.id===rid);
+  const cap    = res?.capacity||100;
+  return {total, available: cap-total, cap, allocs, over: total>cap};
+}
+function projectTeam(pid) {
+  return state.allocations
+    .filter(a=>a.projectId===pid)
+    .map(a=>({...a, resource: state.resources.find(r=>r.id===a.resourceId)}))
+    .filter(a=>a.resource);
+}
+function totalProjectAlloc(pid) {
+  return state.allocations.filter(a=>a.projectId===pid).reduce((s,a)=>s+a.allocation,0);
+}
+
+function statusLabel(s){ return ({active:'Active',planning:'Planning',onhold:'On Hold',completed:'Completed'})[s]||s; }
+function statusClass(s){ return ({active:'s-active',planning:'s-planning',onhold:'s-onhold',completed:'s-completed'})[s]||''; }
+function fmtDate(d){ if(!d) return ''; const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0].slice(2)}`; }
+
+function hexAlpha(hex, alpha) {
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// ─── Tab switching ────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id===`view-${tab}`));
+  if (tab==='resources')   renderResources();
+  else if (tab==='projects')    renderProjects();
+  else if (tab==='matrix')      renderMatrix();
+  else if (tab==='suggestions') renderSuggestions();
+}
+
+// ─── Render: Resources ───────────────────────────────────────────────────────
+function renderResources() {
+  const q = (document.getElementById('r-search')?.value||'').toLowerCase();
+  const resources = state.resources.filter(r =>
+    !q || r.name.toLowerCase().includes(q) || r.skills.some(s=>s.toLowerCase().includes(q))
+  );
+
+  // Stats
+  const total    = state.resources.length;
+  const overAlloc = state.resources.filter(r=>resourceAlloc(r.id).over).length;
+  const benched  = state.resources.filter(r=>resourceAlloc(r.id).total===0).length;
+  document.getElementById('r-stats').innerHTML = `
+    <div class="sc"><span>${total}</span> Resources</div>
+    <div class="sc"><span>${overAlloc}</span> Over-allocated</div>
+    <div class="sc"><span>${benched}</span> Bench</div>`;
+
+  if (!resources.length) {
+    document.getElementById('resource-grid').innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="icon">👥</div><p>${state.resources.length?'No results for your search.':'No resources yet. Add your first team member.'}</p>${!state.resources.length?'<button class="btn btn-purple" onclick="openResourceModal()">+ Add Resource</button>':''}</div>`;
+    return;
+  }
+
+  document.getElementById('resource-grid').innerHTML = resources.map(r => {
+    const {total,available,cap,allocs,over} = resourceAlloc(r.id);
+    const avColor = over ? 'over' : available<20 ? 'full' : 'ok';
+    const ac = avatarColor(r.id);
+
+    // Build segmented bar
+    const segs = allocs.map(a => {
+      const proj = state.projects.find(p=>p.id===a.projectId);
+      const pct  = Math.min(a.allocation/cap*100, 100);
+      return `<div class="cap-seg" style="width:${pct}%;background:${proj?.color||'#666'}" title="${proj?.name||'?'}: ${a.allocation}%"></div>`;
+    }).join('');
+
+    const chips = allocs.map(a => {
+      const proj = state.projects.find(p=>p.id===a.projectId);
+      if (!proj) return '';
+      return `<span class="alloc-chip" style="background:${hexAlpha(proj.color,0.15)};color:${proj.color};border:1px solid ${hexAlpha(proj.color,0.3)}" onclick="openAllocModal('${r.id}','${proj.id}')" title="Click to edit">
+        <span class="dot" style="background:${proj.color}"></span>${proj.name} ${a.allocation}%</span>`;
+    }).join('');
+
+    return `<div class="r-card">
+      <div class="r-card-head">
+        <div class="avatar" style="background:${hexAlpha(ac,0.2)};color:${ac}">${initials(r.name)}</div>
+        <div>
+          <div class="r-name">${r.name}</div>
+          <div class="r-role">${r.role||'—'}</div>
+        </div>
+        <div class="r-actions">
+          <button class="btn-ghost" onclick="openResourceModal('${r.id}')">✏️</button>
+          <button class="btn-ghost" onclick="openAllocModal('${r.id}')">+ Allocate</button>
+          <button class="btn-danger" onclick="deleteResource('${r.id}')">🗑</button>
+        </div>
+      </div>
+      <div class="skills">${r.skills.map(s=>`<span class="skill-tag">${s}</span>`).join('')||'<span style="font-size:.7rem;color:var(--text-muted)">No skills added</span>'}</div>
+      <div class="cap-section">
+        <div class="cap-label">
+          <span>Allocation</span>
+          <span class="cap-num ${avColor}">${total}% used · ${cap}% capacity${over?' ⚠ Over-allocated':''}</span>
+        </div>
+        <div class="cap-bar">${segs}<div class="cap-available"></div></div>
+      </div>
+      ${chips ? `<div class="alloc-chips">${chips}</div>` : `<div style="font-size:.7rem;color:var(--text-muted);margin-top:4px">Not assigned to any project — <button onclick="openAllocModal('${r.id}')" style="background:none;border:none;color:var(--accent-light);font-size:.7rem;cursor:pointer;font-family:inherit">+ Allocate</button></div>`}
+      ${over ? '<div style="margin-top:6px"><span class="badge-over">⚠ Over-allocated by '+(total-cap)+'%</span></div>' : ''}
+      ${total===0 ? '<div style="margin-top:6px"><span class="badge-bench">On Bench</span></div>' : ''}
+    </div>`;
+  }).join('');
+}
+
+// ─── Render: Projects ────────────────────────────────────────────────────────
+function renderProjects() {
+  const q = (document.getElementById('p-search')?.value||'').toLowerCase();
+  const projects = state.projects.filter(p => !q || p.name.toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q));
+
+  const counts = {active:0,planning:0,onhold:0,completed:0};
+  state.projects.forEach(p=>counts[p.status]=(counts[p.status]||0)+1);
+  document.getElementById('p-stats').innerHTML = `
+    <div class="sc"><span>${state.projects.length}</span> Projects</div>
+    <div class="sc"><span>${counts.active}</span> Active</div>
+    <div class="sc"><span>${counts.planning}</span> Planning</div>
+    <div class="sc"><span>${counts.completed}</span> Completed</div>`;
+
+  if (!projects.length) {
+    document.getElementById('project-grid').innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="icon">📁</div><p>${state.projects.length?'No results for your search.':'No projects yet. Create your first project.'}</p>${!state.projects.length?'<button class="btn btn-green" onclick="openProjectModal()">+ Add Project</button>':''}</div>`;
+    return;
+  }
+
+  document.getElementById('project-grid').innerHTML = projects.map(p => {
+    const team  = projectTeam(p.id);
+    const total = totalProjectAlloc(p.id);
+    const pct   = Math.round(total / (p.capacity||100) * 100);
+
+    const teamRows = team.length ? team.map(t=>{
+      const ac = avatarColor(t.resourceId);
+      return `<div class="team-row">
+        <div class="team-avatar" style="background:${hexAlpha(ac,.2)};color:${ac}">${initials(t.resource.name)}</div>
+        <div class="team-name">${t.resource.name}<div style="font-size:.66rem;color:var(--text-muted)">${t.resource.role||''}</div></div>
+        <div class="team-bar-wrap"><div class="team-bar" style="width:${Math.min(t.allocation,100)}%;background:${p.color}"></div></div>
+        <div class="team-pct">${t.allocation}%</div>
+        <button class="team-del" title="Remove" onclick="removeAlloc('${t.resourceId}','${p.id}')">✕</button>
+      </div>`;
+    }).join('') : `<div style="font-size:.74rem;color:var(--text-muted);padding:4px 0">No resources assigned yet</div>`;
+
+    return `<div class="p-card">
+      <div class="p-stripe" style="background:${p.color}"></div>
+      <div class="p-body">
+        <div class="p-head">
+          <div class="p-name">${p.name}</div>
+          <span class="status-badge ${statusClass(p.status)}">${statusLabel(p.status)}</span>
+        </div>
+        <div class="p-meta">
+          ${p.startDate?`<span>📅 ${fmtDate(p.startDate)} → ${fmtDate(p.endDate)}</span>`:''}
+          <span>👥 ${team.length} member${team.length!==1?'s':''}</span>
+          <span style="color:${total>100?'var(--loss)':total>80?'var(--warn)':'var(--profit)'}">${total}% allocated</span>
+        </div>
+        ${p.description?`<div class="p-desc">${p.description}</div>`:''}
+        <div class="team-list">
+          <div class="team-title">Team <button class="btn-ghost btn-sm" onclick="openAllocModal('','${p.id}')">+ Add Member</button></div>
+          ${teamRows}
+        </div>
+      </div>
+      <div class="p-footer">
+        <span style="font-size:.7rem;color:var(--text-muted)">${total}% of ${p.capacity||100}% capacity used</span>
+        <div class="p-actions">
+          <button class="btn-ghost" onclick="openProjectModal('${p.id}')">✏️ Edit</button>
+          <button class="btn-danger" onclick="deleteProject('${p.id}')">🗑</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Render: Matrix ──────────────────────────────────────────────────────────
+function renderMatrix() {
+  const { resources, projects, allocations } = state;
+  if (!resources.length || !projects.length) {
+    document.getElementById('matrix-wrap').innerHTML = `<div class="empty-state"><div class="icon">📊</div><p>Add resources and projects to see the overview matrix.</p></div>`;
+    return;
+  }
+
+  const allocMap = {};
+  allocations.forEach(a => { allocMap[`${a.resourceId}_${a.projectId}`] = a.allocation; });
+
+  const projHeaders = projects.map(p=>`<th class="proj-header"><div style="color:${p.color};font-weight:700">${p.name}</div><div class="status-badge ${statusClass(p.status)}" style="margin-top:3px">${statusLabel(p.status)}</div></th>`).join('');
+  const rows = resources.map(r => {
+    const {total,cap,over} = resourceAlloc(r.id);
+    const ac = avatarColor(r.id);
+    const cells = projects.map(p => {
+      const pct = allocMap[`${r.id}_${p.id}`];
+      if (!pct) return `<td class="empty" onclick="openAllocModal('${r.id}','${p.id}')"><span style="cursor:pointer;color:var(--text-muted);font-size:.7rem">+ add</span></td>`;
+      const intensity = Math.min(pct/100, 1);
+      return `<td><div class="cell-alloc" style="background:${hexAlpha(p.color,0.15+intensity*0.35)};color:${p.color}" onclick="openAllocModal('${r.id}','${p.id}')" title="Click to edit">${pct}%</div></td>`;
+    }).join('');
+    const cls = over ? 'over' : total>=cap ? 'full' : 'ok';
+    return `<tr>
+      <th><div style="display:flex;align-items:center;gap:8px">
+        <div class="team-avatar" style="background:${hexAlpha(ac,.2)};color:${ac};width:24px;height:24px;border-radius:6px;font-size:.6rem">${initials(r.name)}</div>
+        <div><div style="font-weight:600;font-size:.78rem">${r.name}</div><div style="font-size:.66rem;color:var(--text-dim)">${r.role||''}</div></div>
+      </div></th>
+      ${cells}
+      <td><span class="total-cell ${cls}">${total}%</span><div style="font-size:.64rem;color:var(--text-muted)">${cap}% cap</div></td>
+      <td><span class="total-cell ${cls}" style="${over?'':'color:inherit'}">${Math.max(0,cap-total)}%</span></td>
+    </tr>`;
+  }).join('');
+
+  const projTotals = projects.map(p => {
+    const t = totalProjectAlloc(p.id);
+    return `<td style="text-align:center;font-family:'JetBrains Mono',monospace;font-weight:700;color:${p.color}">${t}%</td>`;
+  }).join('');
+
+  document.getElementById('matrix-wrap').innerHTML = `
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th>Resource</th>
+          ${projHeaders}
+          <th style="text-align:center">Total Used</th>
+          <th style="text-align:center">Available</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr style="background:var(--surface2)">
+          <th style="font-size:.65rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted)">Project Total</th>
+          ${projTotals}
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>`;
+}
+
+// ─── Resource CRUD ───────────────────────────────────────────────────────────
+function openResourceModal(id) {
+  editSkills = [];
+  const res = id ? state.resources.find(r=>r.id===id) : null;
+  document.getElementById('res-modal-title').textContent = id ? 'Edit Resource' : 'Add Resource';
+  document.getElementById('res-name').value     = res?.name     || '';
+  document.getElementById('res-role').value     = res?.role     || '';
+  document.getElementById('res-capacity').value = res?.capacity || 100;
+  document.getElementById('res-edit-id').value  = id || '';
+  editSkills = res?.skills ? [...res.skills] : [];
+  renderSkillTags();
+  document.getElementById('overlay-resource').classList.add('open');
+  document.getElementById('res-name').focus();
+}
+function renderSkillTags() {
+  const wrap = document.getElementById('skill-input-wrap');
+  const inp  = document.getElementById('skill-new');
+  wrap.querySelectorAll('.skill-tag').forEach(t=>t.remove());
+  editSkills.forEach((s,i) => {
+    const tag = document.createElement('span');
+    tag.className = 'skill-tag';
+    tag.innerHTML = `${s} <button type="button" onclick="removeSkill(${i})">×</button>`;
+    wrap.insertBefore(tag, inp);
+  });
+}
+function handleSkillKey(e) {
+  if (e.key==='Enter'||e.key===',') { e.preventDefault(); addSkill(); }
+  if (e.key==='Backspace' && !e.target.value && editSkills.length) { editSkills.pop(); renderSkillTags(); }
+}
+function addSkill() {
+  const inp = document.getElementById('skill-new');
+  const val = inp.value.replace(/,/g,'').trim();
+  if (val && !editSkills.includes(val)) { editSkills.push(val); renderSkillTags(); }
+  inp.value = '';
+}
+function removeSkill(i) { editSkills.splice(i,1); renderSkillTags(); }
+
+function saveResource() {
+  addSkill(); // flush any pending input
+  const name = document.getElementById('res-name').value.trim();
+  if (!name) { alert('Name is required'); return; }
+  const id = document.getElementById('res-edit-id').value;
+  const data = {
+    name, role: document.getElementById('res-role').value.trim(),
+    skills: [...editSkills],
+    capacity: parseInt(document.getElementById('res-capacity').value)||100,
+    color: AVATAR_COLORS[state.resources.length % AVATAR_COLORS.length],
+  };
+  if (id) { const i=state.resources.findIndex(r=>r.id===id); if (i>-1) state.resources[i]={...state.resources[i],...data}; }
+  else { state.resources.push({id:uid(),...data}); }
+  save(); closeOverlay('overlay-resource'); renderResources();
+}
+function deleteResource(id) {
+  if (!confirm('Delete this resource and all their allocations?')) return;
+  state.resources = state.resources.filter(r=>r.id!==id);
+  state.allocations = state.allocations.filter(a=>a.resourceId!==id);
+  save(); renderResources();
+}
+
+// ─── Project CRUD ────────────────────────────────────────────────────────────
+const colorSwatches = () => PROJECT_COLORS.map(c=>
+  `<div class="swatch" style="background:${c}" data-color="${c}" onclick="selectColor('${c}')"></div>`).join('');
+
+function openProjectModal(id) {
+  const proj = id ? state.projects.find(p=>p.id===id) : null;
+  document.getElementById('proj-modal-title').textContent = id ? 'Edit Project' : 'Add Project';
+  document.getElementById('proj-name').value     = proj?.name        || '';
+  document.getElementById('proj-desc').value     = proj?.description || '';
+  document.getElementById('proj-status').value   = proj?.status      || 'active';
+  document.getElementById('proj-start').value    = proj?.startDate   || '';
+  document.getElementById('proj-end').value      = proj?.endDate     || '';
+  document.getElementById('proj-capacity').value = proj?.capacity    || 100;
+  document.getElementById('proj-edit-id').value  = id || '';
+  const selColor = proj?.color || PROJECT_COLORS[state.projects.length % PROJECT_COLORS.length];
+  document.getElementById('proj-sel-color').value = selColor;
+  document.getElementById('proj-color-swatches').innerHTML = colorSwatches();
+  document.querySelector(`.swatch[data-color="${selColor}"]`)?.classList.add('selected');
+  document.getElementById('overlay-project').classList.add('open');
+  document.getElementById('proj-name').focus();
+}
+function selectColor(c) {
+  document.getElementById('proj-sel-color').value = c;
+  document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('selected',s.dataset.color===c));
+}
+function saveProject() {
+  const name = document.getElementById('proj-name').value.trim();
+  if (!name) { alert('Project name is required'); return; }
+  const id = document.getElementById('proj-edit-id').value;
+  const data = {
+    name, description: document.getElementById('proj-desc').value.trim(),
+    status: document.getElementById('proj-status').value,
+    startDate: document.getElementById('proj-start').value,
+    endDate: document.getElementById('proj-end').value,
+    capacity: parseInt(document.getElementById('proj-capacity').value)||100,
+    color: document.getElementById('proj-sel-color').value,
+  };
+  if (id) { const i=state.projects.findIndex(p=>p.id===id); if (i>-1) state.projects[i]={...state.projects[i],...data}; }
+  else { state.projects.push({id:uid(),...data}); }
+  save(); closeOverlay('overlay-project'); renderProjects(); if (currentTab==='matrix') renderMatrix();
+}
+function deleteProject(id) {
+  if (!confirm('Delete this project and all its allocations?')) return;
+  state.projects = state.projects.filter(p=>p.id!==id);
+  state.allocations = state.allocations.filter(a=>a.projectId!==id);
+  save(); renderProjects(); if (currentTab==='matrix') renderMatrix();
+}
+
+// ─── Allocation CRUD ─────────────────────────────────────────────────────────
+function openAllocModal(resourceId, projectId) {
+  // Populate selects
+  const rSel = document.getElementById('alloc-resource');
+  const pSel = document.getElementById('alloc-project');
+  rSel.innerHTML = state.resources.map(r=>`<option value="${r.id}" ${r.id===resourceId?'selected':''}>${r.name} (${r.role||r.id})</option>`).join('');
+  pSel.innerHTML = state.projects.map(p=>`<option value="${p.id}" ${p.id===projectId?'selected':''}>${p.name}</option>`).join('');
+
+  const existing = resourceId && projectId ? state.allocations.find(a=>a.resourceId===resourceId&&a.projectId===projectId) : null;
+  document.getElementById('alloc-edit-id').value = existing?.id || '';
+  document.getElementById('alloc-pct').value = existing?.allocation || 50;
+  document.getElementById('alloc-modal-title').textContent = existing ? 'Edit Allocation' : 'Allocate Resource';
+  document.getElementById('alloc-del-btn').style.display = existing ? 'inline-flex' : 'none';
+  refreshAllocSummary();
+  document.getElementById('overlay-alloc').classList.add('open');
+}
+function refreshAllocSummary() {
+  const rid = document.getElementById('alloc-resource').value;
+  const pid = document.getElementById('alloc-project').value;
+  const newPct = parseInt(document.getElementById('alloc-pct').value)||0;
+  const res = state.resources.find(r=>r.id===rid);
+  if (!res) return;
+  const {total, cap, allocs} = resourceAlloc(rid);
+  // exclude current allocation for this project from total
+  const existingForThisProj = allocs.find(a=>a.projectId===pid)?.allocation||0;
+  const otherTotal = total - existingForThisProj;
+  const newTotal   = otherTotal + newPct;
+  const available  = cap - newTotal;
+  const cls        = newTotal>cap ? 'over' : newTotal>=cap ? 'full' : 'ok';
+  document.getElementById('alloc-summary').innerHTML = `
+    <div class="row">Current capacity<span>${cap}%</span></div>
+    <div class="row">Other projects<span>${otherTotal}%</span></div>
+    <div class="row">This allocation<span>${newPct}%</span></div>
+    <div class="row" style="border-top:1px solid var(--border);padding-top:6px;margin-top:4px;font-weight:700">After save: Total<span class="${cls}">${newTotal}%</span></div>
+    <div class="row">Available after<span class="${cls}">${available}%</span></div>
+    ${newTotal>cap?`<div style="margin-top:6px;color:var(--loss);font-size:.72rem">⚠ This will over-allocate ${res.name} by ${newTotal-cap}%</div>`:''}`;
+}
+function saveAllocation() {
+  const rid = document.getElementById('alloc-resource').value;
+  const pid = document.getElementById('alloc-project').value;
+  const pct = parseInt(document.getElementById('alloc-pct').value)||0;
+  if (!rid||!pid||pct<1) { alert('All fields are required and allocation must be ≥ 1%'); return; }
+  const existingId = document.getElementById('alloc-edit-id').value;
+  if (existingId) {
+    const i = state.allocations.findIndex(a=>a.id===existingId);
+    if (i>-1) state.allocations[i].allocation = pct;
+  } else {
+    // Remove existing same resource+project
+    state.allocations = state.allocations.filter(a=>!(a.resourceId===rid&&a.projectId===pid));
+    state.allocations.push({id:uid(),resourceId:rid,projectId:pid,allocation:pct});
+  }
+  save(); closeOverlay('overlay-alloc');
+  if (currentTab==='resources') renderResources();
+  else if (currentTab==='projects') renderProjects();
+  else renderMatrix();
+}
+function deleteAllocation() {
+  const id = document.getElementById('alloc-edit-id').value;
+  if (!id) return;
+  state.allocations = state.allocations.filter(a=>a.id!==id);
+  save(); closeOverlay('overlay-alloc');
+  if (currentTab==='resources') renderResources();
+  else if (currentTab==='projects') renderProjects();
+  else renderMatrix();
+}
+function removeAlloc(rid, pid) {
+  state.allocations = state.allocations.filter(a=>!(a.resourceId===rid&&a.projectId===pid));
+  save(); renderProjects(); if (currentTab==='matrix') renderMatrix();
+}
+
+// ─── Suggestions ─────────────────────────────────────────────────────────────
+let sugFilter    = 'all';
+let dismissedIds = new Set();
+
+function setSugFilter(btn, f) {
+  sugFilter = f;
+  document.querySelectorAll('.sf').forEach(b => b.classList.toggle('active', b.dataset.sf === f));
+  renderSuggestions();
+}
+
+function skillMatch(a, b) {
+  // case-insensitive intersection
+  const bLower = b.map(s => s.toLowerCase());
+  return a.filter(s => bLower.includes(s.toLowerCase()));
+}
+
+function fmtDateShort(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'2-digit'});
+}
+
+function generateSuggestions() {
+  const suggestions = [];
+
+  // ── Type 1: Rebalance between two resources on the same project ──────────
+  state.projects.forEach(proj => {
+    const team = projectTeam(proj.id);
+    if (team.length < 2) return;
+
+    team.forEach((t1, i) => {
+      team.slice(i + 1).forEach(t2 => {
+        const ra1 = resourceAlloc(t1.resourceId);
+        const ra2 = resourceAlloc(t2.resourceId);
+        const load1 = ra1.total / ra1.cap * 100;
+        const load2 = ra2.total / ra2.cap * 100;
+
+        // Identify over/under
+        let over = load1 > load2 ? {t: t1, ra: ra1, load: load1} : {t: t2, ra: ra2, load: load2};
+        let under= load1 > load2 ? {t: t2, ra: ra2, load: load2} : {t: t1, ra: ra1, load: load1};
+
+        const diff = over.load - under.load;
+        if (diff < 15) return;              // not worth suggesting
+        if (over.load < 65) return;         // neither is heavily loaded
+
+        const overRes  = state.resources.find(r => r.id === over.t.resourceId);
+        const underRes = state.resources.find(r => r.id === under.t.resourceId);
+        if (!overRes || !underRes) return;
+
+        const matching = skillMatch(overRes.skills, underRes.skills);
+        if (matching.length === 0) return;  // no skill overlap at all
+
+        // How much to move: bring loads within 10% of each other, round to 5
+        const targetLoad  = (over.load + under.load) / 2;
+        const moveLoadPct = over.load - targetLoad;            // in load% terms
+        const moveAlloc   = Math.max(5, Math.round(moveLoadPct / 100 * over.ra.cap / 5) * 5);
+        const actualMove  = Math.min(moveAlloc, over.t.allocation - 5, under.ra.available);
+        if (actualMove < 5) return;
+
+        // New loads after move
+        const newOverLoad  = ((over.ra.total  - actualMove) / over.ra.cap  * 100).toFixed(0);
+        const newUnderLoad = ((under.ra.total + actualMove) / under.ra.cap * 100).toFixed(0);
+
+        // Unique ID for this suggestion so it can be dismissed
+        const sugId = `rb_${proj.id}_${over.t.resourceId}_${under.t.resourceId}`;
+
+        suggestions.push({
+          id: sugId, type: 'rebalance',
+          priority: over.load > 90 ? 'high' : over.load > 75 ? 'medium' : 'info',
+          project: proj,
+          from:  { res: overRes,  alloc: over.t.allocation,  totalLoad: over.load,  cap: over.ra.cap,  newLoad: parseFloat(newOverLoad)  },
+          to:    { res: underRes, alloc: under.t.allocation, totalLoad: under.load, cap: under.ra.cap, newLoad: parseFloat(newUnderLoad) },
+          moveAmt: actualMove,
+          matching,
+          nonMatchingFrom: overRes.skills.filter(s => !matching.map(m=>m.toLowerCase()).includes(s.toLowerCase())),
+        });
+      });
+    });
+  });
+
+  // ── Type 2: Add a new resource to an under-resourced project ─────────────
+  state.projects.filter(p => p.status === 'active' || p.status === 'planning').forEach(proj => {
+    const team    = projectTeam(proj.id);
+    const teamIds = new Set(team.map(t => t.resourceId));
+    const curTotal= totalProjectAlloc(proj.id);
+    const projCap = proj.capacity || 100;
+
+    const gap = projCap - curTotal;
+    if (gap < 10) return;  // project is sufficiently resourced
+
+    // Skills present in the project
+    const projSkills = [...new Set(team.flatMap(t => t.resource?.skills || []))];
+
+    state.resources.filter(r => !teamIds.has(r.id)).forEach(r => {
+      const ra = resourceAlloc(r.id);
+      if (ra.available < 10) return;
+
+      const matching = skillMatch(r.skills, projSkills);
+      const score    = projSkills.length ? matching.length / projSkills.length : 0;
+      if (matching.length === 0) return;
+
+      const addAmt = Math.min(ra.available, gap, Math.round(ra.available * 0.6 / 5) * 5);
+      if (addAmt < 10) return;
+
+      // Timeline impact
+      let timelineImpact = null;
+      if (proj.startDate && proj.endDate) {
+        const start   = new Date(proj.startDate);
+        const end     = new Date(proj.endDate);
+        const today   = new Date();
+        const effStart= today > start ? today : start;
+        const remDays = Math.max(1, Math.round((end - effStart) / 86400000));
+        const curVel  = Math.max(0.01, curTotal / 100);
+        const work    = remDays * curVel;
+        const newVel  = (curTotal + addAmt) / 100;
+        const newDays = Math.round(work / newVel);
+        const saved   = remDays - newDays;
+        const newEnd  = new Date(effStart.getTime() + newDays * 86400000);
+        if (saved > 0) timelineImpact = { saved, remDays, newDays, oldEnd: end, newEnd, curVel: curTotal, newVel: curTotal + addAmt };
+      }
+
+      const sugId = `add_${proj.id}_${r.id}`;
+      suggestions.push({
+        id: sugId, type: 'add',
+        priority: gap > 35 ? 'high' : 'medium',
+        project: proj, resource: r,
+        addAmt, matching, score,
+        curTotal, gap, available: ra.available,
+        timelineImpact,
+      });
+    });
+  });
+
+  // Sort: high first, then by type rebalance before add, then by gap/diff
+  return suggestions
+    .filter(s => !dismissedIds.has(s.id))
+    .sort((a, b) => {
+      const pri = {high:0, medium:1, info:2};
+      return (pri[a.priority]||1) - (pri[b.priority]||1) || (a.type==='rebalance'?0:1)-(b.type==='rebalance'?0:1);
+    });
+}
+
+function renderSuggestions() {
+  const all  = generateSuggestions();
+  const show = all.filter(s => {
+    if (sugFilter === 'rebalance') return s.type === 'rebalance';
+    if (sugFilter === 'add')       return s.type === 'add';
+    if (sugFilter === 'high')      return s.priority === 'high';
+    return true;
+  });
+
+  const high   = all.filter(s => s.priority === 'high').length;
+  const rb     = all.filter(s => s.type === 'rebalance').length;
+  const addSug = all.filter(s => s.type === 'add').length;
+
+  document.getElementById('sug-stats').innerHTML = `
+    <div class="sc"><span>${all.length}</span> Suggestions</div>
+    <div class="sc"><span style="color:var(--loss)">${high}</span> High Priority</div>
+    <div class="sc"><span>${rb}</span> Rebalance</div>
+    <div class="sc"><span>${addSug}</span> Add Resource</div>`;
+
+  if (!state.resources.length || !state.projects.length || !state.allocations.length) {
+    document.getElementById('sug-list').innerHTML = `<div class="sug-no-results"><div class="icon">📊</div><p>Add resources, projects and allocations to see workload suggestions.</p></div>`;
+    return;
+  }
+  if (!show.length) {
+    document.getElementById('sug-list').innerHTML = `<div class="sug-no-results"><div class="icon">✅</div><p style="font-size:.88rem;margin-bottom:6px;color:var(--text)">Workload looks balanced!</p><p>No reallocation suggestions for the current filter. Try switching to "All".</p></div>`;
+    return;
+  }
+
+  document.getElementById('sug-list').innerHTML = show.map(s => buildSugCard(s)).join('');
+}
+
+function buildSugCard(s) {
+  const priLabel = {high:'🔴 High Priority', medium:'🟡 Medium', info:'🔵 Info'}[s.priority];
+  const priClass = {high:'sug-badge-high',   medium:'sug-badge-medium', info:'sug-badge-info'}[s.priority];
+  const stripe   = s.priority === 'high' ? 'var(--loss)' : s.priority === 'medium' ? 'var(--warn)' : 'var(--harvest)';
+
+  if (s.type === 'rebalance') {
+    const { from, to, moveAmt, matching, nonMatchingFrom, project } = s;
+    const ac1 = avatarColor(from.res.id), ac2 = avatarColor(to.res.id);
+
+    const beforeFrom = from.totalLoad, afterFrom = from.newLoad;
+    const beforeTo   = to.totalLoad,   afterTo   = to.newLoad;
+
+    const skillsHtml = `
+      <span class="sug-skills-label">Matching skills:</span>
+      ${matching.map(sk=>`<span class="match-tag">✓ ${sk}</span>`).join('')}
+      ${nonMatchingFrom.slice(0,4).map(sk=>`<span class="nmatch-tag">${sk}</span>`).join('')}`;
+
+    const timelineHtml = ''; // rebalance doesn't change total allocation, so no timeline change
+
+    return `<div class="sug-card" id="sc-${s.id}">
+      <div class="sug-stripe" style="background:${stripe}"></div>
+      <div class="sug-body">
+        <div class="sug-head">
+          <span class="sug-badge ${priClass}">${priLabel}</span>
+          <span class="sug-type">Rebalance Workload</span>
+          <span class="sug-proj" style="color:${project.color}">● ${project.name}</span>
+        </div>
+        <div class="sug-compare">
+          <div class="sug-person">
+            <div class="sp-name" style="color:${ac1}">${from.res.name}</div>
+            <div class="sp-role">${from.res.role||'—'} · ${from.alloc}% on this project</div>
+            <div class="sp-bar-wrap">
+              <div class="sp-bar-before" style="width:${Math.min(beforeFrom,100)}%;background:${ac1}"></div>
+              <div class="sp-bar-after"  style="width:${Math.min(afterFrom, 100)}%;background:${ac1}"></div>
+            </div>
+            <div class="sp-pct"><span>Overall load</span><span><strong>${beforeFrom.toFixed(0)}%</strong> → <strong>${afterFrom}%</strong></span></div>
+            <div class="sp-change" style="color:var(--profit)">↓ ${(beforeFrom - afterFrom).toFixed(0)}% less after rebalance</div>
+          </div>
+          <div class="sug-arrow">→</div>
+          <div class="sug-person">
+            <div class="sp-name" style="color:${ac2}">${to.res.name}</div>
+            <div class="sp-role">${to.res.role||'—'} · ${to.alloc}% on this project</div>
+            <div class="sp-bar-wrap">
+              <div class="sp-bar-before" style="width:${Math.min(beforeTo,100)}%;background:${ac2}"></div>
+              <div class="sp-bar-after"  style="width:${Math.min(afterTo, 100)}%;background:${ac2}"></div>
+            </div>
+            <div class="sp-pct"><span>Overall load</span><span><strong>${beforeTo.toFixed(0)}%</strong> → <strong>${afterTo}%</strong></span></div>
+            <div class="sp-change" style="color:var(--warn)">↑ +${(afterTo - beforeTo).toFixed(0)}% additional</div>
+          </div>
+        </div>
+        <div class="sug-skills">${skillsHtml}</div>
+        <div class="sug-impact">
+          <span class="impact-pill impact-load">⚖ Move ${moveAmt}% workload from ${from.res.name.split(' ')[0]} → ${to.res.name.split(' ')[0]}</span>
+          <span class="impact-pill impact-load">📉 ${from.res.name.split(' ')[0]} drops from ${beforeFrom.toFixed(0)}% to ${afterFrom}%</span>
+          <span class="impact-pill impact-warn">ℹ Project timeline unchanged — total effort stays same</span>
+        </div>
+      </div>
+      <div class="sug-footer">
+        <div class="sug-action-desc">Move <strong>${moveAmt}%</strong> of <strong>${project.name}</strong> allocation from <strong>${from.res.name}</strong> to <strong>${to.res.name}</strong></div>
+        <div class="sug-btns">
+          <button class="btn-dismiss" onclick="dismissSuggestion('${s.id}')">Dismiss</button>
+          <button class="btn-apply"   onclick="applyRebalance('${s.id}','${project.id}','${from.res.id}','${to.res.id}',${moveAmt})">Apply →</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── type: add ────────────────────────────────────────────────────────────
+  const { project, resource, addAmt, matching, curTotal, gap, available, timelineImpact } = s;
+  const ac = avatarColor(resource.id);
+  const projTeamSkills = [...new Set(projectTeam(project.id).flatMap(t => t.resource?.skills || []))];
+
+  const skillsHtml = `
+    <span class="sug-skills-label">Matching skills:</span>
+    ${matching.map(sk=>`<span class="match-tag">✓ ${sk}</span>`).join('')}
+    ${resource.skills.filter(sk=>!matching.map(m=>m.toLowerCase()).includes(sk.toLowerCase())).slice(0,3).map(sk=>`<span class="nmatch-tag">${sk}</span>`).join('')}`;
+
+  let timelineHtml = '';
+  if (timelineImpact) {
+    const { saved, remDays, newDays, oldEnd, newEnd, curVel: cv, newVel: nv } = timelineImpact;
+    const pctFaster = ((remDays - newDays) / remDays * 100).toFixed(0);
+    timelineHtml = `<div class="timeline-block">
+      <div class="tl-title">📅 Estimated Timeline Impact</div>
+      <div class="tl-row">
+        <span class="tl-label" style="color:var(--text-muted)">Before</span>
+        <div class="tl-bar-wrap"><div class="tl-bar" style="width:100%;background:var(--loss);opacity:.5"></div></div>
+        <span class="tl-date">${fmtDateShort(oldEnd.toISOString().slice(0,10))}</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-label" style="color:var(--profit)">After</span>
+        <div class="tl-bar-wrap"><div class="tl-bar" style="width:${100-parseFloat(pctFaster)}%;background:var(--profit)"></div></div>
+        <span class="tl-date" style="color:var(--profit)">${fmtDateShort(newEnd.toISOString().slice(0,10))}</span>
+      </div>
+      <div class="tl-saving">🚀 ${saved} day${saved!==1?'s':''} earlier · ${pctFaster}% faster · ${cv}% → ${nv}% velocity</div>
+    </div>`;
+  }
+
+  const raNew = resourceAlloc(resource.id);
+
+  return `<div class="sug-card" id="sc-${s.id}">
+    <div class="sug-stripe" style="background:${stripe}"></div>
+    <div class="sug-body">
+      <div class="sug-head">
+        <span class="sug-badge ${priClass}">${priLabel}</span>
+        <span class="sug-type">Add to Project</span>
+        <span class="sug-proj" style="color:${project.color}">● ${project.name}</span>
+      </div>
+      <div class="sug-compare">
+        <div class="sug-person">
+          <div class="sp-name" style="color:${ac}">${resource.name}</div>
+          <div class="sp-role">${resource.role||'—'}</div>
+          <div class="sp-bar-wrap">
+            <div class="sp-bar-before" style="width:${Math.min(raNew.total, 100)}%;background:${ac}"></div>
+            <div class="sp-bar-after"  style="width:${Math.min(raNew.total + addAmt, 100)}%;background:${ac}"></div>
+          </div>
+          <div class="sp-pct"><span>Current load</span><span><strong>${raNew.total}%</strong> used · <strong style="color:var(--profit)">${available}%</strong> free</span></div>
+          <div class="sp-change" style="color:var(--profit)">Can take ${available}% more — suggest ${addAmt}%</div>
+        </div>
+        <div class="sug-arrow">+</div>
+        <div class="sug-person" style="border-left:3px solid ${project.color}">
+          <div class="sp-name" style="color:${project.color}">${project.name}</div>
+          <div class="sp-role">${project.description||''}</div>
+          <div class="sp-bar-wrap">
+            <div class="sp-bar-before" style="width:${Math.min(curTotal,100)}%;background:${project.color};opacity:.4"></div>
+            <div class="sp-bar-after"  style="width:${Math.min(curTotal+addAmt,100)}%;background:${project.color}"></div>
+          </div>
+          <div class="sp-pct"><span>Project capacity</span><span><strong>${curTotal}%</strong> → <strong>${curTotal+addAmt}%</strong> of ${project.capacity||100}%</span></div>
+          <div class="sp-change" style="color:var(--harvest)">Gap closes by ${addAmt}% (was ${gap}%)</div>
+        </div>
+      </div>
+      <div class="sug-skills">${skillsHtml}</div>
+      ${timelineHtml}
+      <div class="sug-impact">
+        <span class="impact-pill impact-load">➕ Allocate ${resource.name.split(' ')[0]} at ${addAmt}%</span>
+        ${timelineImpact ? `<span class="impact-pill impact-time">⏱ ${timelineImpact.saved} days earlier</span>` : ''}
+        <span class="impact-pill impact-load">📈 Project velocity: ${curTotal}% → ${curTotal+addAmt}%</span>
+      </div>
+    </div>
+    <div class="sug-footer">
+      <div class="sug-action-desc">Add <strong>${resource.name}</strong> to <strong>${project.name}</strong> at <strong>${addAmt}%</strong> allocation</div>
+      <div class="sug-btns">
+        <button class="btn-dismiss" onclick="dismissSuggestion('${s.id}')">Dismiss</button>
+        <button class="btn-apply"   onclick="applyAdd('${s.id}','${resource.id}','${project.id}',${addAmt})">Apply →</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function applyRebalance(sugId, projId, fromId, toId, moveAmt) {
+  const fromAlloc = state.allocations.find(a => a.resourceId===fromId && a.projectId===projId);
+  const toAlloc   = state.allocations.find(a => a.resourceId===toId   && a.projectId===projId);
+  if (fromAlloc) fromAlloc.allocation = Math.max(5, fromAlloc.allocation - moveAmt);
+  if (toAlloc)   toAlloc.allocation   = toAlloc.allocation + moveAmt;
+  else state.allocations.push({id:uid(), resourceId:toId, projectId:projId, allocation:moveAmt});
+  save();
+  markApplied(sugId);
+  setTimeout(() => renderSuggestions(), 1200);
+  renderResources(); renderProjects();
+}
+
+function applyAdd(sugId, resourceId, projectId, pct) {
+  state.allocations = state.allocations.filter(a=>!(a.resourceId===resourceId&&a.projectId===projectId));
+  state.allocations.push({id:uid(), resourceId, projectId, allocation:pct});
+  save();
+  markApplied(sugId);
+  setTimeout(() => renderSuggestions(), 1200);
+  renderResources(); renderProjects();
+}
+
+function dismissSuggestion(id) {
+  dismissedIds.add(id);
+  const el = document.getElementById(`sc-${id}`);
+  if (el) { el.style.opacity = '0'; el.style.transform = 'translateX(20px)'; el.style.transition = 'all .3s'; setTimeout(() => renderSuggestions(), 350); }
+}
+
+function markApplied(id) {
+  const card = document.getElementById(`sc-${id}`);
+  if (!card) return;
+  const footer = card.querySelector('.sug-footer');
+  if (footer) footer.innerHTML = `<span class="sug-applied">✅ Applied! Allocation updated.</span>`;
+}
+
+// ─── Modal helpers ────────────────────────────────────────────────────────────
+function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(e, id) { if (e.target.id===id) closeOverlay(id); }
+document.addEventListener('keydown', e => { if (e.key==='Escape') document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open')); });
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+load();
+renderResources();
+</script>
+</body>
+</html>
